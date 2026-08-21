@@ -1,12 +1,16 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/react";
 import logo from "./../assets/logo.png";
 
 const navLinks = [
   { href: "/", label: "Home" },
-  { href: "/pinned", label: "Pinned" },
-  { href: "/drones", label: "Drones" },
   { href: "/gs", label: "Genomic Selection" },
   { href: "/qg", label: "Quantative Genetics" },
+  { href: "/ml", label: "Machine Learning" },
+  { href: "/math", label: "Mathematics" },
+  { href: "/drones", label: "Drones" },
+  { href: "/archive", label: "Archive" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];
@@ -54,11 +58,13 @@ function Header() {
 
         {/* Logo, title, and name - centered */}
         <div className="flex items-center justify-center gap-2 sm:gap-3">
-          <img
-            src={logo}
-            alt="Site logo"
-            className="h-10 w-auto sm:h-16 md:h-20"
-          />
+          <a href={logo} target="_blank" rel="noopener noreferrer">
+            <img
+              src={logo}
+              alt="Site logo"
+              className="h-10 w-auto sm:h-16 md:h-20"
+            />
+          </a>
           <div className="flex flex-col items-center sm:items-start">
             <span className="text-sm font-semibold text-gray-900 sm:text-lg md:text-xl">
               Breeders Blog
@@ -103,13 +109,29 @@ function Header() {
             </span>
           </div>
 
-          {/* Sign In button */}
-          <button
-            type="button"
-            className="rounded-md px-3 py-2 text-base text-black transition-colors hover:bg-gray-200 sm:px-5 sm:py-2.5 sm:text-lg"
-          >
-            Sign In
-          </button>
+          {/* Clerk auth controls */}
+          <Show when="signed-out">
+            <SignInButton mode="modal">
+              <button
+                type="button"
+                className="rounded-md px-3 py-2 text-base text-black transition-colors hover:bg-gray-200 sm:px-5 sm:py-2.5 sm:text-lg"
+              >
+                Sign In
+              </button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <button
+                type="button"
+                className="rounded-md px-3 py-2 text-base text-white bg-gray-900 transition-colors hover:bg-gray-700 sm:px-5 sm:py-2.5 sm:text-lg"
+              >
+                Sign Up
+              </button>
+            </SignUpButton>
+          </Show>
+
+          <Show when="signed-in">
+            <UserButton />
+          </Show>
         </div>
       </div>
 
@@ -121,12 +143,12 @@ function Header() {
         <ul className="flex justify-center gap-6 text-gray-700 font-medium">
           {navLinks.map((link) => (
             <li key={link.href}>
-              <a
-                href={link.href}
+              <Link
+                to={link.href}
                 className="hover:text-gray-900 transition-colors"
               >
                 {link.label}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>
@@ -141,13 +163,13 @@ function Header() {
           <ul className="flex flex-col divide-y divide-gray-100 text-gray-700 font-medium">
             {navLinks.map((link) => (
               <li key={link.href}>
-                <a
-                  href={link.href}
+                <Link
+                  to={link.href}
                   onClick={() => setMenuOpen(false)}
                   className="block px-6 py-3 hover:bg-gray-50 hover:text-gray-900 transition-colors"
                 >
                   {link.label}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
