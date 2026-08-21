@@ -1,28 +1,29 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/react";
 import logo from "./../assets/logo.png";
+import { DYNAMIC_TOPICS, PERMANENT_TOPICS } from "../routes";
 
-const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/gs", label: "Genomic Selection" },
-  { href: "/qg", label: "Quantative Genetics" },
-  { href: "/ml", label: "Machine Learning" },
-  { href: "/math", label: "Mathematics" },
-  { href: "/drones", label: "Drones" },
-  { href: "/archive", label: "Archive" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
-];
-
-function Header() {
+function Header({ topics = DYNAMIC_TOPICS }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <header className="flex flex-col items-center px-6 py-4 bg-white relative">
-      {/* Top section: logo + title/name centered, actions on right (all screen sizes) */}
+      {/* Top section */}
       <div className="grid w-full grid-cols-3 items-center gap-2 pb-4">
-        {/* Left: hamburger on mobile, spacer on larger screens */}
+        {/* Left: hamburger on mobile */}
         <div className="flex items-center">
           <button
             type="button"
@@ -31,7 +32,6 @@ function Header() {
             aria-label="Toggle navigation menu"
             aria-expanded={menuOpen}
           >
-            {/* Simple hamburger / close icon swap */}
             <svg
               className="h-6 w-6"
               fill="none"
@@ -56,7 +56,7 @@ function Header() {
           </button>
         </div>
 
-        {/* Logo, title, and name - centered */}
+        {/* Logo + title */}
         <div className="flex items-center justify-center gap-2 sm:gap-3">
           <a href={logo} target="_blank" rel="noopener noreferrer">
             <img
@@ -75,9 +75,8 @@ function Header() {
           </div>
         </div>
 
-        {/* Action buttons - right aligned */}
+        {/* Auth + search */}
         <div className="flex items-center justify-end gap-4 sm:gap-6">
-          {/* Search button with hover tooltip */}
           <div className="relative group">
             <button
               type="button"
@@ -98,18 +97,11 @@ function Header() {
                 />
               </svg>
             </button>
-
-            {/* Tooltip */}
-            <span
-              className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2
-                 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white
-                 opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100"
-            >
+            <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100">
               Search
             </span>
           </div>
 
-          {/* Clerk auth controls */}
           <Show when="signed-out">
             <SignInButton mode="modal">
               <button
@@ -135,36 +127,79 @@ function Header() {
         </div>
       </div>
 
-      {/* Divider line */}
-      <div className="w-full border-t border-gray-200"></div>
+      {/* Divider */}
+      <div className="w-full border-t border-gray-200" />
 
-      {/* Bottom section: nav links - horizontal on sm+, hidden on mobile */}
+      {/* Desktop nav */}
       <nav className="hidden sm:block py-4">
-        <ul className="flex justify-center gap-6 text-gray-700 font-medium">
-          {navLinks.map((link) => (
-            <li key={link.href}>
-              <Link
-                to={link.href}
-                className="hover:text-gray-900 transition-colors"
-              >
-                {link.label}
-              </Link>
-            </li>
-          ))}
+        <ul className="flex items-center gap-6 font-medium text-gray-700">
+          {PERMANENT_TOPICS.map((link) =>
+            link.label === "Topics" ? (
+              <li key={link.path} className="relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setDropdownOpen((prev) => !prev)}
+                  className="flex items-center gap-1 hover:text-gray-900 transition-colors"
+                >
+                  Topics
+                  <svg
+                    className={`h-4 w-4 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+
+                {dropdownOpen && (
+                  <ul className="absolute left-0 top-full z-20 mt-2 w-52 rounded-md border border-gray-200 bg-white shadow-lg py-1">
+                    {topics.map((topic) => (
+                      <li key={topic.path}>
+                        <Link
+                          to={topic.path}
+                          onClick={() => setDropdownOpen(false)}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                        >
+                          {topic.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ) : (
+              <li key={link.path}>
+                <Link
+                  to={link.path}
+                  className="hover:text-gray-900 transition-colors"
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ),
+          )}
         </ul>
       </nav>
 
-      {/* Divider line (only needed when the desktop nav row is shown) */}
-      <div className="hidden sm:block w-full border-t border-gray-200"></div>
+      <div className="hidden sm:block w-full border-t border-gray-200" />
 
-      {/* Mobile dropdown menu */}
+      {/* Mobile menu — topics expanded inline */}
       {menuOpen && (
         <div className="sm:hidden absolute left-0 top-full z-20 w-full bg-white shadow-md border-t border-gray-200">
           <ul className="flex flex-col divide-y divide-gray-100 text-gray-700 font-medium">
-            {navLinks.map((link) => (
-              <li key={link.href}>
+            {[
+              ...PERMANENT_TOPICS.filter((l) => l.label !== "Topics"),
+              ...topics,
+            ].map((link) => (
+              <li key={link.path}>
                 <Link
-                  to={link.href}
+                  to={link.path}
                   onClick={() => setMenuOpen(false)}
                   className="block px-6 py-3 hover:bg-gray-50 hover:text-gray-900 transition-colors"
                 >

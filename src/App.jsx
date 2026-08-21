@@ -1,33 +1,23 @@
-// src/App.jsx (or wherever your top-level routing lives)
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Topic from "./pages/Topic";
+import { PERMANENT_TOPICS } from "./routes";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
-import Home from "./pages/Home";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import Math from "./pages/math";
-import QuantGen from "./pages/QuantGen";
-import GS from "./pages/GS";
-import ML from "./pages/ML";
-import Drones from "./pages/Drones";
-import Archive from "./pages/Archive";
 
-function App() {
+export default function App() {
   return (
     <BrowserRouter>
-      <div className="flex flex-col min-h-screen">
+      <div className="flex min-h-screen flex-col">
         <Header />
-        <main className="flex-grow">
+        <main className="flex-1">
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/math" element={<Math />} />
-            <Route path="/qg" element={<QuantGen />} />
-            <Route path="/gs" element={<GS />} />
-            <Route path="/ml" element={<ML />} />
-            <Route path="/drones" element={<Drones />} />
-            <Route path="/archive" element={<Archive />} />
+            {PERMANENT_TOPICS.filter((r) => r.component).map(
+              ({ path, component: C }) => (
+                <Route key={path} path={path} element={<C />} />
+              ),
+            )}
+
+            <Route path="/topics/:topic" element={<Topic />} />
           </Routes>
         </main>
         <Footer />
@@ -35,5 +25,3 @@ function App() {
     </BrowserRouter>
   );
 }
-
-export default App;
