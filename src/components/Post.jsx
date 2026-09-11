@@ -1,35 +1,17 @@
 import { useState } from "react";
+import Icon from "./Icon";
+import VoteControls from "./VoteControls";
 import pinIcon from "../assets/pin.svg?raw";
 import commentIcon from "../assets/comment.svg?raw";
-import upvoteIcon from "../assets/upvote.svg?raw";
-import downvoteIcon from "../assets/downvote.svg?raw";
 
-// Inlines a static, build-time SVG file's markup as a real DOM element so it
-// can be colored with currentColor. Safe here because the source is a fixed
-// asset file, never user-controlled data.
-function Icon({ svg, className }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`block [&>svg]:h-full [&>svg]:w-full ${className}`}
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
-  );
-}
-
-function Post({ post }) {
+function Post({ post, onSelect }) {
   const [pinned, setPinned] = useState(post.pinned);
-  const [score, setScore] = useState(post.voteScore);
-  const [vote, setVote] = useState(0); // -1 down, 0 none, 1 up
-
-  function castVote(direction) {
-    const next = vote === direction ? 0 : direction;
-    setScore(score - vote + next);
-    setVote(next);
-  }
 
   return (
-    <div className="group rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+    <div
+      onClick={() => onSelect?.(post)}
+      className="group cursor-pointer rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+    >
       {/* Header row: title, author, pin */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-baseline gap-2">
@@ -39,7 +21,10 @@ function Post({ post }) {
 
         <button
           type="button"
-          onClick={() => setPinned((p) => !p)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setPinned((p) => !p);
+          }}
           aria-label={pinned ? "Unpin post" : "Pin post"}
           aria-pressed={pinned}
           className={`shrink-0 rounded-md p-1.5 transition-colors hover:bg-gray-100 ${
@@ -64,35 +49,7 @@ function Post({ post }) {
           <span>{post.comment}</span>
         </div>
 
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => castVote(1)}
-            aria-label="Upvote"
-            aria-pressed={vote === 1}
-            className={`rounded-md p-1 text-green-600 transition-colors hover:bg-green-50 ${
-              vote === 1 ? "bg-green-100" : ""
-            }`}
-          >
-            <Icon svg={upvoteIcon} className="h-4 w-4" />
-          </button>
-
-          <span className="min-w-[2ch] text-center font-medium text-gray-700">
-            {score}
-          </span>
-
-          <button
-            type="button"
-            onClick={() => castVote(-1)}
-            aria-label="Downvote"
-            aria-pressed={vote === -1}
-            className={`rounded-md p-1 text-red-600 transition-colors hover:bg-red-50 ${
-              vote === -1 ? "bg-red-100" : ""
-            }`}
-          >
-            <Icon svg={downvoteIcon} className="h-4 w-4" />
-          </button>
-        </div>
+        <VoteControls score={post.voteScore} />
       </div>
     </div>
   );
