@@ -67,7 +67,7 @@ function Header({ topics = DYNAMIC_TOPICS }) {
           </a>
           <div className="flex flex-col items-center sm:items-start">
             <span className="text-sm font-semibold text-gray-900 sm:text-lg md:text-xl">
-              Breeders Blog
+              Breeder's Blog
             </span>
             <span className="text-xs text-gray-500 sm:text-sm">
               Will de la Bretonne

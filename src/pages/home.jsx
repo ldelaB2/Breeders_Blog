@@ -6,10 +6,10 @@ import Footer from "../components/Footer";
 function Home() {
   return (
     <div>
-      {/* Pinned Post */}
-      <PinnedPost />
       {/* Top Post */}
       <TopPost />
+      {/* Pinned Post */}
+      <PinnedPost />
     </div>
   );
 }
