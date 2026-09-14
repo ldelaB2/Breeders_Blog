@@ -1,11 +1,22 @@
-import { useState } from "react";
+import { useUser } from "@clerk/react";
 import Icon from "../Icon";
 import VoteControls from "../VoteControls";
+import { voteState } from "../../lib/voting";
+import { useToast } from "../../lib/useToast";
 import pinIcon from "../../assets/pin.svg?raw";
 import commentIcon from "../../assets/comment.svg?raw";
 
-function Post({ post, onSelect }) {
-  const [pinned, setPinned] = useState(post.pinned);
+function Post({ post, onSelect, onTogglePin, onUpvote, onDownvote }) {
+  const { user } = useUser();
+  const showToast = useToast();
+  const isPinned = user ? post.pinnedBy.includes(user.id) : false;
+  const { score, myVote } = voteState(post.upvotes, post.downvotes, user?.id);
+
+  function requireSignIn(action) {
+    if (user) return true;
+    showToast(`Please sign in to ${action}`);
+    return false;
+  }
 
   return (
     <div
@@ -16,23 +27,31 @@ function Post({ post, onSelect }) {
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-baseline gap-2">
           <h3 className="truncate font-bold text-gray-900">{post.title}</h3>
-          <span className="shrink-0 text-sm text-gray-500">{post.author}</span>
+          <span className="shrink-0 text-sm text-gray-500">{post.authorName}</span>
         </div>
 
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setPinned((p) => !p);
-          }}
-          aria-label={pinned ? "Unpin post" : "Pin post"}
-          aria-pressed={pinned}
-          className={`shrink-0 rounded-md p-1.5 transition-colors hover:bg-gray-100 ${
-            pinned ? "text-amber-500" : "text-gray-300"
-          }`}
-        >
-          <Icon svg={pinIcon} className="h-5 w-5" />
-        </button>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {post.status === "PENDING" && (
+            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600">
+              Pending
+            </span>
+          )}
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (requireSignIn("pin posts")) onTogglePin?.(post.id);
+            }}
+            aria-label={isPinned ? "Unpin post" : "Pin post"}
+            aria-pressed={isPinned}
+            className={`rounded-md p-1.5 transition-colors hover:bg-gray-100 ${
+              isPinned ? "text-amber-500" : "text-gray-300"
+            }`}
+          >
+            <Icon svg={pinIcon} className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       {/* Abstract: clamped to a couple lines, expands on hover */}
@@ -46,10 +65,15 @@ function Post({ post, onSelect }) {
       <div className="mt-4 flex items-center justify-between text-sm">
         <div className="flex items-center gap-1 text-gray-500">
           <Icon svg={commentIcon} className="h-4 w-4" />
-          <span>{post.comment}</span>
+          <span>{post.commentCount}</span>
         </div>
 
-        <VoteControls score={post.voteScore} />
+        <VoteControls
+          score={score}
+          myVote={myVote}
+          onUpvote={() => requireSignIn("vote") && onUpvote?.(post.id)}
+          onDownvote={() => requireSignIn("vote") && onDownvote?.(post.id)}
+        />
       </div>
     </div>
   );
