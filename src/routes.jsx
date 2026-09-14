@@ -11,6 +11,7 @@ export const DYNAMIC_TOPICS = [
   { slug: "ml", label: "Machine Learning" },
   { slug: "math", label: "Mathematics" },
   { slug: "drones", label: "Drones" },
+  { slug: "history", label: "History of Breeding" },
   { slug: "archive", label: "Archive" },
 ].map((t) => ({ ...t, path: `/topics/${t.slug}` }));
 

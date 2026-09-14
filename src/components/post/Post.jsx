@@ -1,8 +1,8 @@
 import { useState } from "react";
-import Icon from "./Icon";
-import VoteControls from "./VoteControls";
-import pinIcon from "../assets/pin.svg?raw";
-import commentIcon from "../assets/comment.svg?raw";
+import Icon from "../Icon";
+import VoteControls from "../VoteControls";
+import pinIcon from "../../assets/pin.svg?raw";
+import commentIcon from "../../assets/comment.svg?raw";
 
 function Post({ post, onSelect }) {
   const [pinned, setPinned] = useState(post.pinned);

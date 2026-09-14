@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { DYNAMIC_TOPICS } from "../routes";
-import Post from "../components/Post";
-import PostReader from "../components/PostReader";
+import Post from "../components/post/Post";
+import PostReader from "../components/post/PostReader";
 import posts from "../../sample_post/posts.json";
 
 export default function Topic() {

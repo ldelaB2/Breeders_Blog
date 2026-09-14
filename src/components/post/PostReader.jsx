@@ -1,7 +1,7 @@
-import Icon from "./Icon";
-import CommentSection from "./comment/CommentSection";
-import Footer from "./Footer";
-import backArrowIcon from "../assets/backarrow.svg?raw";
+import Icon from "../Icon";
+import CommentSection from "../comment/CommentSection";
+import Footer from "../Footer";
+import backArrowIcon from "../../assets/backarrow.svg?raw";
 
 // Full-screen reader for a single post's HTML body. Rendered whenever a post
 // is selected from the topic list, replacing that list until the user backs out.
@@ -19,7 +19,9 @@ function PostReader({ post, onBack }) {
         </button>
 
         <div className="min-w-0 flex-1 text-center">
-          <h1 className="truncate text-xl font-bold text-gray-900">{post.title}</h1>
+          <h1 className="truncate text-xl font-bold text-gray-900">
+            {post.title}
+          </h1>
           <p className="text-sm text-gray-500">{post.author}</p>
         </div>
       </div>

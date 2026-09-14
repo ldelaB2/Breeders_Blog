@@ -1,5 +1,5 @@
 import React from "react";
-import TopPost from "../components/TopPost";
+import TopPost from "../components/post/TopPost";
 
 function Home() {
   return (
