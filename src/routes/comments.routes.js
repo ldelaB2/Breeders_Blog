@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
-import { requireAuth } from "../middleware/requireAuth.js";
+import { requireAuth, requireRole } from "../middleware/requireAuth.js";
 import { serializeComment } from "../lib/serializeComment.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
 
@@ -99,6 +99,30 @@ router.delete(
     const updated = await prisma.comment.update({
       where: { id: req.params.id },
       data: { deletedAt: new Date() },
+      include,
+    });
+    res.json(serializeComment(updated));
+  })
+);
+
+// Undoes a soft-delete: the row's `text` was never cleared (see
+// serializeComment.js), so clearing deletedAt is enough to bring the
+// original comment straight back. Moderator/admin only - unlike deleting a
+// comment, restoring one is never left to its own author.
+router.post(
+  "/comments/:id/restore",
+  requireAuth,
+  requireRole("MODERATOR", "ADMIN"),
+  asyncHandler(async (req, res) => {
+    const comment = await findComment(req.params.id);
+    if (!comment) return res.status(404).json({ error: "Comment not found" });
+    if (!comment.deletedAt) {
+      return res.status(400).json({ error: "Comment is not deleted" });
+    }
+
+    const updated = await prisma.comment.update({
+      where: { id: req.params.id },
+      data: { deletedAt: null },
       include,
     });
     res.json(serializeComment(updated));

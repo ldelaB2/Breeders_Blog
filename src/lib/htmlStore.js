@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 
 // Stand-in for fetching/storing the moderator-stitched HTML in S3 by its
@@ -20,4 +20,9 @@ export async function getStitchedHtml(htmlSlug) {
 export async function saveStitchedHtml(htmlSlug, html) {
   await mkdir(STORE_ROOT, { recursive: true });
   await writeFile(path.join(STORE_ROOT, htmlSlug), html, "utf8");
+}
+
+export async function deleteStitchedHtml(htmlSlug) {
+  if (!htmlSlug) return;
+  await rm(path.join(STORE_ROOT, htmlSlug), { force: true });
 }

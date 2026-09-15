@@ -53,6 +53,11 @@ model PostMetadata {
   // Snapshot of the author's display name at post time, so a later
   // name change doesn't rewrite history.
   authorName String
+  // Snapshot of the author's Clerk profile photo URL at post time (same
+  // reasoning as authorName). Nullable because posts created before this
+  // field existed have no value and are never backfilled - they just show
+  // a fallback placeholder in the UI.
+  authorAvatarUrl String?
   author     User       @relation("Author", fields: [authorId], references: [id])
 
   reviewedById    String?

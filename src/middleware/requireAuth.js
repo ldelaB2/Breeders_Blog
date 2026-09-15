@@ -27,7 +27,7 @@ async function resolveUser(token) {
     update: { name, role },
     create: { id: userId, name, role },
   });
-  return user;
+  return { ...user, avatarUrl: clerkUser.imageUrl };
 }
 
 function bearerToken(req) {
@@ -45,6 +45,7 @@ export async function requireAuth(req, res, next) {
     req.userId = user.id;
     req.userName = user.name;
     req.userRole = user.role;
+    req.userAvatarUrl = user.avatarUrl;
     next();
   } catch {
     res.status(401).json({ error: "Invalid auth token" });
@@ -63,6 +64,7 @@ export async function optionalAuth(req, res, next) {
     req.userId = user.id;
     req.userName = user.name;
     req.userRole = user.role;
+    req.userAvatarUrl = user.avatarUrl;
   } catch {
     // Invalid/expired token on an optional route: proceed as anonymous.
   }

@@ -16,6 +16,7 @@ export function serializePost(post, viewer = {}, opts = {}) {
     locked: post.locked,
     authorId: post.authorId,
     authorName: post.authorName,
+    authorAvatarUrl: post.authorAvatarUrl,
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
     htmlSlug: post.body?.htmlSlug ?? null,

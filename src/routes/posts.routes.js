@@ -3,7 +3,7 @@ import { prisma } from "../lib/prisma.js";
 import { requireAuth, optionalAuth, requireRole } from "../middleware/requireAuth.js";
 import { serializePost } from "../lib/serializePost.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
-import { getStitchedHtml, saveStitchedHtml } from "../lib/htmlStore.js";
+import { getStitchedHtml, saveStitchedHtml, deleteStitchedHtml } from "../lib/htmlStore.js";
 import { postInclude as include } from "../lib/postInclude.js";
 import { rankScore } from "../lib/rankScore.js";
 import { ZipArchive } from "archiver";
@@ -155,6 +155,24 @@ router.get(
   })
 );
 
+// Permanently deletes a post and everything attached to it (body,
+// votes, pins, comments, comment votes - all cascade at the DB level from
+// PostMetadata's foreign keys) plus its stitched HTML file, if any.
+// Admin-only and irreversible - there's no undo, unlike archive.
+router.delete(
+  "/:id",
+  requireAuth,
+  requireRole("ADMIN"),
+  asyncHandler(async (req, res) => {
+    const post = await findPost(req.params.id);
+    if (!post) return res.status(404).json({ error: "Post not found" });
+
+    await deleteStitchedHtml(post.body?.htmlSlug);
+    await prisma.postMetadata.delete({ where: { id: req.params.id } });
+    res.status(204).end();
+  })
+);
+
 router.post(
   "/",
   requireAuth,
@@ -165,7 +183,8 @@ router.post(
     if (!title) return;
     const abstract = requireString(req.body.abstract, "abstract", res);
     if (!abstract) return;
-    const rawMd = typeof req.body.rawMd === "string" ? req.body.rawMd.trim() : "";
+    const rawMd = requireString(req.body.rawMd, "rawMd", res);
+    if (!rawMd) return;
 
     const post = await prisma.postMetadata.create({
       data: {
@@ -174,6 +193,7 @@ router.post(
         abstract,
         authorId: req.userId,
         authorName: req.userName,
+        authorAvatarUrl: req.userAvatarUrl,
         body: { create: { rawMd } },
       },
       include,
