@@ -59,6 +59,9 @@ router.post(
     if (!post || post.status !== "APPROVED") {
       return res.status(404).json({ error: "Post not found" });
     }
+    if (post.locked) {
+      return res.status(403).json({ error: "Post is locked" });
+    }
 
     if (parentId) {
       const parent = await prisma.comment.findUnique({ where: { id: parentId } });

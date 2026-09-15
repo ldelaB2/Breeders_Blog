@@ -13,6 +13,7 @@ export function serializePost(post, viewer = {}, opts = {}) {
     title: post.title,
     abstract: post.abstract,
     status: post.status,
+    locked: post.locked,
     authorId: post.authorId,
     authorName: post.authorName,
     createdAt: post.createdAt,

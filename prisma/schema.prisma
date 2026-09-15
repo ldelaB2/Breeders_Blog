@@ -45,6 +45,9 @@ model PostMetadata {
   abstract  String
   topicSlug String
   status    PostStatus @default(PENDING)
+  // Blocks new comments (including replies). Set directly by a lock
+  // toggle, or implicitly by archiving (see POST /:id/archive).
+  locked    Boolean    @default(false)
 
   authorId   String
   // Snapshot of the author's display name at post time, so a later

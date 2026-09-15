@@ -3,7 +3,8 @@ import { prisma } from "../lib/prisma.js";
 import { requireAuth, optionalAuth, requireRole } from "../middleware/requireAuth.js";
 import { serializePost } from "../lib/serializePost.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
-import { getStitchedHtml } from "../lib/htmlStore.js";
+import { getStitchedHtml, saveStitchedHtml } from "../lib/htmlStore.js";
+import { ZipArchive } from "archiver";
 
 const router = Router();
 const include = {
@@ -87,7 +88,7 @@ router.get(
 router.get(
   "/pending",
   requireAuth,
-  requireRole("MODERATOR", "ADMIN"),
+  requireRole("ADMIN"),
   asyncHandler(async (req, res) => {
     const posts = await prisma.postMetadata.findMany({
       where: { status: "PENDING" },
@@ -138,21 +139,26 @@ router.post(
   })
 );
 
-// Approve a pending post: the reviewer supplies the S3 key/slug of the
-// HTML they stitched together from the raw markdown.
+// Approve a pending post: the reviewer uploads the stitched HTML itself
+// (same "read a file client-side, send its text" pattern as rawMd on
+// create), which we write to the html store under a slug derived from the
+// post id.
 router.post(
   "/:id/approve",
   requireAuth,
-  requireRole("MODERATOR", "ADMIN"),
+  requireRole("ADMIN"),
   asyncHandler(async (req, res) => {
-    const htmlSlug = requireString(req.body.htmlSlug, "htmlSlug", res);
-    if (!htmlSlug) return;
+    const html = requireString(req.body.html, "html", res);
+    if (!html) return;
 
     const post = await findPost(req.params.id);
     if (!post) return res.status(404).json({ error: "Post not found" });
     if (post.status !== "PENDING") {
       return res.status(400).json({ error: "Only pending posts can be approved" });
     }
+
+    const htmlSlug = `${post.id}.html`;
+    await saveStitchedHtml(htmlSlug, html);
 
     const updated = await prisma.postMetadata.update({
       where: { id: req.params.id },
@@ -171,7 +177,7 @@ router.post(
 router.post(
   "/:id/reject",
   requireAuth,
-  requireRole("MODERATOR", "ADMIN"),
+  requireRole("ADMIN"),
   asyncHandler(async (req, res) => {
     const rejectionReason = requireString(req.body.rejectionReason, "rejectionReason", res);
     if (!rejectionReason) return;
@@ -193,6 +199,29 @@ router.post(
       include,
     });
     res.json(serializePost(updated, { userId: req.userId, userRole: req.userRole }));
+  })
+);
+
+// Bundles a post's title/abstract/raw markdown into a zip for the admin to
+// review offline before deciding to approve/reject.
+router.get(
+  "/:id/download",
+  requireAuth,
+  requireRole("ADMIN"),
+  asyncHandler(async (req, res) => {
+    const post = await findPost(req.params.id);
+    if (!post) return res.status(404).json({ error: "Post not found" });
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="${post.id}.zip"`);
+
+    const archive = new ZipArchive();
+    archive.on("error", (err) => res.destroy(err));
+    archive.pipe(res);
+    archive.append(post.title, { name: "title.txt" });
+    archive.append(post.abstract, { name: "abstract.txt" });
+    archive.append(post.body?.rawMd ?? "", { name: "post.md" });
+    await archive.finalize();
   })
 );
 
@@ -234,6 +263,48 @@ router.post(
       await prisma.pin.create({ data: { postId, userId: req.userId } });
     }
     res.json(serializePost(await findPost(postId), { userId: req.userId, userRole: req.userRole }));
+  })
+);
+
+router.post(
+  "/:id/lock",
+  requireAuth,
+  requireRole("MODERATOR", "ADMIN"),
+  asyncHandler(async (req, res) => {
+    const post = await findPost(req.params.id);
+    if (!post) return res.status(404).json({ error: "Post not found" });
+    if (post.status !== "APPROVED") {
+      return res.status(400).json({ error: "Only approved posts can be locked" });
+    }
+
+    const updated = await prisma.postMetadata.update({
+      where: { id: req.params.id },
+      data: { locked: !post.locked },
+      include,
+    });
+    res.json(serializePost(updated, { userId: req.userId, userRole: req.userRole }));
+  })
+);
+
+// One-way: moves a post to the Archive topic and locks it. There's no
+// "unarchive" - a moderator would move it back and unlock it manually.
+router.post(
+  "/:id/archive",
+  requireAuth,
+  requireRole("MODERATOR", "ADMIN"),
+  asyncHandler(async (req, res) => {
+    const post = await findPost(req.params.id);
+    if (!post) return res.status(404).json({ error: "Post not found" });
+    if (post.status !== "APPROVED") {
+      return res.status(400).json({ error: "Only approved posts can be archived" });
+    }
+
+    const updated = await prisma.postMetadata.update({
+      where: { id: req.params.id },
+      data: { topicSlug: "archive", locked: true },
+      include,
+    });
+    res.json(serializePost(updated, { userId: req.userId, userRole: req.userRole }));
   })
 );
 
