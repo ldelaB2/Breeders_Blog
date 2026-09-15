@@ -1,0 +1,68 @@
+[
+  {
+    "id": 1,
+    "title": "Exploring Genomic Selection in Small Herds",
+    "abstract": "This study examines the performance, stability, and practical limitations of genomic selection models when the available training population is relatively small, with particular emphasis on situations in which only a few hundred phenotyped and genotyped individuals are available for model development. Genomic selection has become an increasingly important component of modern animal and plant breeding programs because it provides a means of predicting genetic merit before phenotypic information is available for the selection candidate, potentially shortening generation intervals and increasing the rate of genetic gain. However, the effectiveness of genomic prediction is strongly influenced by the size, structure, and relatedness of the training population, and models developed from limited datasets may exhibit substantial variation in predictive ability depending on the genetic architecture of the trait, marker density, heritability, population structure, and the relationship between training and validation individuals. In this work, several commonly used genomic prediction approaches are evaluated across a range of training population sizes, beginning with very small datasets and progressively increasing the number of individuals used for model fitting. Model performance is assessed using prediction accuracy, bias, computational requirements, and the consistency of predictions across repeated validation sets. Particular attention is given to whether more complex machine learning approaches provide meaningful improvements over traditional statistical methods when the amount of training data is insufficient to support reliable estimation of a large number of model parameters. The results suggest that increasing training population size generally improves predictive performance, although the magnitude of this improvement is not constant and may depend substantially on the underlying genetic architecture and relatedness among individuals. Furthermore, models that perform well when large training populations are available do not necessarily maintain their advantage when data become scarce, highlighting the importance of matching model complexity to the amount and quality of information available for training. These findings demonstrate that genomic selection with a limited training population remains feasible, but careful consideration must be given to validation strategy, population structure, model specification, and the expected relationship between training and prediction populations. More broadly, the results emphasize that collecting additional high-quality phenotypic and genotypic observations may provide greater practical value than adopting increasingly complicated prediction algorithms, particularly in breeding programs where resources for data collection are limited. The study therefore provides a framework for evaluating genomic selection strategies under realistic small-data conditions and illustrates several considerations that should be addressed before deploying genomic prediction models in operational breeding programs.",
+    "author": "Jane Doe",
+    "topic": "gs",
+    "pinned": true,
+    "voteScore": 42,
+    "comment": 12,
+    "body": "<h2>Overview</h2><p>Genomic selection accuracy drops sharply below a certain reference population size.</p><svg width='300' height='150'><rect x='10' y='50' width='30' height='100' fill='#4f46e5'/><rect x='60' y='20' width='30' height='130' fill='#4f46e5'/><rect x='110' y='70' width='30' height='80' fill='#4f46e5'/><rect x='160' y='40' width='30' height='110' fill='#4f46e5'/></svg>"
+  },
+  {
+    "id": 2,
+    "title": "Heritability Estimates Across Traits",
+    "abstract": "Comparing heritability estimates for growth, fertility, and disease resistance traits across three commercial herds. Growth traits consistently showed moderate to high heritability, making them reliable targets for early selection, while fertility traits were far more sensitive to environmental variation and management practices. Disease resistance traits fell somewhere in between, with heritability estimates varying considerably depending on the specific pathogen and the diagnostic criteria used to classify affected animals. These results reinforce the idea that selection strategies should be tailored to the genetic architecture of each trait rather than applying a single blanket approach across the entire breeding objective.",
+    "author": "Jane Doe",
+    "topic": "gs",
+    "pinned": false,
+    "voteScore": 17,
+    "comment": 4,
+    "body": "<h2>Trait Comparison</h2><p>Fertility traits show consistently lower heritability than growth traits.</p><svg width='300' height='150'><rect x='10' y='90' width='30' height='60' fill='#059669'/><rect x='60' y='40' width='30' height='110' fill='#059669'/><rect x='110' y='100' width='30' height='50' fill='#059669'/></svg>"
+  },
+  {
+    "id": 3,
+    "title": "A Simple Neural Net for Weight Prediction",
+    "abstract": "A small feed-forward network trained to predict weaning weight from pedigree features, sex, birth date, and dam parity. The network used two hidden layers and was trained on a modest dataset of a few thousand records, which limited how much complexity the model could support before overfitting became a problem. Despite its simplicity, the network performed comparably to a traditional linear mixed model, suggesting that for this trait and dataset size the added flexibility of a neural network offered little practical advantage over well-established statistical approaches.",
+    "author": "Jane Doe",
+    "topic": "gs",
+    "pinned": false,
+    "voteScore": -3,
+    "comment": 0,
+    "body": "<h2>Model Loss</h2><p>Validation loss plateaus after roughly 40 epochs.</p><svg width='300' height='150'><polyline points='10,20 60,60 110,80 160,95 210,100' fill='none' stroke='#dc2626' stroke-width='3'/></svg>"
+  },
+  {
+    "id": 4,
+    "title": "Matrix Methods for Mixed Models",
+    "abstract": "Here is the abstract: a walkthrough of the sparse matrix tricks used to solve large mixed model equations.",
+    "author": "Jane Doe",
+    "topic": "math",
+    "pinned": true,
+    "voteScore": 8,
+    "comment": 7,
+    "body": "<h2>Sparsity Pattern</h2><p>The coefficient matrix is over 95% sparse for typical pedigree sizes.</p><svg width='300' height='150'><rect x='10' y='60' width='30' height='90' fill='#7c3aed'/><rect x='60' y='30' width='30' height='120' fill='#7c3aed'/><rect x='110' y='90' width='30' height='60' fill='#7c3aed'/></svg>"
+  },
+  {
+    "id": 5,
+    "title": "Drone Imagery for Pasture Health",
+    "abstract": "Using multispectral drone footage to flag underperforming pasture sections before they become visible from the ground. Weekly flights were used to build an NDVI time series for each field, and sections with a sustained downward trend were automatically flagged for inspection. Most flagged sections were traced back to irrigation issues or localized soil compaction, and in nearly all cases the problem was resolved within two weeks once identified. The approach proved most valuable on larger, less accessible pastures where manual walkthroughs were infrequent, and it meaningfully reduced the lag between a problem developing and someone actually noticing it.",
+    "author": "Jane Doe",
+    "topic": "drones",
+    "pinned": false,
+    "voteScore": 25,
+    "comment": 21,
+    "body": "<h2>NDVI Distribution</h2><p>Most flagged sections recovered within two weeks of irrigation adjustment.</p><svg width='300' height='150'><rect x='10' y='70' width='30' height='80' fill='#ea580c'/><rect x='60' y='50' width='30' height='100' fill='#ea580c'/><rect x='110' y='20' width='30' height='130' fill='#ea580c'/></svg>"
+  },
+  {
+    "id": 6,
+    "title": "Revisiting a 2015 Culling Strategy",
+    "abstract": "Here is the abstract: an old culling heuristic re-examined with a decade of additional records.",
+    "author": "Jane Doe",
+    "topic": "archive",
+    "pinned": false,
+    "voteScore": 4,
+    "comment": 2,
+    "body": "<h2>Long-Term Trend</h2><p>The heuristic still holds but with a wider confidence interval than originally reported.</p><svg width='300' height='150'><polyline points='10,110 60,90 110,95 160,70 210,60' fill='none' stroke='#6b7280' stroke-width='3'/></svg>"
+  }
+]

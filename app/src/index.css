@@ -1,0 +1,25 @@
+/* index.css */
+@import "tailwindcss";
+
+@keyframes toast-fade {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.toast-fade {
+  animation: toast-fade 2.5s ease-in-out forwards;
+}
+
+/* Hides the native scrollbar on the home page's post carousels, which have
+   their own chevron controls for scrolling. */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
