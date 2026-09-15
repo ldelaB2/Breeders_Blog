@@ -8,13 +8,50 @@ const DEFAULT_TITLE = "Breeders Blog";
 const DEFAULT_DESCRIPTION =
   "Breeders Blog — research and notes on genomic selection, quantitative genetics, and modern breeding methods.";
 
-// Table-of-contents entries, one per <h2 id="..."> in the moderator-stitched
-// HTML. Parsed from the raw string up front so the nav can render before the
-// iframe below has even loaded.
-function extractSections(html) {
-  if (!html) return [];
+// Turns arbitrary heading text into a stable, id-safe slug: lowercase,
+// non-alphanumeric runs collapse to one hyphen, edges trimmed. Falls back
+// to a positional placeholder for headings with no usable text.
+function slugify(text, index) {
+  const slug = text
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug || `section-${index + 1}`;
+}
+
+// Table-of-contents entries, one per <h2> in the moderator-stitched HTML,
+// plus that same HTML with a stable id written onto any <h2> that didn't
+// already have one. Both come from one DOMParser pass over one DOM so they
+// can never drift apart - goToSection looks ids up inside the rendered
+// iframe's contentDocument, so an id that only existed in a JS array (and
+// not in the srcDoc markup) would silently fail to scroll. Generated ids
+// are de-duped against every id already in the document so they never
+// collide with a moderator-typed one (e.g. id="overview").
+function processHtml(html) {
+  if (!html) return { html, sections: [] };
+
   const doc = new DOMParser().parseFromString(html, "text/html");
-  return [...doc.querySelectorAll("h2[id]")].map((h) => ({ id: h.id, text: h.textContent }));
+  const usedIds = new Set([...doc.querySelectorAll("[id]")].map((el) => el.id));
+  const sections = [];
+
+  [...doc.querySelectorAll("h2")].forEach((heading, index) => {
+    let id = heading.id;
+    if (!id) {
+      const base = slugify(heading.textContent, index);
+      id = base;
+      let suffix = 2;
+      while (usedIds.has(id)) {
+        id = `${base}-${suffix}`;
+        suffix += 1;
+      }
+      heading.id = id;
+      usedIds.add(id);
+    }
+    sections.push({ id, text: heading.textContent });
+  });
+
+  return { html: doc.body.innerHTML, sections };
 }
 
 // A single post's page, reached at /posts/:id. Fetches its own detail
@@ -25,7 +62,7 @@ function PostReader({ postId, onBack }) {
   const [iframeHeight, setIframeHeight] = useState(0);
   const iframeRef = useRef(null);
   const resizeObserverRef = useRef(null);
-  const sections = useMemo(() => extractSections(post?.html), [post?.html]);
+  const { html: postHtml, sections } = useMemo(() => processHtml(post?.html), [post?.html]);
 
   useEffect(() => {
     // Reset before the new fetch resolves so a post switch never briefly
@@ -112,7 +149,7 @@ function PostReader({ postId, onBack }) {
         <>
           <div className="flex gap-8">
             {sections.length > 1 && (
-              <nav className="sticky top-1/2 hidden w-48 shrink-0 -translate-y-1/2 md:block">
+              <nav className="sticky top-1/2 hidden w-48 shrink-0 self-start -translate-y-1/2 md:block">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
                   On this page
                 </p>
@@ -148,7 +185,7 @@ function PostReader({ postId, onBack }) {
                   ref={iframeRef}
                   onLoad={handleIframeLoad}
                   title={post.title}
-                  srcDoc={post.html}
+                  srcDoc={postHtml}
                   sandbox="allow-same-origin"
                   scrolling="no"
                   style={{ height: iframeHeight || 400 }}
