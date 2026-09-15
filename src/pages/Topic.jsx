@@ -1,26 +1,26 @@
 // pages/Topic.jsx
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/react";
 import { DYNAMIC_TOPICS } from "../routes";
 import Post from "../components/post/Post";
-import PostReader from "../components/post/PostReader";
 import CreatePostModal from "../components/post/CreatePostModal";
 import Icon from "../components/Icon";
 import { useApi } from "../lib/api";
 import { sortPosts } from "../lib/postSort";
+import { usePostActions } from "../lib/usePostActions";
 import addPostIcon from "../assets/add_post.svg?raw";
 
 export default function Topic() {
   const { topic } = useParams();
   const { user } = useUser();
   const api = useApi();
+  const navigate = useNavigate();
   const match = DYNAMIC_TOPICS.find((t) => t.slug === topic);
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedPostId, setSelectedPostId] = useState(null);
   const [creatingPost, setCreatingPost] = useState(false);
 
   useEffect(() => {
@@ -38,37 +38,13 @@ export default function Topic() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [match]);
 
-  function replacePost(updated) {
-    setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-  }
-
-  async function handleTogglePin(postId) {
-    try {
-      replacePost(await api.pinPost(postId));
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function handleUpvote(postId) {
-    try {
-      replacePost(await api.upvotePost(postId));
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function handleDownvote(postId) {
-    try {
-      replacePost(await api.downvotePost(postId));
-    } catch (err) {
-      setError(err.message);
-    }
-  }
+  const { onTogglePin: handleTogglePin, onUpvote: handleUpvote, onDownvote: handleDownvote } =
+    usePostActions(setPosts, api, setError);
 
   async function handleToggleLock(postId) {
     try {
-      replacePost(await api.lockPost(postId));
+      const updated = await api.lockPost(postId);
+      setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
     } catch (err) {
       setError(err.message);
     }
@@ -86,21 +62,7 @@ export default function Topic() {
     }
   }
 
-  function handleCommentCountChange(postId, commentCount) {
-    setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, commentCount } : p)));
-  }
-
   if (!match) return <div>Topic not found</div>;
-
-  if (selectedPostId) {
-    return (
-      <PostReader
-        postId={selectedPostId}
-        onBack={() => setSelectedPostId(null)}
-        onCommentCountChange={handleCommentCountChange}
-      />
-    );
-  }
 
   const sortedPosts = sortPosts(posts, user?.id);
 
@@ -138,7 +100,7 @@ export default function Topic() {
             <Post
               key={post.id}
               post={post}
-              onSelect={(p) => setSelectedPostId(p.id)}
+              onSelect={(p) => navigate(`/posts/${p.id}`)}
               onTogglePin={handleTogglePin}
               onUpvote={handleUpvote}
               onDownvote={handleDownvote}

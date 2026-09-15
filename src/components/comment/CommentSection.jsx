@@ -18,7 +18,7 @@ function buildChildrenMap(comments) {
   return map;
 }
 
-function CommentSection({ postId, locked, onCommentCountChange }) {
+function CommentSection({ postId, locked }) {
   const { user } = useUser();
   const showToast = useToast();
   const api = useApi();
@@ -42,10 +42,6 @@ function CommentSection({ postId, locked, onCommentCountChange }) {
     try {
       const created = await api.createComment(postId, { text, parentId });
       setComments((prev) => [...prev, created]);
-      // Only live (non-deleted) comments count, matching how the backend
-      // computes PostMetadata.commentCount.
-      const liveCount = comments.filter((c) => !c.deleted).length + 1;
-      onCommentCountChange?.(liveCount);
     } catch (err) {
       setError(err.message);
     }

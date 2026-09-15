@@ -15,6 +15,10 @@ export const DYNAMIC_TOPICS = [
   { slug: "archive", label: "Archive" },
 ].map((t) => ({ ...t, path: `/topics/${t.slug}` }));
 
+export function topicLabel(slug) {
+  return DYNAMIC_TOPICS.find((t) => t.slug === slug)?.label ?? slug;
+}
+
 export const PERMANENT_TOPICS = [
   { path: "/", label: "Home", component: Home },
   { path: "/topics", label: "Topics", component: null }, // dropdown trigger

@@ -24,6 +24,9 @@ async function request(path, { token, method = "GET", body } = {}) {
 // only when it knows who's asking (see GET /posts in posts.routes.js).
 export const fetchPosts = (topicSlug, token) =>
   request(`/posts${topicSlug ? `?topicSlug=${encodeURIComponent(topicSlug)}` : ""}`, { token });
+export const fetchTopPosts = (limit, token) =>
+  request(`/posts/top${limit ? `?limit=${limit}` : ""}`, { token });
+export const searchPosts = (q, token) => request(`/posts/search?q=${encodeURIComponent(q)}`, { token });
 export const fetchPost = (id) => request(`/posts/${id}`);
 export const fetchComments = (postId) => request(`/posts/${postId}/comments`);
 
@@ -57,10 +60,14 @@ export function useApi() {
 
   return {
     fetchPosts: async (topicSlug) => fetchPosts(topicSlug, (await getToken()) || undefined),
+    fetchTopPosts: async (limit) => fetchTopPosts(limit, (await getToken()) || undefined),
+    searchPosts: async (q) => searchPosts(q, (await getToken()) || undefined),
     fetchPost,
     fetchComments,
     fetchCurrentUser: () => authed("/me"),
     fetchPendingPosts: () => authed("/posts/pending"),
+    fetchPins: () => authed("/me/pins"),
+    fetchRecommendations: () => authed("/me/recommendations"),
     downloadPost: async (id) => downloadPostZip(id, await getToken()),
     approvePost: (id, html) => authed(`/posts/${id}/approve`, { method: "POST", body: { html } }),
     rejectPost: (id, rejectionReason) =>

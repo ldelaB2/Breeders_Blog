@@ -1,15 +1,23 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/react";
 import logo from "./../assets/logo.png";
 import { DYNAMIC_TOPICS, PERMANENT_TOPICS } from "../routes";
 import { useCurrentUser } from "../lib/useCurrentUser";
+import SearchModal from "./SearchModal";
 
 function Header({ topics = DYNAMIC_TOPICS }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const dropdownRef = useRef(null);
   const { isAdmin } = useCurrentUser();
+  const navigate = useNavigate();
+
+  function handleSelectSearchResult(postId) {
+    setSearchOpen(false);
+    navigate(`/posts/${postId}`);
+  }
   // Kept out of the shared PERMANENT_TOPICS export (routes.jsx) since
   // App.jsx also uses that array to auto-generate routes for everyone -
   // Admin visibility is header-only, the route itself is always registered
@@ -27,6 +35,7 @@ function Header({ topics = DYNAMIC_TOPICS }) {
   }, []);
 
   return (
+    <>
     <header className="flex flex-col items-center px-6 py-4 bg-white relative">
       {/* Top section */}
       <div className="grid w-full grid-cols-3 items-center gap-2 pb-4">
@@ -87,6 +96,7 @@ function Header({ topics = DYNAMIC_TOPICS }) {
           <div className="relative group">
             <button
               type="button"
+              onClick={() => setSearchOpen(true)}
               className="rounded-md p-2 text-gray-700 transition-colors hover:bg-gray-200 sm:p-2.5"
               aria-label="Search"
             >
@@ -218,6 +228,11 @@ function Header({ topics = DYNAMIC_TOPICS }) {
         </div>
       )}
     </header>
+
+    {searchOpen && (
+      <SearchModal onClose={() => setSearchOpen(false)} onSelectPost={handleSelectSearchResult} />
+    )}
+    </>
   );
 }
 

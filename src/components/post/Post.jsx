@@ -4,12 +4,25 @@ import VoteControls from "../VoteControls";
 import { voteState } from "../../lib/voting";
 import { useToast } from "../../lib/useToast";
 import { useCurrentUser } from "../../lib/useCurrentUser";
+import { topicLabel } from "../../routes";
 import pinIcon from "../../assets/pin.svg?raw";
 import commentIcon from "../../assets/comment.svg?raw";
 import lockIcon from "../../assets/lock.svg?raw";
 import archiveIcon from "../../assets/archive.svg?raw";
 
-function Post({ post, onSelect, onTogglePin, onUpvote, onDownvote, onToggleLock, onArchive }) {
+// `showTopic` is only turned on from pages that mix posts across topics
+// (currently just the Home page) - Topic.jsx already makes the topic
+// obvious from its own heading, so it leaves this off.
+function Post({
+  post,
+  onSelect,
+  onTogglePin,
+  onUpvote,
+  onDownvote,
+  onToggleLock,
+  onArchive,
+  showTopic = false,
+}) {
   const { user } = useUser();
   const { isModerator } = useCurrentUser();
   const showToast = useToast();
@@ -36,7 +49,7 @@ function Post({ post, onSelect, onTogglePin, onUpvote, onDownvote, onToggleLock,
       {/* Header row: title, author, pin */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-baseline gap-2">
-          <h3 className="truncate font-bold text-gray-900">{post.title}</h3>
+          <h3 className="truncate text-lg font-bold text-gray-900">{post.title}</h3>
           <span className="shrink-0 text-sm text-gray-500">{post.authorName}</span>
         </div>
 
@@ -122,6 +135,14 @@ function Post({ post, onSelect, onTogglePin, onUpvote, onDownvote, onToggleLock,
           onDownvote={() => requireSignIn("vote") && onDownvote?.(post.id)}
         />
       </div>
+
+      {showTopic && (
+        <div className="mt-3 border-t border-gray-100 pt-2">
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+            {topicLabel(post.topicSlug)}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
