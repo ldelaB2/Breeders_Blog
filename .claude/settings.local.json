@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(pkill -f \"vite --port 5183\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('sample_post/posts.json','utf8'\\)\\); console.log\\('JSON valid'\\)\")",
+      "Bash(npx --yes playwright install chromium --with-deps)",
+      "Bash(node *)",
+      "Bash(npx *)",
+      "Bash(curl -s http://localhost:5183/src/assets/pin.svg)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5183/src/assets/pin.svg)",
+      "Bash(pkill -f \"vite --port 5184\")",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
+      "Bash(curl -s http://localhost:5173/topics/gs)",
+      "Skill(claude-in-chrome)"
+    ]
+  }
+}
