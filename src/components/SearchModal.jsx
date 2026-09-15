@@ -61,7 +61,9 @@ function SearchModal({ onClose, onSelectPost }) {
         <div className="mt-3 max-h-96 overflow-y-auto">
           {error && <p className="px-1 py-2 text-sm text-red-600">{error}</p>}
 
-          {!error && loading && <p className="px-1 py-2 text-sm text-gray-500">Searching…</p>}
+          {!error && loading && (
+            <p className="px-1 py-2 text-sm text-gray-500">Searching…</p>
+          )}
 
           {!error && !loading && query.trim() && results.length === 0 && (
             <p className="px-1 py-2 text-sm text-gray-500">No posts found.</p>
@@ -76,12 +78,16 @@ function SearchModal({ onClose, onSelectPost }) {
                   className="flex w-full flex-col gap-1 px-1 py-3 text-left transition-colors hover:bg-gray-50"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate font-semibold text-gray-900">{post.title}</span>
+                    <span className="truncate font-semibold text-gray-900">
+                      {post.title}
+                    </span>
                     <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
                       {topicLabel(post.topicSlug)}
                     </span>
                   </div>
-                  <p className="line-clamp-2 text-sm text-gray-600">{post.abstract}</p>
+                  <p className="line-clamp-2 text-sm text-gray-600">
+                    {post.abstract}
+                  </p>
                 </button>
               </li>
             ))}
