@@ -3,19 +3,30 @@ import { prisma } from "../lib/prisma.js";
 
 const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
+const VALID_ROLES = ["USER", "MODERATOR", "ADMIN"];
+
 // Verifies a Clerk session token and lazily syncs the user into our
 // database, returning the local User row (id/name/role).
+//
+// Role is assigned in the Clerk dashboard via privateMetadata.role (never
+// publicMetadata/unsafeMetadata - unsafeMetadata is end-user writable, which
+// would let a user grant themselves MODERATOR/ADMIN). privateMetadata is
+// backend-only, so it never reaches the client.
 async function resolveUser(token) {
   const { sub: userId } = await verifyToken(token, {
     secretKey: process.env.CLERK_SECRET_KEY,
   });
 
-  let user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) {
-    const clerkUser = await clerkClient.users.getUser(userId);
-    const name = clerkUser.fullName || clerkUser.username || "Anonymous";
-    user = await prisma.user.create({ data: { id: userId, name } });
-  }
+  const clerkUser = await clerkClient.users.getUser(userId);
+  const name = clerkUser.fullName || clerkUser.username || "Anonymous";
+  const metadataRole = clerkUser.privateMetadata?.role;
+  const role = VALID_ROLES.includes(metadataRole) ? metadataRole : "USER";
+
+  const user = await prisma.user.upsert({
+    where: { id: userId },
+    update: { name, role },
+    create: { id: userId, name, role },
+  });
   return user;
 }
 
