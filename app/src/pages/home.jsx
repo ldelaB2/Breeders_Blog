@@ -1,4 +1,4 @@
-// pages/Home.jsx
+// pages/Home.jsx test
 import { useUser } from "@clerk/react";
 import { useNavigate } from "react-router-dom";
 import PostCarousel from "../components/post/PostCarousel";
