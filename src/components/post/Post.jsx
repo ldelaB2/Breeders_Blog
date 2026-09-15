@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useUser } from "@clerk/react";
 import Icon from "../Icon";
 import VoteControls from "../VoteControls";
+import DeletePostModal from "./DeletePostModal";
 import { voteState } from "../../lib/voting";
 import { useToast } from "../../lib/useToast";
 import { useCurrentUser } from "../../lib/useCurrentUser";
@@ -9,6 +11,7 @@ import pinIcon from "../../assets/pin.svg?raw";
 import commentIcon from "../../assets/comment.svg?raw";
 import lockIcon from "../../assets/lock.svg?raw";
 import archiveIcon from "../../assets/archive.svg?raw";
+import deleteIcon from "../../assets/delete_icon.svg?raw";
 
 // `showTopic` is only turned on from pages that mix posts across topics
 // (currently just the Home page) - Topic.jsx already makes the topic
@@ -21,11 +24,14 @@ function Post({
   onDownvote,
   onToggleLock,
   onArchive,
+  onDeleted,
   showTopic = false,
 }) {
   const { user } = useUser();
-  const { isModerator } = useCurrentUser();
+  const { isModerator, isAdmin } = useCurrentUser();
   const showToast = useToast();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
   const isPinned = user ? post.pinnedBy.includes(user.id) : false;
   const { score, myVote } = voteState(post.upvotes, post.downvotes, user?.id);
   const isPending = post.status === "PENDING";
@@ -37,7 +43,7 @@ function Post({
     return false;
   }
 
-  return (
+  const tile = (
     <div
       onClick={() => {
         if (!isPending) onSelect?.(post);
@@ -50,6 +56,21 @@ function Post({
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-baseline gap-2">
           <h3 className="truncate text-lg font-bold text-gray-900">{post.title}</h3>
+
+          {post.authorAvatarUrl && !avatarFailed ? (
+            <img
+              src={post.authorAvatarUrl}
+              alt=""
+              className="h-5 w-5 shrink-0 self-center rounded-full border border-gray-200 object-cover"
+              onError={() => setAvatarFailed(true)}
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              className="h-5 w-5 shrink-0 self-center rounded-full border border-gray-200 bg-gray-200"
+            />
+          )}
+
           <span className="shrink-0 text-sm text-gray-500">{post.authorName}</span>
         </div>
 
@@ -111,6 +132,20 @@ function Post({
           >
             <Icon svg={pinIcon} className="h-5 w-5" />
           </button>
+
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirmingDelete(true);
+              }}
+              aria-label="Delete post"
+              className="rounded-md p-1.5 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-600"
+            >
+              <Icon svg={deleteIcon} className="h-5 w-5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -144,6 +179,19 @@ function Post({
         </div>
       )}
     </div>
+  );
+
+  return (
+    <>
+      {tile}
+      {confirmingDelete && (
+        <DeletePostModal
+          post={post}
+          onClose={() => setConfirmingDelete(false)}
+          onDeleted={(id) => onDeleted?.(id)}
+        />
+      )}
+    </>
   );
 }
 

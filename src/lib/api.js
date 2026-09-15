@@ -78,8 +78,10 @@ export function useApi() {
     pinPost: (id) => authed(`/posts/${id}/pin`, { method: "POST" }),
     lockPost: (id) => authed(`/posts/${id}/lock`, { method: "POST" }),
     archivePost: (id) => authed(`/posts/${id}/archive`, { method: "POST" }),
+    deletePost: (id) => authed(`/posts/${id}`, { method: "DELETE" }),
     createComment: (postId, data) => authed(`/posts/${postId}/comments`, { method: "POST", body: data }),
     deleteComment: (id) => authed(`/comments/${id}`, { method: "DELETE" }),
+    restoreComment: (id) => authed(`/comments/${id}/restore`, { method: "POST" }),
     upvoteComment: (id) => authed(`/comments/${id}/upvote`, { method: "POST" }),
     downvoteComment: (id) => authed(`/comments/${id}/downvote`, { method: "POST" }),
   };

@@ -11,7 +11,7 @@ import chevronIcon from "../../assets/chevron.svg?raw";
 
 // A single comment plus its replies, nested recursively with a connecting
 // line per depth (Reddit-style threading).
-function Comment({ comment, childrenByParent, locked, onAdd, onUpvote, onDownvote, onDelete }) {
+function Comment({ comment, childrenByParent, locked, onAdd, onUpvote, onDownvote, onDelete, onRestore }) {
   const { user } = useUser();
   const { isModerator } = useCurrentUser();
   const showToast = useToast();
@@ -63,7 +63,15 @@ function Comment({ comment, childrenByParent, locked, onAdd, onUpvote, onDownvot
                 onClick={() => requireSignIn("comment") && setReplying((r) => !r)}
               />
             )}
-            {isModerator && !comment.deleted && (
+            {isModerator && (comment.deleted ? (
+              <button
+                type="button"
+                onClick={() => onRestore?.(comment.id)}
+                className="text-sm text-red-500 transition-colors hover:text-red-700"
+              >
+                Restore
+              </button>
+            ) : (
               <button
                 type="button"
                 onClick={() => onDelete?.(comment.id)}
@@ -71,7 +79,7 @@ function Comment({ comment, childrenByParent, locked, onAdd, onUpvote, onDownvot
               >
                 Delete
               </button>
-            )}
+            ))}
           </div>
           <p className="mt-0.5 text-base text-gray-700">
             {comment.deleted ? (
@@ -105,6 +113,7 @@ function Comment({ comment, childrenByParent, locked, onAdd, onUpvote, onDownvot
               onUpvote={onUpvote}
               onDownvote={onDownvote}
               onDelete={onDelete}
+              onRestore={onRestore}
             />
           ))}
         </div>

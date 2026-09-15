@@ -71,6 +71,14 @@ function CommentSection({ postId, locked }) {
     }
   }
 
+  async function restoreComment(commentId) {
+    try {
+      replaceComment(await api.restoreComment(commentId));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   const childrenByParent = buildChildrenMap(comments);
   const roots = childrenByParent.get(null) || [];
 
@@ -120,6 +128,7 @@ function CommentSection({ postId, locked }) {
                 onUpvote={upvoteComment}
                 onDownvote={downvoteComment}
                 onDelete={deleteComment}
+                onRestore={restoreComment}
               />
             ))}
           </div>

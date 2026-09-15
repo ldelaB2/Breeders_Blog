@@ -28,10 +28,12 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
     reader.readAsText(file);
   }
 
+  const canSubmit = Boolean(title.trim() && abstract.trim() && rawMd.trim());
+
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!title.trim() || !abstract.trim()) {
-      setError("Title and abstract are required");
+    if (!canSubmit) {
+      setError("Title, abstract, and a markdown file are all required");
       return;
     }
 
@@ -135,7 +137,7 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !canSubmit}
               className="rounded-md bg-gray-900 px-4 py-1.5 text-sm text-white transition-colors hover:bg-gray-700 disabled:opacity-50"
             >
               {submitting ? "Submitting…" : "Submit"}

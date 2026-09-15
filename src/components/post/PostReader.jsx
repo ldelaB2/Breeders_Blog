@@ -60,8 +60,10 @@ function PostReader({ postId, onBack }) {
   const [post, setPost] = useState(null);
   const [error, setError] = useState(null);
   const [iframeHeight, setIframeHeight] = useState(0);
+  const [navOffset, setNavOffset] = useState(0);
   const iframeRef = useRef(null);
   const resizeObserverRef = useRef(null);
+  const abstractRef = useRef(null);
   const { html: postHtml, sections } = useMemo(() => processHtml(post?.html), [post?.html]);
 
   useEffect(() => {
@@ -108,6 +110,23 @@ function PostReader({ postId, onBack }) {
 
   useEffect(() => () => resizeObserverRef.current?.disconnect(), []);
 
+  // Pushes the TOC nav's starting position down by half the abstract's
+  // height, so it's anchored at the abstract's vertical center rather than
+  // its top - mirroring how the nav is already naturally kept from
+  // overlapping the comments below (it can't stick past the end of its
+  // containing row).
+  useEffect(() => {
+    const el = abstractRef.current;
+    if (!el) return;
+
+    const measure = () => setNavOffset(el.offsetHeight / 2);
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [post?.abstract]);
+
   // Only one scrollable area on the page (the outer window) - the iframe is
   // sized to fit all of its content, so "jumping" to a section means
   // scrolling the outer page to that heading's position, not the iframe.
@@ -149,7 +168,10 @@ function PostReader({ postId, onBack }) {
         <>
           <div className="flex gap-8">
             {sections.length > 1 && (
-              <nav className="sticky top-1/2 hidden w-48 shrink-0 self-start -translate-y-1/2 md:block">
+              <nav
+                className="sticky top-1/2 hidden w-48 shrink-0 self-start -translate-y-1/2 md:block"
+                style={{ marginTop: navOffset }}
+              >
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
                   On this page
                 </p>
@@ -170,7 +192,7 @@ function PostReader({ postId, onBack }) {
             )}
 
             <div className="min-w-0 flex-1">
-              <p className="border-b border-gray-200 pb-4 text-sm text-gray-600">
+              <p ref={abstractRef} className="border-b border-gray-200 pb-4 text-sm text-gray-600">
                 {post.abstract}
               </p>
 

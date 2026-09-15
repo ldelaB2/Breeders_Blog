@@ -81,6 +81,7 @@ function PostCarousel({ title, fetchPosts, emptyMessage, onSelectPost }) {
                   onTogglePin={onTogglePin}
                   onUpvote={onUpvote}
                   onDownvote={onDownvote}
+                  onDeleted={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
                 />
               </div>
             ))}

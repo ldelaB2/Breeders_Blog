@@ -106,6 +106,7 @@ export default function Topic() {
               onDownvote={handleDownvote}
               onToggleLock={handleToggleLock}
               onArchive={handleArchive}
+              onDeleted={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
             />
           ))}
         </div>
