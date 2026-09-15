@@ -5,6 +5,7 @@ import PostPage from "./pages/PostPage";
 import { PERMANENT_TOPICS } from "./routes";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import RequireRole from "./components/RequireRole";
 
 export default function App() {
   return (
@@ -21,7 +22,14 @@ export default function App() {
 
             <Route path="/topics/:topic" element={<Topic />} />
             <Route path="/posts/:id" element={<PostPage />} />
-            <Route path="/admin" element={<Admin />} />
+            <Route
+              path="/admin"
+              element={
+                <RequireRole role="ADMIN">
+                  <Admin />
+                </RequireRole>
+              }
+            />
           </Routes>
         </main>
         <Footer />

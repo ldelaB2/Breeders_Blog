@@ -1,28 +1,40 @@
-import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
-import path from "node:path";
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 
-// Stand-in for fetching/storing the moderator-stitched HTML in S3 by its
-// key. PostBody.htmlSlug is already shaped like an S3 object key, so
-// swapping these for real S3 GetObject/PutObject calls is a one-function
-// change once a bucket exists - nothing calling this needs to know the
-// difference.
-const STORE_ROOT = path.resolve(import.meta.dirname, "../../seed-html");
+// Fetches/stores the moderator-stitched HTML in Cloudflare R2 by its key
+// (PostBody.htmlSlug). R2 exposes an S3-compatible API, so the regular AWS
+// SDK works against it with just a custom endpoint.
+const client = new S3Client({
+  region: "auto",
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+  },
+});
+const Bucket = process.env.R2_BUCKET_NAME;
 
 export async function getStitchedHtml(htmlSlug) {
   if (!htmlSlug) return null;
   try {
-    return await readFile(path.join(STORE_ROOT, htmlSlug), "utf8");
+    const { Body } = await client.send(new GetObjectCommand({ Bucket, Key: htmlSlug }));
+    return await Body.transformToString("utf8");
   } catch {
     return null;
   }
 }
 
 export async function saveStitchedHtml(htmlSlug, html) {
-  await mkdir(STORE_ROOT, { recursive: true });
-  await writeFile(path.join(STORE_ROOT, htmlSlug), html, "utf8");
+  await client.send(
+    new PutObjectCommand({ Bucket, Key: htmlSlug, Body: html, ContentType: "text/html" })
+  );
 }
 
 export async function deleteStitchedHtml(htmlSlug) {
   if (!htmlSlug) return;
-  await rm(path.join(STORE_ROOT, htmlSlug), { force: true });
+  await client.send(new DeleteObjectCommand({ Bucket, Key: htmlSlug }));
 }

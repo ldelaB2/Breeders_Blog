@@ -11,12 +11,14 @@
     "sync:clerk-users": "node scripts/sync-clerk-users.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1133.0",
     "@clerk/backend": "^1.21.0",
     "@prisma/client": "^6.2.1",
     "archiver": "^8.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.7.0"
   },
   "devDependencies": {
     "prisma": "^6.2.1"

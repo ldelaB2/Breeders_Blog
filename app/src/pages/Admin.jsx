@@ -1,15 +1,13 @@
 import { useState, useEffect } from "react";
-import { useCurrentUser } from "../lib/useCurrentUser";
 import { useApi } from "../lib/api";
 import AdminPostRow from "../components/post/AdminPostRow";
 import ApprovePostModal from "../components/post/ApprovePostModal";
 
-// Admin-only moderation queue. Access is enforced twice: here (so a
-// non-admin never even sees the UI or triggers the fetch) and, more
-// importantly, on every endpoint this page calls (requireRole("ADMIN") in
-// posts.routes.js) - the frontend check is a UX nicety, not the boundary.
+// Admin-only moderation queue. Access is enforced by RequireRole at the
+// route level (App.jsx) and, more importantly, on every endpoint this page
+// calls (requireRole("ADMIN") in posts.routes.js) - so by the time this
+// component mounts, the caller is already a confirmed admin.
 export default function Admin() {
-  const { isAdmin, loading: roleLoading } = useCurrentUser();
   const api = useApi();
 
   const [posts, setPosts] = useState([]);
@@ -18,17 +16,13 @@ export default function Admin() {
   const [approvingPost, setApprovingPost] = useState(null);
 
   useEffect(() => {
-    if (!isAdmin) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true);
-    setError(null);
     api
       .fetchPendingPosts()
       .then(setPosts)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin]);
+  }, []);
 
   function removePost(id) {
     setPosts((prev) => prev.filter((p) => p.id !== id));
@@ -38,9 +32,6 @@ export default function Admin() {
     await api.rejectPost(id, reason);
     removePost(id);
   }
-
-  if (roleLoading) return <p className="p-8 text-gray-500">Loading…</p>;
-  if (!isAdmin) return <p className="p-8 text-gray-500">You don't have access to this page.</p>;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
