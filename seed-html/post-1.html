@@ -1,1 +1,38 @@
-<h2>Overview</h2><p>Genomic selection accuracy drops sharply below a certain reference population size.</p><svg width='300' height='150'><rect x='10' y='50' width='30' height='100' fill='#4f46e5'/><rect x='60' y='20' width='30' height='130' fill='#4f46e5'/><rect x='110' y='70' width='30' height='80' fill='#4f46e5'/><rect x='160' y='40' width='30' height='110' fill='#4f46e5'/></svg>
+<h2 id="overview">Overview</h2>
+<p>Genomic selection accuracy drops sharply below a certain reference population size. This section summarizes the motivation for the study and the general shape of the results that follow in later sections.</p>
+<svg width='320' height='160'><rect x='10' y='50' width='30' height='100' fill='#4f46e5'/><rect x='60' y='20' width='30' height='130' fill='#4f46e5'/><rect x='110' y='70' width='30' height='80' fill='#4f46e5'/><rect x='160' y='40' width='30' height='110' fill='#4f46e5'/><rect x='210' y='90' width='30' height='60' fill='#4f46e5'/></svg>
+
+<h2 id="methodology">Methodology</h2>
+<p>Several commonly used genomic prediction approaches were evaluated across a range of training population sizes, beginning with very small datasets and progressively increasing the number of individuals used for model fitting. Model performance was assessed using prediction accuracy, bias, computational requirements, and the consistency of predictions across repeated validation sets.</p>
+<p>Phenotypic and genotypic records were assembled from herd-level records spanning several breeding seasons. Individuals with incomplete pedigree information were excluded from the reference population but retained in the validation set where possible, to avoid inflating apparent accuracy through unrealistic filtering.</p>
+
+<h2 id="training-population">Training Population Size</h2>
+<p>Increasing training population size generally improved predictive performance, although the magnitude of this improvement was not constant and depended on the genetic architecture of the trait, marker density, heritability, and the relationship between training and validation individuals.</p>
+<svg width='320' height='160'>
+  <polyline points='10,140 60,120 110,90 160,70 210,55 260,45 310,40' fill='none' stroke='#16a34a' stroke-width='3'/>
+  <circle cx='10' cy='140' r='4' fill='#16a34a'/>
+  <circle cx='60' cy='120' r='4' fill='#16a34a'/>
+  <circle cx='110' cy='90' r='4' fill='#16a34a'/>
+  <circle cx='160' cy='70' r='4' fill='#16a34a'/>
+  <circle cx='210' cy='55' r='4' fill='#16a34a'/>
+  <circle cx='260' cy='45' r='4' fill='#16a34a'/>
+  <circle cx='310' cy='40' r='4' fill='#16a34a'/>
+</svg>
+
+<h2 id="marker-density">Marker Density Effects</h2>
+<p>Marker density was varied independently of training population size to separate its effect from sample size effects. Denser marker panels tended to produce modest accuracy gains once the training population exceeded a few hundred individuals, but showed little benefit at the smallest population sizes tested.</p>
+<svg width='320' height='160'><rect x='10' y='30' width='40' height='120' fill='#f59e0b'/><rect x='70' y='60' width='40' height='90' fill='#f59e0b'/><rect x='130' y='80' width='40' height='70' fill='#f59e0b'/><rect x='190' y='95' width='40' height='55' fill='#f59e0b'/><rect x='250' y='105' width='40' height='45' fill='#f59e0b'/></svg>
+
+<h2 id="cross-validation">Cross-Validation Results</h2>
+<p>Repeated k-fold cross-validation was used to assess the stability of accuracy estimates. Variability across folds was substantially higher for the smallest training populations, consistent with the expectation that limited data leads to less stable parameter estimation.</p>
+<svg width='320' height='160'>
+  <circle cx='160' cy='80' r='60' fill='none' stroke='#e5e7eb' stroke-width='20'/>
+  <circle cx='160' cy='80' r='60' fill='none' stroke='#4f46e5' stroke-width='20' stroke-dasharray='220 377' transform='rotate(-90 160 80)'/>
+</svg>
+
+<h2 id="computational">Computational Considerations</h2>
+<p>Runtime and memory requirements scaled predictably with both the number of individuals and the number of markers considered. More complex machine learning approaches did not provide meaningful accuracy improvements over traditional statistical methods when training data was insufficient to reliably estimate a large number of model parameters, while taking substantially longer to fit.</p>
+<p>For practical herd-management contexts where retraining happens periodically as new records accumulate, this tradeoff argues in favor of simpler models until the reference population reaches a size where additional model complexity can be reliably supported.</p>
+
+<h2 id="conclusion">Conclusion</h2>
+<p>Overall, the results reinforce that training population size remains the dominant driver of genomic prediction accuracy in small-herd settings, with marker density and model choice playing secondary roles. Breeders working with limited reference populations should prioritize expanding phenotyped and genotyped records over adopting more complex prediction methods.</p>

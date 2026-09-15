@@ -4,15 +4,11 @@ import { requireAuth, optionalAuth, requireRole } from "../middleware/requireAut
 import { serializePost } from "../lib/serializePost.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
 import { getStitchedHtml, saveStitchedHtml } from "../lib/htmlStore.js";
+import { postInclude as include } from "../lib/postInclude.js";
+import { rankScore } from "../lib/rankScore.js";
 import { ZipArchive } from "archiver";
 
 const router = Router();
-const include = {
-  votes: true,
-  pins: true,
-  body: true,
-  _count: { select: { comments: { where: { deletedAt: null } } } },
-};
 
 async function findPost(id) {
   return prisma.postMetadata.findUnique({ where: { id }, include });
@@ -96,6 +92,53 @@ router.get(
       orderBy: { createdAt: "asc" },
     });
     res.json(posts.map((p) => serializePost(p, { userRole: req.userRole })));
+  })
+);
+
+// Home page carousel: top posts site-wide by engagement, regardless of
+// topic. Must come before "/:id" so it isn't captured by it.
+router.get(
+  "/top",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const limit = Math.min(Number(req.query.limit) || 5, 20);
+    const posts = await prisma.postMetadata.findMany({
+      where: { status: "APPROVED" },
+      include,
+    });
+    const serialized = posts
+      .map((p) => serializePost(p, { userId: req.userId, userRole: req.userRole }))
+      .sort((a, b) => rankScore(b) - rankScore(a));
+    res.json(serialized.slice(0, limit));
+  })
+);
+
+// Search box in the header: matches approved posts whose title or abstract
+// contains every word in the query (case-insensitive). Only ever looks at
+// those two plain-text fields, never the stitched HTML body. Must come
+// before "/:id" so it isn't captured by it.
+router.get(
+  "/search",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    if (!q) return res.json([]);
+
+    const words = q.split(/\s+/).filter(Boolean);
+    const posts = await prisma.postMetadata.findMany({
+      where: {
+        status: "APPROVED",
+        AND: words.map((word) => ({
+          OR: [
+            { title: { contains: word, mode: "insensitive" } },
+            { abstract: { contains: word, mode: "insensitive" } },
+          ],
+        })),
+      },
+      include,
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(posts.map((p) => serializePost(p, { userId: req.userId, userRole: req.userRole })));
   })
 );
 

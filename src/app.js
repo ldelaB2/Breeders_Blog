@@ -3,6 +3,7 @@ import cors from "cors";
 import postsRouter from "./routes/posts.routes.js";
 import commentsRouter from "./routes/comments.routes.js";
 import meRouter from "./routes/me.routes.js";
+import sitemapRouter from "./routes/sitemap.routes.js";
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(express.json({ limit: "5mb" }));
 app.use("/api/posts", postsRouter);
 app.use("/api", commentsRouter);
 app.use("/api", meRouter);
+app.use(sitemapRouter);
 
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
 // eslint-disable-next-line no-unused-vars
