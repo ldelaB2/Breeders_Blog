@@ -3,15 +3,20 @@ import Icon from "../Icon";
 import VoteControls from "../VoteControls";
 import { voteState } from "../../lib/voting";
 import { useToast } from "../../lib/useToast";
+import { useCurrentUser } from "../../lib/useCurrentUser";
 import pinIcon from "../../assets/pin.svg?raw";
 import commentIcon from "../../assets/comment.svg?raw";
+import lockIcon from "../../assets/lock.svg?raw";
+import archiveIcon from "../../assets/archive.svg?raw";
 
-function Post({ post, onSelect, onTogglePin, onUpvote, onDownvote }) {
+function Post({ post, onSelect, onTogglePin, onUpvote, onDownvote, onToggleLock, onArchive }) {
   const { user } = useUser();
+  const { isModerator } = useCurrentUser();
   const showToast = useToast();
   const isPinned = user ? post.pinnedBy.includes(user.id) : false;
   const { score, myVote } = voteState(post.upvotes, post.downvotes, user?.id);
   const isPending = post.status === "PENDING";
+  const canModerate = isModerator && post.status === "APPROVED";
 
   function requireSignIn(action) {
     if (user) return true;
@@ -40,6 +45,43 @@ function Post({ post, onSelect, onTogglePin, onUpvote, onDownvote }) {
             <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600">
               Pending
             </span>
+          )}
+
+          {post.locked && (
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+              Locked
+            </span>
+          )}
+
+          {canModerate && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleLock?.(post.id);
+                }}
+                aria-label={post.locked ? "Unlock post" : "Lock post"}
+                aria-pressed={post.locked}
+                className={`rounded-md p-1.5 transition-colors hover:bg-gray-100 ${
+                  post.locked ? "text-amber-500" : "text-gray-300"
+                }`}
+              >
+                <Icon svg={lockIcon} className="h-5 w-5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onArchive?.(post.id);
+                }}
+                aria-label="Archive post"
+                className="rounded-md p-1.5 text-gray-300 transition-colors hover:bg-gray-100 hover:text-gray-600"
+              >
+                <Icon svg={archiveIcon} className="h-5 w-5" />
+              </button>
+            </>
           )}
 
           <button

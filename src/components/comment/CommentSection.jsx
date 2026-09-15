@@ -18,7 +18,7 @@ function buildChildrenMap(comments) {
   return map;
 }
 
-function CommentSection({ postId, onCommentCountChange }) {
+function CommentSection({ postId, locked, onCommentCountChange }) {
   const { user } = useUser();
   const showToast = useToast();
   const api = useApi();
@@ -67,6 +67,14 @@ function CommentSection({ postId, onCommentCountChange }) {
     }
   }
 
+  async function deleteComment(commentId) {
+    try {
+      replaceComment(await api.deleteComment(commentId));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   const childrenByParent = buildChildrenMap(comments);
   const roots = childrenByParent.get(null) || [];
 
@@ -78,14 +86,18 @@ function CommentSection({ postId, onCommentCountChange }) {
         <h2 className="text-lg font-bold text-gray-900">
           Comments ({comments.length})
         </h2>
-        <AddCommentButton
-          open={addingRoot}
-          onClick={() => {
-            if (!user) return showToast("Please sign in to comment");
-            setAddingRoot((a) => !a);
-          }}
-        />
+        {!locked && (
+          <AddCommentButton
+            open={addingRoot}
+            onClick={() => {
+              if (!user) return showToast("Please sign in to comment");
+              setAddingRoot((a) => !a);
+            }}
+          />
+        )}
       </div>
+
+      {locked && <p className="mt-1 text-sm text-gray-500">Comments are locked for this post.</p>}
 
       {addingRoot && (
         <AddCommentForm
@@ -107,9 +119,11 @@ function CommentSection({ postId, onCommentCountChange }) {
                 key={root.id}
                 comment={root}
                 childrenByParent={childrenByParent}
+                locked={locked}
                 onAdd={addComment}
                 onUpvote={upvoteComment}
                 onDownvote={downvoteComment}
+                onDelete={deleteComment}
               />
             ))}
           </div>

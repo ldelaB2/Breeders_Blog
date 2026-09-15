@@ -77,7 +77,11 @@ function PostReader({ postId, onBack, onCommentCountChange }) {
               </p>
             )}
 
-            <CommentSection postId={post.id} onCommentCountChange={handleCommentCountChange} />
+            <CommentSection
+              postId={post.id}
+              locked={post.locked}
+              onCommentCountChange={handleCommentCountChange}
+            />
           </>
         ) : null}
 

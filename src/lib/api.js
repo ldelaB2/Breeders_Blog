@@ -27,6 +27,24 @@ export const fetchPosts = (topicSlug, token) =>
 export const fetchPost = (id) => request(`/posts/${id}`);
 export const fetchComments = (postId) => request(`/posts/${postId}/comments`);
 
+// Streams the zip directly rather than going through the shared JSON
+// `request()` helper, then triggers a browser save via a temporary
+// object-URL anchor.
+export async function downloadPostZip(id, token) {
+  const res = await fetch(`${BASE_URL}/posts/${id}/download`, {
+    headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+  });
+  if (!res.ok) throw new Error(`Download failed (${res.status})`);
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${id}.zip`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // Bundles the reads above with authenticated write actions, attaching the
 // current Clerk session token automatically.
 export function useApi() {
@@ -41,10 +59,18 @@ export function useApi() {
     fetchPosts: async (topicSlug) => fetchPosts(topicSlug, (await getToken()) || undefined),
     fetchPost,
     fetchComments,
+    fetchCurrentUser: () => authed("/me"),
+    fetchPendingPosts: () => authed("/posts/pending"),
+    downloadPost: async (id) => downloadPostZip(id, await getToken()),
+    approvePost: (id, html) => authed(`/posts/${id}/approve`, { method: "POST", body: { html } }),
+    rejectPost: (id, rejectionReason) =>
+      authed(`/posts/${id}/reject`, { method: "POST", body: { rejectionReason } }),
     createPost: (data) => authed("/posts", { method: "POST", body: data }),
     upvotePost: (id) => authed(`/posts/${id}/upvote`, { method: "POST" }),
     downvotePost: (id) => authed(`/posts/${id}/downvote`, { method: "POST" }),
     pinPost: (id) => authed(`/posts/${id}/pin`, { method: "POST" }),
+    lockPost: (id) => authed(`/posts/${id}/lock`, { method: "POST" }),
+    archivePost: (id) => authed(`/posts/${id}/archive`, { method: "POST" }),
     createComment: (postId, data) => authed(`/posts/${postId}/comments`, { method: "POST", body: data }),
     deleteComment: (id) => authed(`/comments/${id}`, { method: "DELETE" }),
     upvoteComment: (id) => authed(`/comments/${id}/upvote`, { method: "POST" }),

@@ -6,12 +6,14 @@ import AddCommentButton from "./AddCommentButton";
 import AddCommentForm from "./AddCommentForm";
 import { voteState } from "../../lib/voting";
 import { useToast } from "../../lib/useToast";
+import { useCurrentUser } from "../../lib/useCurrentUser";
 import chevronIcon from "../../assets/chevron.svg?raw";
 
 // A single comment plus its replies, nested recursively with a connecting
 // line per depth (Reddit-style threading).
-function Comment({ comment, childrenByParent, onAdd, onUpvote, onDownvote }) {
+function Comment({ comment, childrenByParent, locked, onAdd, onUpvote, onDownvote, onDelete }) {
   const { user } = useUser();
+  const { isModerator } = useCurrentUser();
   const showToast = useToast();
   const [expanded, setExpanded] = useState(true);
   const [replying, setReplying] = useState(false);
@@ -55,10 +57,21 @@ function Comment({ comment, childrenByParent, onAdd, onUpvote, onDownvote }) {
               onUpvote={() => requireSignIn("vote") && onUpvote?.(comment.id)}
               onDownvote={() => requireSignIn("vote") && onDownvote?.(comment.id)}
             />
-            <AddCommentButton
-              open={replying}
-              onClick={() => requireSignIn("comment") && setReplying((r) => !r)}
-            />
+            {!locked && (
+              <AddCommentButton
+                open={replying}
+                onClick={() => requireSignIn("comment") && setReplying((r) => !r)}
+              />
+            )}
+            {isModerator && !comment.deleted && (
+              <button
+                type="button"
+                onClick={() => onDelete?.(comment.id)}
+                className="text-sm text-red-500 transition-colors hover:text-red-700"
+              >
+                Delete
+              </button>
+            )}
           </div>
           <p className="mt-0.5 text-base text-gray-700">
             {comment.deleted ? (
@@ -87,9 +100,11 @@ function Comment({ comment, childrenByParent, onAdd, onUpvote, onDownvote }) {
               key={reply.id}
               comment={reply}
               childrenByParent={childrenByParent}
+              locked={locked}
               onAdd={onAdd}
               onUpvote={onUpvote}
               onDownvote={onDownvote}
+              onDelete={onDelete}
             />
           ))}
         </div>

@@ -3,11 +3,18 @@ import { Link } from "react-router-dom";
 import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/react";
 import logo from "./../assets/logo.png";
 import { DYNAMIC_TOPICS, PERMANENT_TOPICS } from "../routes";
+import { useCurrentUser } from "../lib/useCurrentUser";
 
 function Header({ topics = DYNAMIC_TOPICS }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const { isAdmin } = useCurrentUser();
+  // Kept out of the shared PERMANENT_TOPICS export (routes.jsx) since
+  // App.jsx also uses that array to auto-generate routes for everyone -
+  // Admin visibility is header-only, the route itself is always registered
+  // and gated by the page/API instead.
+  const navLinks = isAdmin ? [...PERMANENT_TOPICS, { path: "/admin", label: "Admin" }] : PERMANENT_TOPICS;
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -133,7 +140,7 @@ function Header({ topics = DYNAMIC_TOPICS }) {
       {/* Desktop nav */}
       <nav className="hidden sm:block py-4">
         <ul className="flex items-center gap-6 font-medium text-gray-700">
-          {PERMANENT_TOPICS.map((link) =>
+          {navLinks.map((link) =>
             link.label === "Topics" ? (
               <li key={link.path} className="relative" ref={dropdownRef}>
                 <button
@@ -194,7 +201,7 @@ function Header({ topics = DYNAMIC_TOPICS }) {
         <div className="sm:hidden absolute left-0 top-full z-20 w-full bg-white shadow-md border-t border-gray-200">
           <ul className="flex flex-col divide-y divide-gray-100 text-gray-700 font-medium">
             {[
-              ...PERMANENT_TOPICS.filter((l) => l.label !== "Topics"),
+              ...navLinks.filter((l) => l.label !== "Topics"),
               ...topics,
             ].map((link) => (
               <li key={link.path}>

@@ -66,6 +66,26 @@ export default function Topic() {
     }
   }
 
+  async function handleToggleLock(postId) {
+    try {
+      replacePost(await api.lockPost(postId));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleArchive(postId) {
+    if (!window.confirm("Archive this post? This moves it to the Archive topic and locks it.")) {
+      return;
+    }
+    try {
+      await api.archivePost(postId);
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   function handleCommentCountChange(postId, commentCount) {
     setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, commentCount } : p)));
   }
@@ -122,6 +142,8 @@ export default function Topic() {
               onTogglePin={handleTogglePin}
               onUpvote={handleUpvote}
               onDownvote={handleDownvote}
+              onToggleLock={handleToggleLock}
+              onArchive={handleArchive}
             />
           ))}
         </div>
