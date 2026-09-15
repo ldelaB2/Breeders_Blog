@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Icon from "../Icon";
 import CommentSection from "../comment/CommentSection";
 import { fetchPost } from "../../lib/api";
@@ -8,11 +8,24 @@ const DEFAULT_TITLE = "Breeders Blog";
 const DEFAULT_DESCRIPTION =
   "Breeders Blog — research and notes on genomic selection, quantitative genetics, and modern breeding methods.";
 
+// Table-of-contents entries, one per <h2 id="..."> in the moderator-stitched
+// HTML. Parsed from the raw string up front so the nav can render before the
+// iframe below has even loaded.
+function extractSections(html) {
+  if (!html) return [];
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return [...doc.querySelectorAll("h2[id]")].map((h) => ({ id: h.id, text: h.textContent }));
+}
+
 // A single post's page, reached at /posts/:id. Fetches its own detail
 // (including the moderator-stitched HTML, which list endpoints omit) by id.
 function PostReader({ postId, onBack }) {
   const [post, setPost] = useState(null);
   const [error, setError] = useState(null);
+  const [iframeHeight, setIframeHeight] = useState(0);
+  const iframeRef = useRef(null);
+  const resizeObserverRef = useRef(null);
+  const sections = useMemo(() => extractSections(post?.html), [post?.html]);
 
   useEffect(() => {
     // Reset before the new fetch resolves so a post switch never briefly
@@ -20,6 +33,7 @@ function PostReader({ postId, onBack }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPost(null);
     setError(null);
+    setIframeHeight(0);
     fetchPost(postId)
       .then(setPost)
       .catch((err) => setError(err.message));
@@ -38,8 +52,40 @@ function PostReader({ postId, onBack }) {
     };
   }, [post]);
 
+  // The iframe has "allow-same-origin" (but never "allow-scripts" - the post
+  // still can't run a single line of its own JS) purely so the parent can
+  // read its rendered content: measuring its real height so it never needs
+  // its own scrollbar, and locating headings to scroll to.
+  function handleIframeLoad() {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc) return;
+
+    const measure = () => setIframeHeight(doc.documentElement.scrollHeight);
+    measure();
+
+    resizeObserverRef.current?.disconnect();
+    const observer = new ResizeObserver(measure);
+    observer.observe(doc.documentElement);
+    resizeObserverRef.current = observer;
+  }
+
+  useEffect(() => () => resizeObserverRef.current?.disconnect(), []);
+
+  // Only one scrollable area on the page (the outer window) - the iframe is
+  // sized to fit all of its content, so "jumping" to a section means
+  // scrolling the outer page to that heading's position, not the iframe.
+  function goToSection(id) {
+    const iframeEl = iframeRef.current;
+    const heading = iframeEl?.contentDocument?.getElementById(id);
+    if (!heading) return;
+
+    const targetY =
+      window.scrollY + iframeEl.getBoundingClientRect().top + heading.getBoundingClientRect().top - 16;
+    window.scrollTo({ top: targetY, behavior: "smooth" });
+  }
+
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="mx-auto max-w-6xl px-6 py-8">
       <div className="mb-6 flex items-center gap-4 border-b border-gray-200 pb-4">
         <button
           type="button"
@@ -64,24 +110,57 @@ function PostReader({ postId, onBack }) {
         <p className="py-4 text-sm text-gray-500">Loading…</p>
       ) : post ? (
         <>
-          <p className="border-b border-gray-200 pb-4 text-sm text-gray-600">
-            {post.abstract}
-          </p>
+          <div className="flex gap-8">
+            {sections.length > 1 && (
+              <nav className="sticky top-1/2 hidden w-48 shrink-0 -translate-y-1/2 md:block">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  On this page
+                </p>
+                <ul className="flex flex-col gap-1 border-l border-gray-200">
+                  {sections.map((s) => (
+                    <li key={s.id}>
+                      <button
+                        type="button"
+                        onClick={() => goToSection(s.id)}
+                        className="block w-full truncate border-l-2 border-transparent px-3 py-1 text-left text-sm text-gray-600 transition-colors hover:border-gray-400 hover:text-gray-900"
+                      >
+                        {s.text}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            )}
 
-          {post.html ? (
-            // Sandboxed with no flags set: post HTML can't run scripts, submit
-            // forms, or access anything as this origin — it's untrusted content.
-            <iframe
-              title={post.title}
-              srcDoc={post.html}
-              sandbox=""
-              className="h-[75vh] w-full border-0"
-            />
-          ) : (
-            <p className="px-6 py-8 text-center text-sm text-gray-500">
-              This post is still pending review, so there's no preview yet.
-            </p>
-          )}
+            <div className="min-w-0 flex-1">
+              <p className="border-b border-gray-200 pb-4 text-sm text-gray-600">
+                {post.abstract}
+              </p>
+
+              {post.html ? (
+                // "allow-same-origin" only, never "allow-scripts": the post
+                // still can't run a single line of JS, submit forms, or do
+                // anything else active - it's untrusted content. That flag
+                // just lets *our* code read the rendered page (see
+                // handleIframeLoad/goToSection) so it can size the iframe
+                // to fit and scroll to a heading.
+                <iframe
+                  ref={iframeRef}
+                  onLoad={handleIframeLoad}
+                  title={post.title}
+                  srcDoc={post.html}
+                  sandbox="allow-same-origin"
+                  scrolling="no"
+                  style={{ height: iframeHeight || 400 }}
+                  className="w-full border-0"
+                />
+              ) : (
+                <p className="px-6 py-8 text-center text-sm text-gray-500">
+                  This post is still pending review, so there's no preview yet.
+                </p>
+              )}
+            </div>
+          </div>
 
           <CommentSection postId={post.id} locked={post.locked} />
         </>

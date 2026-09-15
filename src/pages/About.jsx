@@ -36,7 +36,7 @@ function About() {
   const toggle = (key) => setOpen((o) => ({ ...o, [key]: !o[key] }));
 
   return (
-    <div className="px-6 py-10 max-w-3xl mx-auto">
+    <div className="px-6 py-10 max-w-6xl mx-auto">
       {/* Manifesto Section */}
       <Section
         title="Breeders Blog Manifesto"

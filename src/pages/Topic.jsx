@@ -67,7 +67,7 @@ export default function Topic() {
   const sortedPosts = sortPosts(posts, user?.id);
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="mx-auto max-w-6xl px-6 py-8">
       <div className="mb-6 flex items-center justify-center gap-2">
         <h1 className="text-2xl font-bold text-gray-900">{match.label}</h1>
 

@@ -12,7 +12,7 @@ function Home() {
   }
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-10 px-6 py-8">
+    <div className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-8">
       <PostCarousel
         title="Top Posts"
         fetchPosts={(api) => api.fetchTopPosts(5)}

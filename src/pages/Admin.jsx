@@ -43,7 +43,7 @@ export default function Admin() {
   if (!isAdmin) return <p className="p-8 text-gray-500">You don't have access to this page.</p>;
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="mx-auto max-w-6xl px-6 py-8">
       <h1 className="mb-6 text-2xl font-bold text-gray-900">Admin Control</h1>
 
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
