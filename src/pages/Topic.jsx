@@ -7,7 +7,7 @@ import Post from "../components/post/Post";
 import PostReader from "../components/post/PostReader";
 import CreatePostModal from "../components/post/CreatePostModal";
 import Icon from "../components/Icon";
-import { fetchPosts, useApi } from "../lib/api";
+import { useApi } from "../lib/api";
 import { sortPosts } from "../lib/postSort";
 import addPostIcon from "../assets/add_post.svg?raw";
 
@@ -30,10 +30,12 @@ export default function Topic() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError(null);
-    fetchPosts(match.slug)
+    api
+      .fetchPosts(match.slug)
       .then(setPosts)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [match]);
 
   function replacePost(updated) {

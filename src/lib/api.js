@@ -19,9 +19,11 @@ async function request(path, { token, method = "GET", body } = {}) {
   return res.status === 204 ? null : res.json();
 }
 
-// Public reads - never need a session token.
-export const fetchPosts = (topicSlug) =>
-  request(`/posts${topicSlug ? `?topicSlug=${encodeURIComponent(topicSlug)}` : ""}`);
+// Public reads - usable without a session token. fetchPosts optionally takes
+// one anyway: the backend includes a caller's own pending posts in the feed
+// only when it knows who's asking (see GET /posts in posts.routes.js).
+export const fetchPosts = (topicSlug, token) =>
+  request(`/posts${topicSlug ? `?topicSlug=${encodeURIComponent(topicSlug)}` : ""}`, { token });
 export const fetchPost = (id) => request(`/posts/${id}`);
 export const fetchComments = (postId) => request(`/posts/${postId}/comments`);
 
@@ -36,7 +38,7 @@ export function useApi() {
   }
 
   return {
-    fetchPosts,
+    fetchPosts: async (topicSlug) => fetchPosts(topicSlug, (await getToken()) || undefined),
     fetchPost,
     fetchComments,
     createPost: (data) => authed("/posts", { method: "POST", body: data }),

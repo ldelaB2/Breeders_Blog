@@ -11,6 +11,7 @@ function Post({ post, onSelect, onTogglePin, onUpvote, onDownvote }) {
   const showToast = useToast();
   const isPinned = user ? post.pinnedBy.includes(user.id) : false;
   const { score, myVote } = voteState(post.upvotes, post.downvotes, user?.id);
+  const isPending = post.status === "PENDING";
 
   function requireSignIn(action) {
     if (user) return true;
@@ -20,8 +21,12 @@ function Post({ post, onSelect, onTogglePin, onUpvote, onDownvote }) {
 
   return (
     <div
-      onClick={() => onSelect?.(post)}
-      className="group cursor-pointer rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+      onClick={() => {
+        if (!isPending) onSelect?.(post);
+      }}
+      className={`group rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow ${
+        isPending ? "cursor-default" : "cursor-pointer hover:shadow-md"
+      }`}
     >
       {/* Header row: title, author, pin */}
       <div className="flex items-center justify-between gap-3">
