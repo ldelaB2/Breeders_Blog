@@ -1,0 +1,164 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum PostStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Mirrors the signed-in Clerk user. Rows are created lazily on first
+// authentication (see src/middleware/requireAuth.js). Clerk remains the
+// source of truth for email/legal name — we only cache what the app
+// needs locally: a display name and a blog-specific role.
+model User {
+  id        String   @id // Clerk user id
+  name      String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+
+  posts         PostMetadata[] @relation("Author")
+  reviewedPosts PostMetadata[] @relation("Reviewer")
+  comments      Comment[]
+  votes         Vote[]
+  commentVotes  CommentVote[]
+  pins          Pin[]
+}
+
+// Small, frequently-queried fields — everything a feed/list view needs.
+// Never touches raw_md or the stitched HTML.
+model PostMetadata {
+  id        String     @id @default(cuid())
+  title     String
+  abstract  String
+  topicSlug String
+  status    PostStatus @default(PENDING)
+  // Blocks new comments (including replies). Set directly by a lock
+  // toggle, or implicitly by archiving (see POST /:id/archive).
+  locked    Boolean    @default(false)
+
+  authorId   String
+  // Snapshot of the author's display name at post time, so a later
+  // name change doesn't rewrite history.
+  authorName String
+  // Snapshot of the author's Clerk profile photo URL at post time (same
+  // reasoning as authorName). Nullable because posts created before this
+  // field existed have no value and are never backfilled - they just show
+  // a fallback placeholder in the UI.
+  authorAvatarUrl String?
+  author     User       @relation("Author", fields: [authorId], references: [id])
+
+  reviewedById    String?
+  reviewedBy      User?     @relation("Reviewer", fields: [reviewedById], references: [id])
+  reviewedAt      DateTime?
+  rejectionReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  body     PostBody?
+  votes    Vote[]
+  pins     Pin[]
+  comments Comment[]
+
+  @@index([topicSlug])
+  @@index([status])
+}
+
+// Heavy content, 1:1 with PostMetadata. Kept separate so listing posts
+// never pulls raw markdown or HTML pointers off disk.
+model PostBody {
+  postId String       @id
+  post   PostMetadata @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  // The author's submitted markdown; source of truth.
+  rawMd String
+
+  // S3 key/slug for the moderator-stitched HTML, set on approval.
+  htmlSlug      String?
+  htmlUpdatedAt DateTime?
+}
+
+// One row per user per post; `value` is 1 (upvote) or -1 (downvote).
+// Score is the sum of `value` over a post's votes, computed on read.
+model Vote {
+  id        String   @id @default(cuid())
+  value     Int
+  createdAt DateTime @default(now())
+
+  postId String
+  post   PostMetadata @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([postId, userId])
+}
+
+// One row per user per pinned post (a personal bookmark, not a
+// site-wide "featured" flag).
+model Pin {
+  createdAt DateTime @default(now())
+
+  postId String
+  post   PostMetadata @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@id([postId, userId])
+}
+
+// Flat table with a self-referencing parentId (root comments have
+// parentId: null), mirroring the frontend's adjacency-list threading.
+model Comment {
+  id     String       @id @default(cuid())
+  postId String
+  post   PostMetadata @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  authorId   String
+  authorName String
+  author     User   @relation(fields: [authorId], references: [id])
+
+  parentId String?
+  // Restrict: a comment with replies can't be hard-deleted, since that
+  // would orphan its thread. Remove it via deletedAt (soft-delete) instead.
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Restrict)
+  replies  Comment[] @relation("CommentReplies")
+
+  text      String
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  votes CommentVote[]
+
+  @@index([postId])
+  @@index([parentId])
+}
+
+// One row per user per comment; same 1/-1 pattern as Vote.
+model CommentVote {
+  id        String   @id @default(cuid())
+  value     Int
+  createdAt DateTime @default(now())
+
+  commentId String
+  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+}
