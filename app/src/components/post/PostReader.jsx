@@ -2,56 +2,38 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Icon from "../Icon";
 import CommentSection from "../comment/CommentSection";
 import { fetchPost } from "../../lib/api";
+import { extractPostHtml } from "../../lib/postHtml";
 import backArrowIcon from "../../assets/backarrow.svg?raw";
 
 const DEFAULT_TITLE = "Breeders Blog";
 const DEFAULT_DESCRIPTION =
   "Breeders Blog — research and notes on genomic selection, quantitative genetics, and modern breeding methods.";
 
-// Turns arbitrary heading text into a stable, id-safe slug: lowercase,
-// non-alphanumeric runs collapse to one hyphen, edges trimmed. Falls back
-// to a positional placeholder for headings with no usable text.
-function slugify(text, index) {
-  const slug = text
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return slug || `section-${index + 1}`;
-}
-
-// Table-of-contents entries, one per <h2> in the moderator-stitched HTML,
-// plus that same HTML with a stable id written onto any <h2> that didn't
-// already have one. Both come from one DOMParser pass over one DOM so they
-// can never drift apart - goToSection looks ids up inside the rendered
-// iframe's contentDocument, so an id that only existed in a JS array (and
-// not in the srcDoc markup) would silently fail to scroll. Generated ids
-// are de-duped against every id already in the document so they never
-// collide with a moderator-typed one (e.g. id="overview").
-function processHtml(html) {
-  if (!html) return { html, sections: [] };
-
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const usedIds = new Set([...doc.querySelectorAll("[id]")].map((el) => el.id));
-  const sections = [];
-
-  [...doc.querySelectorAll("h2")].forEach((heading, index) => {
-    let id = heading.id;
-    if (!id) {
-      const base = slugify(heading.textContent, index);
-      id = base;
-      let suffix = 2;
-      while (usedIds.has(id)) {
-        id = `${base}-${suffix}`;
-        suffix += 1;
+// One "On this page" entry per TOC node, recursing into nested entries
+// (Quarto nests h3s etc. under their parent h2) with deeper levels indented.
+function TocList({ items, onSelect, depth = 0 }) {
+  return (
+    <ul
+      className={
+        depth === 0
+          ? "flex flex-col gap-1 border-l border-gray-200"
+          : "ml-3 flex flex-col gap-1 border-l border-gray-200"
       }
-      heading.id = id;
-      usedIds.add(id);
-    }
-    sections.push({ id, text: heading.textContent });
-  });
-
-  return { html: doc.body.innerHTML, sections };
+    >
+      {items.map((item) => (
+        <li key={item.id}>
+          <button
+            type="button"
+            onClick={() => onSelect(item.id)}
+            className="block w-full truncate border-l-2 border-transparent px-3 py-1 text-left text-sm text-gray-600 transition-colors hover:border-gray-400 hover:text-gray-900"
+          >
+            {item.text}
+          </button>
+          {item.children.length > 0 && <TocList items={item.children} onSelect={onSelect} depth={depth + 1} />}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 // A single post's page, reached at /posts/:id. Fetches its own detail
@@ -64,7 +46,7 @@ function PostReader({ postId, onBack }) {
   const iframeRef = useRef(null);
   const resizeObserverRef = useRef(null);
   const abstractRef = useRef(null);
-  const { html: postHtml, sections } = useMemo(() => processHtml(post?.html), [post?.html]);
+  const { html: postHtml, toc } = useMemo(() => extractPostHtml(post?.html), [post?.html]);
 
   useEffect(() => {
     // Reset before the new fetch resolves so a post switch never briefly
@@ -91,10 +73,9 @@ function PostReader({ postId, onBack }) {
     };
   }, [post]);
 
-  // The iframe has "allow-same-origin" (but never "allow-scripts" - the post
-  // still can't run a single line of its own JS) purely so the parent can
-  // read its rendered content: measuring its real height so it never needs
-  // its own scrollbar, and locating headings to scroll to.
+  // The iframe is unsandboxed (see the rationale on the iframe itself below),
+  // so contentDocument is always readable here: measures the post's real
+  // height so it never needs its own scrollbar, and re-measures on resize.
   function handleIframeLoad() {
     const doc = iframeRef.current?.contentDocument;
     if (!doc) return;
@@ -167,7 +148,7 @@ function PostReader({ postId, onBack }) {
       ) : post ? (
         <>
           <div className="flex gap-8">
-            {sections.length > 1 && (
+            {toc.length > 1 && (
               <nav
                 className="sticky top-1/2 hidden w-48 shrink-0 self-start -translate-y-1/2 md:block"
                 style={{ marginTop: navOffset }}
@@ -175,19 +156,7 @@ function PostReader({ postId, onBack }) {
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
                   On this page
                 </p>
-                <ul className="flex flex-col gap-1 border-l border-gray-200">
-                  {sections.map((s) => (
-                    <li key={s.id}>
-                      <button
-                        type="button"
-                        onClick={() => goToSection(s.id)}
-                        className="block w-full truncate border-l-2 border-transparent px-3 py-1 text-left text-sm text-gray-600 transition-colors hover:border-gray-400 hover:text-gray-900"
-                      >
-                        {s.text}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                <TocList items={toc} onSelect={goToSection} />
               </nav>
             )}
 
@@ -197,18 +166,19 @@ function PostReader({ postId, onBack }) {
               </p>
 
               {post.html ? (
-                // "allow-same-origin" only, never "allow-scripts": the post
-                // still can't run a single line of JS, submit forms, or do
-                // anything else active - it's untrusted content. That flag
-                // just lets *our* code read the rendered page (see
-                // handleIframeLoad/goToSection) so it can size the iframe
-                // to fit and scroll to a heading.
+                // Deliberately unsandboxed: posts can include interactive
+                // content (e.g. Plotly charts) whose scripts need to run.
+                // This means an approved post's HTML has full same-origin
+                // access to the app, so the only gate against a malicious
+                // script is ADMIN-only moderation at approve time (see
+                // requireRole("ADMIN") on POST /:id/approve) - there is no
+                // server-side sanitization. Accepted tradeoff, not an
+                // oversight.
                 <iframe
                   ref={iframeRef}
                   onLoad={handleIframeLoad}
                   title={post.title}
                   srcDoc={postHtml}
-                  sandbox="allow-same-origin"
                   scrolling="no"
                   style={{ height: iframeHeight || 400 }}
                   className="w-full border-0"
