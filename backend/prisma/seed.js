@@ -4,12 +4,15 @@
 // `voteScore` is reconstructed as real per-user Vote/CommentVote rows (one
 // synthetic voter pool reused across posts/comments, since the uniqueness
 // constraint is per (postId, userId) / (commentId, userId), not global),
-// and the sample `body` HTML is written to backend/seed-html/ as the
-// stand-in "S3 object" that PostBody.htmlSlug points at (see
-// src/lib/htmlStore.js). Safe to re-run: it clears prior seeded posts first.
+// and the sample `body` HTML is both checked into backend/seed-html/ (for
+// version control) and uploaded to the html store under the same slug that
+// PostBody.htmlSlug points at (see src/lib/htmlStore.js), so seeded posts
+// actually have retrievable content. Safe to re-run: it clears prior seeded
+// posts first.
 import { PrismaClient } from "@prisma/client";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
+import { saveStitchedHtml } from "../src/lib/htmlStore.js";
 
 const prisma = new PrismaClient();
 const SAMPLE_DIR = path.resolve(import.meta.dirname, "../../app/sample_post");
@@ -80,6 +83,7 @@ async function main() {
     const createdAt = new Date(now - (posts.length - p.id) * DAY);
     const htmlSlug = `post-${p.id}.html`;
     await writeFile(path.join(HTML_STORE_DIR, htmlSlug), p.body, "utf8");
+    await saveStitchedHtml(htmlSlug, p.body);
 
     const post = await prisma.postMetadata.create({
       data: {

@@ -5,11 +5,18 @@ import postsRouter from "./routes/posts.routes.js";
 import commentsRouter from "./routes/comments.routes.js";
 import meRouter from "./routes/me.routes.js";
 import sitemapRouter from "./routes/sitemap.routes.js";
+import webhooksRouter from "./routes/webhooks.routes.js";
 
 const app = express();
 
 const allowedOrigins = (process.env.CORS_ORIGIN || "").split(",").map((o) => o.trim()).filter(Boolean);
 app.use(cors({ origin: allowedOrigins }));
+
+// Needs the raw request body to verify Clerk's signature, so it must be
+// mounted (with express.raw(), not express.json()) before the global JSON
+// body parser below.
+app.use("/api", express.raw({ type: "application/json" }), webhooksRouter);
+
 // Bumped from Express's 100kb default: stitched HTML uploaded on approve
 // travels through this JSON body the same way rawMd already does. Capped
 // at 4mb (not the full 5mb this endpoint could use) to stay under Vercel's
