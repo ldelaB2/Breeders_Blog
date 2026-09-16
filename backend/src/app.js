@@ -11,12 +11,16 @@ const app = express();
 const allowedOrigins = (process.env.CORS_ORIGIN || "").split(",").map((o) => o.trim()).filter(Boolean);
 app.use(cors({ origin: allowedOrigins }));
 // Bumped from Express's 100kb default: stitched HTML uploaded on approve
-// travels through this JSON body the same way rawMd already does.
-app.use(express.json({ limit: "5mb" }));
+// travels through this JSON body the same way rawMd already does. Capped
+// at 4mb (not the full 5mb this endpoint could use) to stay under Vercel's
+// ~4.5mb hard request body limit, which Express can't override.
+app.use(express.json({ limit: "4mb" }));
 
 // Caps write-endpoint abuse and bounds the Clerk API calls requireAuth
 // makes per request (one per authenticated call).
 const writeLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
+
+app.get("/api/health", (req, res) => res.status(200).json({ status: "ok" }));
 
 app.use("/api/posts", writeLimiter, postsRouter);
 app.use("/api", writeLimiter, commentsRouter);
