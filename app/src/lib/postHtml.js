@@ -18,6 +18,29 @@ function parseTocList(ulEl) {
   return items;
 }
 
+// Quarto normally intercepts same-page anchor clicks (TOC entries,
+// footnotes, cross-references) itself via quarto.js/tabsets.js - but those
+// load from a relative "libs/" path that isn't there once only the single
+// .html file is uploaded (no accompanying _files folder), so on a
+// non-self-contained export that JS silently never loads. Without it, any
+// stray `href="#..."` link left in the body falls through to a plain
+// browser navigation - and because the iframe's srcDoc content resolves
+// hrefs against the PARENT page's URL, that navigation hits the real
+// app URL and 404s inside the content area. This listener is our own
+// unconditional safety net: whatever the reason Quarto's own handling
+// didn't run, no in-page anchor click inside the iframe can ever escape
+// into a real navigation.
+const ANCHOR_GUARD_SCRIPT = `
+document.addEventListener("click", function (event) {
+  var link = event.target.closest('a[href^="#"]');
+  if (!link) return;
+  event.preventDefault();
+  var id = decodeURIComponent(link.getAttribute("href").slice(1));
+  var target = id && document.getElementById(id);
+  if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+`;
+
 // Pulls the moderator-stitched HTML's own Quarto-generated TOC nav (if any)
 // out of the document so it isn't rendered a second time inside the iframe,
 // and returns it as {id, text, children}[] for the app's own sidebar.
@@ -37,6 +60,10 @@ export function extractPostHtml(html) {
     toc = topUl ? parseTocList(topUl) : [];
     container.remove(); // strip it even if empty/malformed - never leak into the iframe
   }
+
+  const guardScript = doc.createElement("script");
+  guardScript.textContent = ANCHOR_GUARD_SCRIPT;
+  doc.body.appendChild(guardScript);
 
   const doctype = doc.doctype ? "<!doctype html>" : "";
   return { html: doctype + doc.documentElement.outerHTML, toc };
