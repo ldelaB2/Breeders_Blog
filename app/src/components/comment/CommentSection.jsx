@@ -5,6 +5,8 @@ import AddCommentButton from "./AddCommentButton";
 import AddCommentForm from "./AddCommentForm";
 import { fetchComments, useApi } from "../../lib/api";
 import { useToast } from "../../lib/useToast";
+import { useOptimisticList } from "../../lib/useOptimisticList";
+import { applyVoteToggle } from "../../lib/voting";
 
 // Groups a post's comments by parentId so each node can look up its replies
 // in O(1); root-level comments live under key null.
@@ -25,6 +27,7 @@ function CommentSection({ postId, locked }) {
   const [comments, setComments] = useState([]);
   const [error, setError] = useState(null);
   const [addingRoot, setAddingRoot] = useState(false);
+  const { patch, optimisticUpdate } = useOptimisticList(setComments);
 
   const load = useCallback(() => {
     fetchComments(postId)
@@ -34,38 +37,61 @@ function CommentSection({ postId, locked }) {
 
   useEffect(load, [load]);
 
-  function replaceComment(updated) {
-    setComments((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-  }
-
+  // Inserts a temporary comment immediately so the author sees it right
+  // away, then swaps it for the server's real one (real id, real
+  // timestamp-derived ordering) - or drops it and surfaces the error if the
+  // request fails.
   async function addComment(parentId, text) {
+    const tempId = `optimistic-${crypto.randomUUID()}`;
+    const optimisticComment = {
+      id: tempId,
+      postId,
+      parentId: parentId || null,
+      authorId: user?.id,
+      authorName: user?.fullName || user?.username || "Anonymous",
+      text,
+      deleted: false,
+      upvotes: [],
+      downvotes: [],
+    };
+    setComments((prev) => [...prev, optimisticComment]);
     try {
       const created = await api.createComment(postId, { text, parentId });
-      setComments((prev) => [...prev, created]);
+      setComments((prev) => prev.map((c) => (c.id === tempId ? created : c)));
     } catch (err) {
+      setComments((prev) => prev.filter((c) => c.id !== tempId));
       setError(err.message);
     }
   }
 
   async function upvoteComment(commentId) {
+    if (!user) return;
+    const rollback = optimisticUpdate(commentId, (c) => applyVoteToggle(c.upvotes, c.downvotes, user.id, 1));
     try {
-      replaceComment(await api.upvoteComment(commentId));
+      const updated = await api.upvoteComment(commentId);
+      patch(commentId, () => updated);
     } catch (err) {
+      rollback();
       setError(err.message);
     }
   }
 
   async function downvoteComment(commentId) {
+    if (!user) return;
+    const rollback = optimisticUpdate(commentId, (c) => applyVoteToggle(c.upvotes, c.downvotes, user.id, -1));
     try {
-      replaceComment(await api.downvoteComment(commentId));
+      const updated = await api.downvoteComment(commentId);
+      patch(commentId, () => updated);
     } catch (err) {
+      rollback();
       setError(err.message);
     }
   }
 
   async function deleteComment(commentId) {
     try {
-      replaceComment(await api.deleteComment(commentId));
+      const updated = await api.deleteComment(commentId);
+      patch(commentId, () => updated);
     } catch (err) {
       setError(err.message);
     }
@@ -73,7 +99,8 @@ function CommentSection({ postId, locked }) {
 
   async function restoreComment(commentId) {
     try {
-      replaceComment(await api.restoreComment(commentId));
+      const updated = await api.restoreComment(commentId);
+      patch(commentId, () => updated);
     } catch (err) {
       setError(err.message);
     }

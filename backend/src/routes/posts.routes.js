@@ -19,6 +19,15 @@ async function findPost(id) {
   return prisma.postMetadata.findUnique({ where: { id }, include });
 }
 
+// Lightweight existence/status check for routes that only need to validate
+// before mutating (upvote/downvote/pin) - avoids pulling the full votes/
+// pins/body relation graph twice per request when only `status` is needed
+// up front; the full findPost() below is still used once, to build the
+// actual response after the mutation.
+async function findPostStatus(id) {
+  return prisma.postMetadata.findUnique({ where: { id }, select: { status: true } });
+}
+
 async function toggleVote(postId, userId, value) {
   const existing = await prisma.vote.findUnique({
     where: { postId_userId: { postId, userId } },
@@ -316,7 +325,7 @@ router.post(
   "/:id/upvote",
   requireAuth,
   asyncHandler(async (req, res) => {
-    const post = await findPost(req.params.id);
+    const post = await findPostStatus(req.params.id);
     if (!post || post.status !== "APPROVED") return res.status(404).json({ error: "Post not found" });
     await toggleVote(req.params.id, req.userId, 1);
     res.json(serializePost(await findPost(req.params.id), { userId: req.userId, userRole: req.userRole }));
@@ -327,7 +336,7 @@ router.post(
   "/:id/downvote",
   requireAuth,
   asyncHandler(async (req, res) => {
-    const post = await findPost(req.params.id);
+    const post = await findPostStatus(req.params.id);
     if (!post || post.status !== "APPROVED") return res.status(404).json({ error: "Post not found" });
     await toggleVote(req.params.id, req.userId, -1);
     res.json(serializePost(await findPost(req.params.id), { userId: req.userId, userRole: req.userRole }));
@@ -339,7 +348,7 @@ router.post(
   requireAuth,
   asyncHandler(async (req, res) => {
     const postId = req.params.id;
-    const post = await findPost(postId);
+    const post = await findPostStatus(postId);
     if (!post || post.status !== "APPROVED") return res.status(404).json({ error: "Post not found" });
 
     const where = { postId_userId: { postId, userId: req.userId } };

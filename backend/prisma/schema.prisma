@@ -28,6 +28,7 @@ model User {
   id        String   @id // Clerk user id
   name      String
   role      Role     @default(USER)
+  avatarUrl String?
   createdAt DateTime @default(now())
 
   posts         PostMetadata[] @relation("Author")

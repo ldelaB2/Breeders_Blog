@@ -5,29 +5,39 @@ const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY 
 
 const VALID_ROLES = ["USER", "MODERATOR", "ADMIN"];
 
-// Verifies a Clerk session token and lazily syncs the user into our
-// database, returning the local User row (id/name/role).
+// Verifies a Clerk session token and returns the local User row
+// (id/name/role/avatarUrl).
 //
 // Role is assigned in the Clerk dashboard via privateMetadata.role (never
 // publicMetadata/unsafeMetadata - unsafeMetadata is end-user writable, which
 // would let a user grant themselves MODERATOR/ADMIN). privateMetadata is
 // backend-only, so it never reaches the client.
+//
+// Trusts the DB row once it exists rather than calling Clerk's API on every
+// request: the webhook (routes/webhooks.routes.js) keeps name/role/avatarUrl
+// in sync on user.created/user.updated, so a live Clerk lookup here would
+// just be a slow, redundant re-fetch of data we already have. Only a brand
+// new user - whose webhook hasn't landed yet - falls back to fetching and
+// upserting from Clerk directly, same as this function always did.
 async function resolveUser(token) {
   const { sub: userId } = await verifyToken(token, {
     secretKey: process.env.CLERK_SECRET_KEY,
   });
 
+  const existing = await prisma.user.findUnique({ where: { id: userId } });
+  if (existing) return existing;
+
   const clerkUser = await clerkClient.users.getUser(userId);
   const name = clerkUser.fullName || clerkUser.username || "Anonymous";
   const metadataRole = clerkUser.privateMetadata?.role;
   const role = VALID_ROLES.includes(metadataRole) ? metadataRole : "USER";
+  const avatarUrl = clerkUser.imageUrl;
 
-  const user = await prisma.user.upsert({
+  return prisma.user.upsert({
     where: { id: userId },
-    update: { name, role },
-    create: { id: userId, name, role },
+    update: { name, role, avatarUrl },
+    create: { id: userId, name, role, avatarUrl },
   });
-  return { ...user, avatarUrl: clerkUser.imageUrl };
 }
 
 function bearerToken(req) {
