@@ -13,7 +13,7 @@ const VALID_ROLES = ["USER", "MODERATOR", "ADMIN"];
 // Mounted with express.raw() in app.js - svix verifies the exact raw bytes
 // Clerk sent, so this must run before the global express.json() parser.
 router.post(
-  "/webhooks/clerk",
+  "/",
   asyncHandler(async (req, res) => {
     let event;
     try {

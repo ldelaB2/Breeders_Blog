@@ -15,7 +15,7 @@ app.use(cors({ origin: allowedOrigins }));
 // Needs the raw request body to verify Clerk's signature, so it must be
 // mounted (with express.raw(), not express.json()) before the global JSON
 // body parser below.
-app.use("/api", express.raw({ type: "application/json" }), webhooksRouter);
+app.use("/api/webhooks/clerk", express.raw({ type: "application/json" }), webhooksRouter);
 
 // Bumped from Express's 100kb default: stitched HTML uploaded on approve
 // travels through this JSON body the same way rawMd already does. Capped
