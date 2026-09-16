@@ -18,11 +18,22 @@ export async function getStitchedHtml(htmlSlug) {
   return await data.text();
 }
 
-export async function saveStitchedHtml(htmlSlug, html) {
-  const { error } = await client
-    .from(Bucket)
-    .upload(htmlSlug, html, { contentType: "text/html", upsert: true });
+// A short-lived signed PUT URL the browser uploads directly to Supabase
+// Storage with - bypasses Vercel's ~4.5mb function request-body cap, which a
+// large self-contained Quarto export (bundled Plotly.js, etc.) can exceed.
+// upsert: true since re-approving after a prior approval reuses the same slug.
+export async function createStitchedHtmlUploadUrl(htmlSlug) {
+  const { data, error } = await client.from(Bucket).createSignedUploadUrl(htmlSlug, { upsert: true });
   if (error) throw error;
+  return data.signedUrl;
+}
+
+// Confirms a direct upload actually landed before the approve route commits
+// to it in the database - a signed-URL PUT that silently failed client-side
+// (network blip, bucket size limit) would otherwise still get marked APPROVED.
+export async function stitchedHtmlExists(htmlSlug) {
+  const { data } = await client.from(Bucket).exists(htmlSlug);
+  return Boolean(data);
 }
 
 export async function deleteStitchedHtml(htmlSlug) {

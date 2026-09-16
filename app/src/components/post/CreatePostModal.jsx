@@ -3,6 +3,12 @@ import { useApi } from "../../lib/api";
 
 const TITLE_LIMIT = 100;
 const ABSTRACT_LIMIT = 600;
+// Matches the backend's express.json({ limit: "4mb" }) - see backend/src/app.js.
+// The file's content rides along as a JSON string field, so this is the real
+// ceiling; checked client-side too so an oversized file fails fast with a
+// clear message instead of a confusing request error.
+const MAX_FILE_SIZE_BYTES = 4 * 1024 * 1024;
+const MAX_FILE_SIZE_LABEL = "4 MB";
 
 // Popup for submitting a new post: title, abstract, and a markdown file
 // read client-side and sent as rawMd. The backend always creates it with
@@ -22,6 +28,14 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
   function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError(`"${file.name}" is too large - files must be under ${MAX_FILE_SIZE_LABEL}`);
+      e.target.value = ""; // allow re-selecting the same file after trimming it
+      return;
+    }
+
+    setError(null);
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = () => setRawMd(String(reader.result || ""));
@@ -114,7 +128,7 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".md,text/markdown"
+              accept=".md,.qmd,text/markdown"
               onChange={handleFileChange}
               className="hidden"
             />
@@ -125,6 +139,7 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
             >
               {fileName || "Upload markdown file…"}
             </button>
+            <p className="mt-1 text-xs text-gray-400">.md or .qmd, up to {MAX_FILE_SIZE_LABEL}</p>
           </div>
 
           <div className="mt-2 flex justify-end gap-2">

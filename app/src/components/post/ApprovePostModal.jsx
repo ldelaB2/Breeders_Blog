@@ -1,44 +1,54 @@
 import { useState, useRef } from "react";
 import { useApi } from "../../lib/api";
 
-// Popup for approving a pending post: reads the moderator-stitched HTML
-// file client-side (same FileReader-as-text pattern CreatePostModal.jsx
-// uses for markdown) and sends its text as the `html` field.
+// Popup for approving a pending post: uploads the moderator-stitched HTML
+// file straight from the browser to Supabase Storage via a short-lived
+// signed URL the backend mints, then tells the backend to finalize. The
+// file never passes through our own server, so it isn't bounded by
+// Vercel's ~4.5mb function request-body limit - only Supabase Storage's own
+// (much larger) per-file limit applies.
 function ApprovePostModal({ post, onClose, onApproved }) {
   const api = useApi();
   const fileInputRef = useRef(null);
 
   const [fileName, setFileName] = useState("");
-  const [html, setHtml] = useState("");
+  const [file, setFile] = useState(null);
   const [error, setError] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState("idle"); // idle | uploading | finalizing
 
   function handleFileChange(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = () => setHtml(String(reader.result || ""));
-    reader.readAsText(file);
+    const selected = e.target.files?.[0];
+    if (!selected) return;
+    setFileName(selected.name);
+    setFile(selected);
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!html.trim()) {
+    if (!file) {
       setError("Please choose the stitched HTML file");
       return;
     }
 
-    setSubmitting(true);
     setError(null);
     try {
-      const updated = await api.approvePost(post.id, html);
+      setStatus("uploading");
+      const { signedUrl } = await api.getApproveUploadUrl(post.id);
+      const uploadRes = await fetch(signedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "text/html", "x-upsert": "true" },
+        body: file,
+      });
+      if (!uploadRes.ok) throw new Error(`Upload failed (${uploadRes.status})`);
+
+      setStatus("finalizing");
+      const updated = await api.approvePost(post.id);
       onApproved(updated);
       onClose();
     } catch (err) {
       setError(err.message);
     } finally {
-      setSubmitting(false);
+      setStatus("idle");
     }
   }
 
@@ -85,10 +95,10 @@ function ApprovePostModal({ post, onClose, onApproved }) {
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={status !== "idle"}
               className="rounded-md bg-gray-900 px-4 py-1.5 text-sm text-white transition-colors hover:bg-gray-700 disabled:opacity-50"
             >
-              {submitting ? "Uploading…" : "Upload & Approve"}
+              {status === "uploading" ? "Uploading…" : status === "finalizing" ? "Finalizing…" : "Upload & Approve"}
             </button>
           </div>
         </form>

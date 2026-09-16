@@ -3,7 +3,12 @@ import { prisma } from "../lib/prisma.js";
 import { requireAuth, optionalAuth, requireRole } from "../middleware/requireAuth.js";
 import { serializePost } from "../lib/serializePost.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
-import { getStitchedHtml, saveStitchedHtml, deleteStitchedHtml } from "../lib/htmlStore.js";
+import {
+  getStitchedHtml,
+  createStitchedHtmlUploadUrl,
+  stitchedHtmlExists,
+  deleteStitchedHtml,
+} from "../lib/htmlStore.js";
 import { postInclude as include } from "../lib/postInclude.js";
 import { rankScore } from "../lib/rankScore.js";
 import { ZipArchive } from "archiver";
@@ -202,18 +207,15 @@ router.post(
   })
 );
 
-// Approve a pending post: the reviewer uploads the stitched HTML itself
-// (same "read a file client-side, send its text" pattern as rawMd on
-// create), which we write to the html store under a slug derived from the
-// post id.
+// Step 1 of approving a pending post: mints a signed URL the reviewer's
+// browser uploads the stitched HTML file to directly (Supabase Storage,
+// bypassing this server entirely) so the file never has to fit inside
+// Vercel's ~4.5mb function request-body limit.
 router.post(
-  "/:id/approve",
+  "/:id/approve/upload-url",
   requireAuth,
   requireRole("ADMIN"),
   asyncHandler(async (req, res) => {
-    const html = requireString(req.body.html, "html", res);
-    if (!html) return;
-
     const post = await findPost(req.params.id);
     if (!post) return res.status(404).json({ error: "Post not found" });
     if (post.status !== "PENDING") {
@@ -221,7 +223,29 @@ router.post(
     }
 
     const htmlSlug = `${post.id}.html`;
-    await saveStitchedHtml(htmlSlug, html);
+    const signedUrl = await createStitchedHtmlUploadUrl(htmlSlug);
+    res.json({ signedUrl, htmlSlug });
+  })
+);
+
+// Step 2: called once the browser's direct upload (above) has finished.
+// Confirms the file actually landed in storage, then flips the post to
+// APPROVED and points its body at that slug.
+router.post(
+  "/:id/approve",
+  requireAuth,
+  requireRole("ADMIN"),
+  asyncHandler(async (req, res) => {
+    const post = await findPost(req.params.id);
+    if (!post) return res.status(404).json({ error: "Post not found" });
+    if (post.status !== "PENDING") {
+      return res.status(400).json({ error: "Only pending posts can be approved" });
+    }
+
+    const htmlSlug = `${post.id}.html`;
+    if (!(await stitchedHtmlExists(htmlSlug))) {
+      return res.status(400).json({ error: "Stitched HTML upload not found - try uploading again" });
+    }
 
     const updated = await prisma.postMetadata.update({
       where: { id: req.params.id },

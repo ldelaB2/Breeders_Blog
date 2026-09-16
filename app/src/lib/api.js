@@ -69,7 +69,8 @@ export function useApi() {
     fetchPins: () => authed("/me/pins"),
     fetchRecommendations: () => authed("/me/recommendations"),
     downloadPost: async (id) => downloadPostZip(id, await getToken()),
-    approvePost: (id, html) => authed(`/posts/${id}/approve`, { method: "POST", body: { html } }),
+    getApproveUploadUrl: (id) => authed(`/posts/${id}/approve/upload-url`, { method: "POST" }),
+    approvePost: (id) => authed(`/posts/${id}/approve`, { method: "POST" }),
     rejectPost: (id, rejectionReason) =>
       authed(`/posts/${id}/reject`, { method: "POST", body: { rejectionReason } }),
     createPost: (data) => authed("/posts", { method: "POST", body: data }),
