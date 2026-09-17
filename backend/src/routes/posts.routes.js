@@ -218,10 +218,25 @@ router.delete(
   })
 );
 
+const POST_LIMIT = 5;
+const POST_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 router.post(
   "/",
   requireAuth,
   asyncHandler(async (req, res) => {
+    // Caps submission volume per user, not just approved posts - counts all
+    // statuses so this also protects the moderation queue from being spammed
+    // with pending/rejected posts, not only the DB/backend from write load.
+    const recentCount = await prisma.postMetadata.count({
+      where: { authorId: req.userId, createdAt: { gte: new Date(Date.now() - POST_LIMIT_WINDOW_MS) } },
+    });
+    if (recentCount >= POST_LIMIT) {
+      return res
+        .status(429)
+        .json({ error: `You can only submit ${POST_LIMIT} posts per 24 hours. Please try again later.` });
+    }
+
     const topicSlug = requireString(req.body.topicSlug, "topicSlug", res);
     if (!topicSlug) return;
     const title = requireString(req.body.title, "title", res);

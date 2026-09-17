@@ -3,10 +3,15 @@ import { useState } from "react";
 // Wide inline textarea for composing a new comment or reply.
 function AddCommentForm({ onSubmit, onCancel }) {
   const [text, setText] = useState("");
+  // Guards against a fast double-click/double-tap (or mashing Enter) firing
+  // two create-comment requests from the same form instance before the
+  // first has even had a chance to close it.
+  const [submitting, setSubmitting] = useState(false);
 
   function handleSubmit(e) {
     e.preventDefault();
-    if (!text.trim()) return;
+    if (!text.trim() || submitting) return;
+    setSubmitting(true);
     onSubmit(text.trim());
     setText("");
   }
@@ -24,7 +29,8 @@ function AddCommentForm({ onSubmit, onCancel }) {
       <div className="flex gap-2">
         <button
           type="submit"
-          className="rounded-md bg-gray-900 px-3 py-1 text-sm text-white transition-colors hover:bg-gray-700"
+          disabled={submitting}
+          className="rounded-md bg-gray-900 px-3 py-1 text-sm text-white transition-colors hover:bg-gray-700 disabled:opacity-50"
         >
           Post
         </button>
