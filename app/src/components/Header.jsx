@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/react";
 import logo from "./../assets/logo.png";
 import { DYNAMIC_TOPICS, PERMANENT_TOPICS } from "../routes";
@@ -120,22 +120,24 @@ function Header({ topics = DYNAMIC_TOPICS }) {
           </div>
 
           <Show when="signed-out">
-            <SignInButton mode="modal">
-              <button
-                type="button"
-                className="rounded-md px-3 py-2 text-base text-black transition-colors hover:bg-gray-200 sm:px-5 sm:py-2.5 sm:text-lg"
-              >
-                Sign In
-              </button>
-            </SignInButton>
-            <SignUpButton mode="modal">
-              <button
-                type="button"
-                className="rounded-md px-3 py-2 text-base text-white bg-gray-900 transition-colors hover:bg-gray-700 sm:px-5 sm:py-2.5 sm:text-lg"
-              >
-                Sign Up
-              </button>
-            </SignUpButton>
+            <div className="hidden items-center gap-4 sm:flex sm:gap-6">
+              <SignInButton mode="modal">
+                <button
+                  type="button"
+                  className="rounded-md px-5 py-2.5 text-lg text-black transition-colors hover:bg-gray-200"
+                >
+                  Sign In
+                </button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button
+                  type="button"
+                  className="rounded-md bg-accent px-5 py-2.5 text-lg text-white transition-colors hover:bg-accent-dark"
+                >
+                  Sign Up
+                </button>
+              </SignUpButton>
+            </div>
           </Show>
 
           <Show when="signed-in">
@@ -192,12 +194,16 @@ function Header({ topics = DYNAMIC_TOPICS }) {
               </li>
             ) : (
               <li key={link.path}>
-                <Link
+                <NavLink
                   to={link.path}
-                  className="hover:text-gray-900 transition-colors"
+                  className={({ isActive }) =>
+                    isActive
+                      ? "font-semibold text-accent"
+                      : "hover:text-gray-900 transition-colors"
+                  }
                 >
                   {link.label}
-                </Link>
+                </NavLink>
               </li>
             ),
           )}
@@ -215,16 +221,46 @@ function Header({ topics = DYNAMIC_TOPICS }) {
               ...topics,
             ].map((link) => (
               <li key={link.path}>
-                <Link
+                <NavLink
                   to={link.path}
                   onClick={() => setMenuOpen(false)}
-                  className="block px-6 py-3 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                  className={({ isActive }) =>
+                    `block px-6 py-3 transition-colors hover:bg-gray-50 ${
+                      isActive ? "font-semibold text-accent" : "hover:text-gray-900"
+                    }`
+                  }
                 >
                   {link.label}
-                </Link>
+                </NavLink>
               </li>
             ))}
           </ul>
+
+          {/* Sign In / Sign Up live here on mobile instead of the crowded
+              top bar — the top bar only shows the search icon (and the
+              UserButton avatar when signed in). */}
+          <Show when="signed-out">
+            <div className="flex gap-3 border-t border-gray-200 px-6 py-4">
+              <SignInButton mode="modal">
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex-1 rounded-md border border-gray-300 px-4 py-2.5 text-center text-base text-black transition-colors hover:bg-gray-100"
+                >
+                  Sign In
+                </button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex-1 rounded-md bg-accent px-4 py-2.5 text-center text-base text-white transition-colors hover:bg-accent-dark"
+                >
+                  Sign Up
+                </button>
+              </SignUpButton>
+            </div>
+          </Show>
         </div>
       )}
     </header>

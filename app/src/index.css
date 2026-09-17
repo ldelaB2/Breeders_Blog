@@ -1,6 +1,19 @@
 /* index.css */
 @import "tailwindcss";
 
+/* Single accent color, sampled from the logo's forest green. Used sparingly
+   on primary actions and active states — the rest of the site stays
+   grayscale. */
+@theme {
+  --color-accent: #2f4a3c;
+  --color-accent-dark: #22362c;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 @keyframes toast-fade {
   0%,
   70% {
