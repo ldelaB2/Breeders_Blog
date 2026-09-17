@@ -8,6 +8,7 @@ import sitemapRouter from "./routes/sitemap.routes.js";
 import webhooksRouter from "./routes/webhooks.routes.js";
 
 const app = express();
+app.set("trust proxy", 1);
 
 const allowedOrigins = (process.env.CORS_ORIGIN || "").split(",").map((o) => o.trim()).filter(Boolean);
 app.use(cors({ origin: allowedOrigins }));
