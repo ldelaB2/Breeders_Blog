@@ -64,7 +64,7 @@ function SearchModal({ onClose, onSelectPost }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search posts by title or abstract…"
-            className="w-full rounded-md border border-gray-200 p-2.5 text-base text-gray-900 focus:border-gray-400 focus:outline-none"
+            className="w-full rounded-md border border-gray-200 p-2.5 text-base text-gray-900 focus:border-transparent focus:outline-none"
           />
           <button
             type="button"

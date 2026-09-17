@@ -24,7 +24,7 @@ function AddCommentForm({ onSubmit, onCancel }) {
         rows={3}
         autoFocus
         placeholder="Write a comment..."
-        className="w-full rounded-md border border-gray-200 p-2 text-sm text-gray-700 focus:border-gray-400 focus:outline-none"
+        className="w-full rounded-md border border-gray-200 p-2 text-sm text-gray-700 focus:border-transparent focus:outline-none"
       />
       <div className="flex gap-2">
         <button

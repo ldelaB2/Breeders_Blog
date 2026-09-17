@@ -126,7 +126,7 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
                   onChange={(e) => setTitle(e.target.value.slice(0, TITLE_LIMIT))}
                   maxLength={TITLE_LIMIT}
                   required
-                  className="w-full rounded-md border border-gray-200 p-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-md border border-gray-200 p-2 text-sm text-gray-900 focus:border-transparent focus:outline-none"
                 />
               </div>
 
@@ -146,7 +146,7 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
                   maxLength={ABSTRACT_LIMIT}
                   rows={5}
                   required
-                  className="w-full resize-none rounded-md border border-gray-200 p-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                  className="w-full resize-none rounded-md border border-gray-200 p-2 text-sm text-gray-900 focus:border-transparent focus:outline-none"
                 />
               </div>
 

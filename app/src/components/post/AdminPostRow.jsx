@@ -67,7 +67,7 @@ function AdminPostRow({ post, onDownload, onReject, onApprove }) {
           <select
             value={decision}
             onChange={(e) => setDecision(e.target.value)}
-            className="rounded-md border border-gray-200 p-1.5 text-sm text-gray-700 focus:border-gray-400 focus:outline-none"
+            className="rounded-md border border-gray-200 p-1.5 text-sm text-gray-700 focus:border-transparent focus:outline-none"
           >
             <option value="APPROVE">Approve</option>
             <option value="REJECT">Reject</option>
@@ -88,7 +88,7 @@ function AdminPostRow({ post, onDownload, onReject, onApprove }) {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Rejection reason"
-            className="w-48 rounded-md border border-gray-200 p-1.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+            className="w-48 rounded-md border border-gray-200 p-1.5 text-sm text-gray-900 focus:border-transparent focus:outline-none"
           />
         )}
       </div>
