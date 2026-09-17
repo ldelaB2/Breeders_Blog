@@ -8,30 +8,16 @@ import { applyVoteToggle, applyPinToggle } from "./voting";
 // response - or rolls back to the exact prior state if it fails.
 export function usePostActions(setPosts, api, setError) {
   const { user } = useUser();
-  const { patch, optimisticUpdate } = useOptimisticList(setPosts);
+  const { runOptimistic } = useOptimisticList(setPosts);
 
-  async function runVote(apiFn, id, value) {
+  function runVote(apiFn, id, value) {
     if (!user) return;
-    const rollback = optimisticUpdate(id, (p) => applyVoteToggle(p.upvotes, p.downvotes, user.id, value));
-    try {
-      const updated = await apiFn(id);
-      patch(id, () => updated);
-    } catch (err) {
-      rollback();
-      setError?.(err.message);
-    }
+    runOptimistic(id, (p) => applyVoteToggle(p.upvotes, p.downvotes, user.id, value), () => apiFn(id), setError);
   }
 
-  async function runPin(id) {
+  function runPin(id) {
     if (!user) return;
-    const rollback = optimisticUpdate(id, (p) => ({ pinnedBy: applyPinToggle(p.pinnedBy, user.id) }));
-    try {
-      const updated = await api.pinPost(id);
-      patch(id, () => updated);
-    } catch (err) {
-      rollback();
-      setError?.(err.message);
-    }
+    runOptimistic(id, (p) => ({ pinnedBy: applyPinToggle(p.pinnedBy, user.id) }), () => api.pinPost(id), setError);
   }
 
   return {

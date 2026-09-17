@@ -33,15 +33,45 @@ async function toggleVote(postId, userId, value) {
   const existing = await prisma.vote.findUnique({
     where: { postId_userId: { postId, userId } },
   });
-  if (existing?.value === value) {
-    await prisma.vote.delete({ where: { postId_userId: { postId, userId } } });
-  } else if (existing) {
-    await prisma.vote.update({
-      where: { postId_userId: { postId, userId } },
-      data: { value },
-    });
-  } else {
-    await prisma.vote.create({ data: { postId, userId, value } });
+  try {
+    if (existing?.value === value) {
+      await prisma.vote.delete({ where: { postId_userId: { postId, userId } } });
+    } else if (existing) {
+      await prisma.vote.update({
+        where: { postId_userId: { postId, userId } },
+        data: { value },
+      });
+    } else {
+      await prisma.vote.create({ data: { postId, userId, value } });
+    }
+  } catch (err) {
+    // A second, overlapping toggle for the same (postId, userId) - e.g. a
+    // burst of rapid clicks - can race this read-then-write: both read
+    // `existing` before either writes, then collide on the write (P2002 if
+    // both tried to create, P2025 if both tried to delete/update a row the
+    // other already removed/changed). Whichever request wins already left
+    // the vote in a valid state, so the loser can just no-op instead of
+    // 500ing - the caller re-fetches the post/comment for its response
+    // either way, so the client still gets the correct, current state.
+    if (err.code !== "P2002" && err.code !== "P2025") throw err;
+  }
+}
+
+async function togglePin(postId, userId) {
+  const where = { postId_userId: { postId, userId } };
+  const existing = await prisma.pin.findUnique({ where });
+  try {
+    if (existing) {
+      await prisma.pin.delete({ where });
+    } else {
+      await prisma.pin.create({ data: { postId, userId } });
+    }
+  } catch (err) {
+    // Same read-then-write race as toggleVote above - a second, overlapping
+    // pin toggle for the same (postId, userId) can collide on the write.
+    // The loser can just no-op instead of 500ing, since the response is
+    // built from a fresh re-fetch either way.
+    if (err.code !== "P2002" && err.code !== "P2025") throw err;
   }
 }
 
@@ -355,13 +385,7 @@ router.post(
     const post = await findPostStatus(postId);
     if (!post || post.status !== "APPROVED") return res.status(404).json({ error: "Post not found" });
 
-    const where = { postId_userId: { postId, userId: req.userId } };
-    const existing = await prisma.pin.findUnique({ where });
-    if (existing) {
-      await prisma.pin.delete({ where });
-    } else {
-      await prisma.pin.create({ data: { postId, userId: req.userId } });
-    }
+    await togglePin(postId, req.userId);
     res.json(serializePost(await findPost(postId), { userId: req.userId, userRole: req.userRole }));
   })
 );

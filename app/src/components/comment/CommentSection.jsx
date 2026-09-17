@@ -27,7 +27,7 @@ function CommentSection({ postId, locked }) {
   const [comments, setComments] = useState([]);
   const [error, setError] = useState(null);
   const [addingRoot, setAddingRoot] = useState(false);
-  const { patch, optimisticUpdate } = useOptimisticList(setComments);
+  const { patch, runOptimistic } = useOptimisticList(setComments);
 
   const load = useCallback(() => {
     fetchComments(postId)
@@ -64,28 +64,24 @@ function CommentSection({ postId, locked }) {
     }
   }
 
-  async function upvoteComment(commentId) {
+  function upvoteComment(commentId) {
     if (!user) return;
-    const rollback = optimisticUpdate(commentId, (c) => applyVoteToggle(c.upvotes, c.downvotes, user.id, 1));
-    try {
-      const updated = await api.upvoteComment(commentId);
-      patch(commentId, () => updated);
-    } catch (err) {
-      rollback();
-      setError(err.message);
-    }
+    runOptimistic(
+      commentId,
+      (c) => applyVoteToggle(c.upvotes, c.downvotes, user.id, 1),
+      () => api.upvoteComment(commentId),
+      setError,
+    );
   }
 
-  async function downvoteComment(commentId) {
+  function downvoteComment(commentId) {
     if (!user) return;
-    const rollback = optimisticUpdate(commentId, (c) => applyVoteToggle(c.upvotes, c.downvotes, user.id, -1));
-    try {
-      const updated = await api.downvoteComment(commentId);
-      patch(commentId, () => updated);
-    } catch (err) {
-      rollback();
-      setError(err.message);
-    }
+    runOptimistic(
+      commentId,
+      (c) => applyVoteToggle(c.upvotes, c.downvotes, user.id, -1),
+      () => api.downvoteComment(commentId),
+      setError,
+    );
   }
 
   async function deleteComment(commentId) {

@@ -7,6 +7,12 @@
 @theme {
   --color-accent: #2f4a3c;
   --color-accent-dark: #22362c;
+  /* A light, clearly-green wash for the upvote button - --color-accent is
+     dark and low-saturation, so blending it at a low opacity (bg-accent/10)
+     reads as gray rather than green. These are separate, hand-picked
+     swatches instead. */
+  --color-accent-soft: #e4f2eb;
+  --color-accent-soft-active: #cbe6d9;
   --color-canvas: #f6f4ee;
   --color-canvas-border: #e6e1d3;
 }

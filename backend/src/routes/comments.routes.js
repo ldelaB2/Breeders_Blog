@@ -15,15 +15,24 @@ async function toggleVote(commentId, userId, value) {
   const existing = await prisma.commentVote.findUnique({
     where: { commentId_userId: { commentId, userId } },
   });
-  if (existing?.value === value) {
-    await prisma.commentVote.delete({ where: { commentId_userId: { commentId, userId } } });
-  } else if (existing) {
-    await prisma.commentVote.update({
-      where: { commentId_userId: { commentId, userId } },
-      data: { value },
-    });
-  } else {
-    await prisma.commentVote.create({ data: { commentId, userId, value } });
+  try {
+    if (existing?.value === value) {
+      await prisma.commentVote.delete({ where: { commentId_userId: { commentId, userId } } });
+    } else if (existing) {
+      await prisma.commentVote.update({
+        where: { commentId_userId: { commentId, userId } },
+        data: { value },
+      });
+    } else {
+      await prisma.commentVote.create({ data: { commentId, userId, value } });
+    }
+  } catch (err) {
+    // See the identical comment in posts.routes.js's toggleVote - a
+    // second, overlapping toggle for the same (commentId, userId) can race
+    // this read-then-write and collide on the write. The loser can just
+    // no-op instead of 500ing, since the response is built from a fresh
+    // re-fetch either way.
+    if (err.code !== "P2002" && err.code !== "P2025") throw err;
   }
 }
 
