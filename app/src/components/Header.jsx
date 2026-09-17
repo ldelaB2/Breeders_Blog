@@ -38,7 +38,7 @@ function Header({ topics = DYNAMIC_TOPICS }) {
     <>
     <header className="flex flex-col items-center px-6 py-4 bg-canvas relative">
       {/* Top section */}
-      <div className="grid w-full grid-cols-3 items-center gap-2 pb-4">
+      <div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-2 pb-4">
         {/* Left: hamburger on mobile */}
         <div className="flex items-center">
           <button
@@ -73,19 +73,31 @@ function Header({ topics = DYNAMIC_TOPICS }) {
         </div>
 
         {/* Logo + title */}
-        <div className="flex items-center justify-center gap-2 sm:gap-3">
-          <a href={logo} target="_blank" rel="noopener noreferrer">
+        <div className="flex min-w-0 items-center justify-center gap-2 sm:gap-3">
+          <Link to="/" className="sm:hidden shrink-0" aria-label="Breeders Blog home">
             <img
               src={logo}
               alt="Site logo"
-              className="h-10 w-auto sm:h-16 md:h-20"
+              className="h-10 w-10 rounded-full object-cover"
+            />
+          </Link>
+          <a
+            href={logo}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden shrink-0 sm:inline-flex"
+          >
+            <img
+              src={logo}
+              alt="Site logo"
+              className="sm:h-16 sm:w-16 md:h-20 md:w-20 rounded-full object-cover"
             />
           </a>
-          <div className="flex flex-col items-center sm:items-start">
-            <span className="text-sm font-semibold text-gray-900 sm:text-lg md:text-xl">
+          <div className="flex min-w-0 flex-col items-center sm:items-start">
+            <span className="truncate text-sm font-semibold text-gray-900 sm:text-lg md:text-xl">
               Breeders Blog
             </span>
-            <span className="text-xs text-gray-500 sm:text-sm">
+            <span className="hidden truncate text-sm text-gray-500 sm:block">
               Will de la Bretonne
             </span>
           </div>

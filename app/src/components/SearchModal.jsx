@@ -21,6 +21,14 @@ function SearchModal({ onClose, onSelectPost }) {
   }, []);
 
   useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  useEffect(() => {
     const trimmed = query.trim();
     if (!trimmed) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -42,23 +50,35 @@ function SearchModal({ onClose, onSelectPost }) {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-start justify-center bg-black/40 px-4 pt-24"
+      className="fixed inset-0 z-[200] flex items-start justify-center bg-black/40 px-4 pt-12 sm:pt-24"
       onClick={onClose}
     >
       <div
         className="w-full max-w-xl rounded-lg bg-white p-4 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search posts by title or abstract…"
-          className="w-full rounded-md border border-gray-200 p-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search posts by title or abstract…"
+            className="w-full rounded-md border border-gray-200 p-2.5 text-base text-gray-900 focus:border-gray-400 focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-md p-2 text-gray-500 hover:bg-gray-100"
+            aria-label="Close search"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
-        <div className="mt-3 max-h-96 overflow-y-auto">
+        <div className="mt-3 max-h-[50vh] overflow-y-auto sm:max-h-96">
           {error && <p className="px-1 py-2 text-sm text-red-600">{error}</p>}
 
           {!error && loading && (
