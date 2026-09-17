@@ -62,15 +62,21 @@ function PostReader({ postId, onBack }) {
   }, [postId]);
 
   // Gives the post a unique tab title and meta description while it's open,
-  // restoring the site defaults on the way out.
+  // restoring the site defaults on the way out. Also stamps the author/date
+  // onto <body> so the footer's MLA citation (Footer.jsx) can read them -
+  // it has no other access to this post's data.
   useEffect(() => {
     if (!post) return;
     document.title = `${post.title} — ${DEFAULT_TITLE}`;
     const meta = document.querySelector('meta[name="description"]');
     meta?.setAttribute("content", post.abstract);
+    document.body.dataset.citationAuthor = post.authorName ?? "";
+    document.body.dataset.citationDate = post.createdAt ?? "";
     return () => {
       document.title = DEFAULT_TITLE;
       meta?.setAttribute("content", DEFAULT_DESCRIPTION);
+      delete document.body.dataset.citationAuthor;
+      delete document.body.dataset.citationDate;
     };
   }, [post]);
 
