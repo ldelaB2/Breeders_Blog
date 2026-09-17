@@ -4,33 +4,31 @@ A personal blog application with a React frontend and an Express/Prisma backend.
 
 ## Tech Stack
 
-**Frontend** (`app/`)
-- React 19 + Vite
-- React Router
-- Tailwind CSS
-- Clerk (authentication)
-
-**Backend** (`backend/`)
-- Express
-- Prisma + PostgreSQL
-- Clerk (auth verification)
-- Cloudflare R2 (file storage)
+| Layer        | Tech                                                                              |
+| ------------ | ---------------------------------------------------------------------------------- |
+| Frontend     | React 19 + Vite, Tailwind CSS, React Router                                       |
+| Backend      | Node.js + Express, Prisma ORM                                                     |
+| Database     | PostgreSQL ([Supabase](https://supabase.com))                                     |
+| File storage | Supabase Storage                                                                   |
+| Auth         | [Clerk](https://clerk.com)                                                         |
+| Email        | [Resend](https://resend.com)                                                       |
+| Hosting      | [Vercel](https://vercel.com) (frontend + backend, deployed as separate projects)   |
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js
-- A PostgreSQL database (e.g. [Supabase](https://supabase.com))
+- A [Supabase](https://supabase.com) project (Postgres database + Storage bucket)
 - A [Clerk](https://clerk.com) application
-- A [Cloudflare R2](https://developers.cloudflare.com/r2/) bucket (for media storage)
+- A [Resend](https://resend.com) account (for notification emails)
 
 ### Backend Setup
 
 ```bash
 cd backend
 npm install
-cp .env.example .env   # fill in DATABASE_URL, CLERK_SECRET_KEY, R2 credentials, etc.
+cp .env.example .env   # fill in DATABASE_URL, CLERK_SECRET_KEY, SUPABASE_*, RESEND_*, etc.
 npm run prisma:generate
 npm run prisma:migrate
 npm run dev
