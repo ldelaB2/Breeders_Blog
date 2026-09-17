@@ -32,11 +32,12 @@ async function resolveUser(token) {
   const metadataRole = clerkUser.privateMetadata?.role;
   const role = VALID_ROLES.includes(metadataRole) ? metadataRole : "USER";
   const avatarUrl = clerkUser.imageUrl;
+  const email = clerkUser.primaryEmailAddress?.emailAddress ?? null;
 
   return prisma.user.upsert({
     where: { id: userId },
-    update: { name, role, avatarUrl },
-    create: { id: userId, name, role, avatarUrl },
+    update: { name, role, avatarUrl, email },
+    create: { id: userId, name, role, avatarUrl, email },
   });
 }
 

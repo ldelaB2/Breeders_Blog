@@ -11,7 +11,9 @@ const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY 
 const VALID_ROLES = ["USER", "MODERATOR", "ADMIN"];
 
 async function main() {
-  const users = await prisma.user.findMany({ select: { id: true, name: true, role: true, avatarUrl: true } });
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true, role: true, avatarUrl: true, email: true },
+  });
   let updated = 0;
   let skipped = 0;
 
@@ -28,9 +30,10 @@ async function main() {
     const metadataRole = clerkUser.privateMetadata?.role;
     const role = VALID_ROLES.includes(metadataRole) ? metadataRole : "USER";
     const avatarUrl = clerkUser.imageUrl;
+    const email = clerkUser.primaryEmailAddress?.emailAddress ?? null;
 
-    if (name !== local.name || role !== local.role || avatarUrl !== local.avatarUrl) {
-      await prisma.user.update({ where: { id: local.id }, data: { name, role, avatarUrl } });
+    if (name !== local.name || role !== local.role || avatarUrl !== local.avatarUrl || email !== local.email) {
+      await prisma.user.update({ where: { id: local.id }, data: { name, role, avatarUrl, email } });
       console.log(`updated ${local.id}: "${local.name}"/${local.role} -> "${name}"/${role}`);
       updated++;
     }

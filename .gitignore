@@ -28,3 +28,6 @@ dist-ssr
 .devcontainer/
 .vercel
 .env*
+.agents
+.vscode
+skills-lock.json

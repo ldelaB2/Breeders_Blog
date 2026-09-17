@@ -16,11 +16,13 @@ async function syncUserFromWebhook(user) {
   const metadataRole = user.private_metadata?.role;
   const role = VALID_ROLES.includes(metadataRole) ? metadataRole : "USER";
   const avatarUrl = user.image_url;
+  const email =
+    user.email_addresses?.find((e) => e.id === user.primary_email_address_id)?.email_address ?? null;
 
   await prisma.user.upsert({
     where: { id: user.id },
-    update: { name, role, avatarUrl },
-    create: { id: user.id, name, role, avatarUrl },
+    update: { name, role, avatarUrl, email },
+    create: { id: user.id, name, role, avatarUrl, email },
   });
 }
 

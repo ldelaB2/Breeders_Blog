@@ -22,13 +22,18 @@ enum PostStatus {
 
 // Mirrors the signed-in Clerk user. Rows are created lazily on first
 // authentication (see src/middleware/requireAuth.js). Clerk remains the
-// source of truth for email/legal name — we only cache what the app
-// needs locally: a display name and a blog-specific role.
+// source of truth for legal name — we cache a display name, a blog-specific
+// role, and (for outbound notification emails, see src/lib/mail.js) the
+// user's current primary email address.
 model User {
   id        String   @id // Clerk user id
   name      String
   role      Role     @default(USER)
   avatarUrl String?
+  // Synced from Clerk's primary email address on user.created/user.updated
+  // (see src/routes/webhooks.routes.js). Nullable: rows created before this
+  // field existed have no value until their next Clerk sync.
+  email     String?
   createdAt DateTime @default(now())
 
   posts         PostMetadata[] @relation("Author")

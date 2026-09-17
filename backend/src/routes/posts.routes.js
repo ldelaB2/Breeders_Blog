@@ -11,6 +11,7 @@ import {
 } from "../lib/htmlStore.js";
 import { postInclude as include } from "../lib/postInclude.js";
 import { rankScore } from "../lib/rankScore.js";
+import { notifyAdminsOfPendingPost, notifyAuthorOfApproval, notifyAuthorOfRejection } from "../lib/mail.js";
 import { ZipArchive } from "archiver";
 
 const router = Router();
@@ -212,6 +213,7 @@ router.post(
       },
       include,
     });
+    await notifyAdminsOfPendingPost(post);
     res.status(201).json(serializePost(post, { userId: req.userId, userRole: req.userRole }));
   })
 );
@@ -266,6 +268,7 @@ router.post(
       },
       include,
     });
+    await notifyAuthorOfApproval(updated);
     res.json(serializePost(updated, { userId: req.userId, userRole: req.userRole }));
   })
 );
@@ -294,6 +297,7 @@ router.post(
       },
       include,
     });
+    await notifyAuthorOfRejection(updated);
     res.json(serializePost(updated, { userId: req.userId, userRole: req.userRole }));
   })
 );
