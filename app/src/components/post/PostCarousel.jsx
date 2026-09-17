@@ -63,7 +63,7 @@ function PostCarousel({ title, fetchPosts, emptyMessage, onSelectPost }) {
             type="button"
             onClick={() => scroll(-1)}
             aria-label="Scroll left"
-            className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full border border-gray-200 bg-white p-3 text-gray-500 shadow-sm transition-colors hover:bg-gray-100"
+            className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full border border-canvas-border bg-white p-3 text-gray-500 shadow-sm transition-colors hover:bg-gray-100"
           >
             <Icon svg={chevronIcon} className="h-5 w-5 rotate-90" />
           </button>
@@ -91,7 +91,7 @@ function PostCarousel({ title, fetchPosts, emptyMessage, onSelectPost }) {
             type="button"
             onClick={() => scroll(1)}
             aria-label="Scroll right"
-            className="absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full border border-gray-200 bg-white p-3 text-gray-500 shadow-sm transition-colors hover:bg-gray-100"
+            className="absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full border border-canvas-border bg-white p-3 text-gray-500 shadow-sm transition-colors hover:bg-gray-100"
           >
             <Icon svg={chevronIcon} className="h-5 w-5 -rotate-90" />
           </button>

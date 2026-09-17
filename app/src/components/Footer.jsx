@@ -2,8 +2,8 @@ import React from "react";
 
 function Footer() {
   return (
-    <footer className="bg-gray-200 text-gray-700 text-center py-6 px-4 mt-10">
-      <p className="text-base mb-2">
+    <footer className="bg-accent-dark text-white/70 text-center py-6 px-4 mt-10">
+      <p className="text-base mb-2 text-white/90">
         Thanks for visiting — remember the only people that change the world are
         the ones crazy enough to think they can
       </p>

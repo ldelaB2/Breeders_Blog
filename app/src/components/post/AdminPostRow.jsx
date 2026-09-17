@@ -43,7 +43,7 @@ function AdminPostRow({ post, onDownload, onReject, onApprove }) {
   }
 
   return (
-    <div className="flex items-start justify-between gap-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="flex items-start justify-between gap-4 rounded-lg border border-canvas-border bg-white p-4 shadow-sm">
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
           <h3 className="truncate font-bold text-gray-900">{post.title}</h3>

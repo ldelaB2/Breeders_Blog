@@ -48,7 +48,7 @@ function Post({
       onClick={() => {
         if (!isPending) onSelect?.(post);
       }}
-      className={`group rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow ${
+      className={`group rounded-lg border border-canvas-border bg-white p-4 shadow-sm transition-shadow ${
         isPending ? "cursor-default" : "cursor-pointer hover:shadow-md"
       }`}
     >

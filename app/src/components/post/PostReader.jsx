@@ -16,8 +16,8 @@ function TocList({ items, onSelect, depth = 0 }) {
     <ul
       className={
         depth === 0
-          ? "flex flex-col gap-1 border-l border-gray-200"
-          : "ml-3 flex flex-col gap-1 border-l border-gray-200"
+          ? "flex flex-col gap-1 border-l border-canvas-border"
+          : "ml-3 flex flex-col gap-1 border-l border-canvas-border"
       }
     >
       {items.map((item) => (
@@ -124,7 +124,7 @@ function PostReader({ postId, onBack }) {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
-      <div className="mb-6 flex items-center gap-4 border-b border-gray-200 pb-4">
+      <div className="mb-6 flex items-center gap-4 border-b border-canvas-border pb-4">
         <button
           type="button"
           onClick={onBack}
@@ -154,7 +154,7 @@ function PostReader({ postId, onBack }) {
                 type="button"
                 onClick={() => setMobileTocOpen((prev) => !prev)}
                 aria-expanded={mobileTocOpen}
-                className="flex w-full items-center justify-between rounded-md border border-gray-200 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500"
+                className="flex w-full items-center justify-between rounded-md border border-canvas-border px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500"
               >
                 On this page
                 <svg
@@ -169,7 +169,7 @@ function PostReader({ postId, onBack }) {
               </button>
 
               {mobileTocOpen && (
-                <div className="rounded-b-md border border-t-0 border-gray-200 px-4 py-3">
+                <div className="rounded-b-md border border-t-0 border-canvas-border px-4 py-3">
                   <TocList
                     items={toc}
                     onSelect={(id) => {
@@ -196,7 +196,7 @@ function PostReader({ postId, onBack }) {
             )}
 
             <div className="min-w-0 flex-1">
-              <p ref={abstractRef} className="border-b border-gray-200 pb-4 text-sm text-gray-600">
+              <p ref={abstractRef} className="border-b border-canvas-border pb-4 text-sm text-gray-600">
                 {post.abstract}
               </p>
 

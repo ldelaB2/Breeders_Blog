@@ -36,7 +36,7 @@ function Header({ topics = DYNAMIC_TOPICS }) {
 
   return (
     <>
-    <header className="flex flex-col items-center px-6 py-4 bg-white relative">
+    <header className="flex flex-col items-center px-6 py-4 bg-canvas relative">
       {/* Top section */}
       <div className="grid w-full grid-cols-3 items-center gap-2 pb-4">
         {/* Left: hamburger on mobile */}
@@ -147,7 +147,7 @@ function Header({ topics = DYNAMIC_TOPICS }) {
       </div>
 
       {/* Divider */}
-      <div className="w-full border-t border-gray-200" />
+      <div className="w-full border-t border-canvas-border" />
 
       {/* Desktop nav */}
       <nav className="hidden sm:block py-4">
@@ -210,11 +210,11 @@ function Header({ topics = DYNAMIC_TOPICS }) {
         </ul>
       </nav>
 
-      <div className="hidden sm:block w-full border-t border-gray-200" />
+      <div className="hidden sm:block w-full border-t border-canvas-border" />
 
       {/* Mobile menu — topics expanded inline */}
       {menuOpen && (
-        <div className="sm:hidden absolute left-0 top-full z-20 w-full bg-white shadow-md border-t border-gray-200">
+        <div className="sm:hidden absolute left-0 top-full z-20 w-full bg-canvas shadow-md border-t border-canvas-border">
           <ul className="flex flex-col divide-y divide-gray-100 text-gray-700 font-medium">
             {[
               ...navLinks.filter((l) => l.label !== "Topics"),
@@ -240,7 +240,7 @@ function Header({ topics = DYNAMIC_TOPICS }) {
               top bar — the top bar only shows the search icon (and the
               UserButton avatar when signed in). */}
           <Show when="signed-out">
-            <div className="flex gap-3 border-t border-gray-200 px-6 py-4">
+            <div className="flex gap-3 border-t border-canvas-border px-6 py-4">
               <SignInButton mode="modal">
                 <button
                   type="button"

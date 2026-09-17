@@ -16,8 +16,8 @@ function VoteControls({ score, myVote = 0, onUpvote, onDownvote }) {
         }}
         aria-label="Upvote"
         aria-pressed={myVote === 1}
-        className={`rounded-md p-1 text-green-600 transition-colors hover:bg-green-50 ${
-          myVote === 1 ? "bg-green-100" : ""
+        className={`rounded-md p-1 text-accent transition-colors hover:bg-accent/10 ${
+          myVote === 1 ? "bg-accent/15" : ""
         }`}
       >
         <Icon svg={upvoteIcon} className="h-4 w-4" />

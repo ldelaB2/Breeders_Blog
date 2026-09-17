@@ -7,6 +7,12 @@
 @theme {
   --color-accent: #2f4a3c;
   --color-accent-dark: #22362c;
+  --color-canvas: #f6f4ee;
+  --color-canvas-border: #e6e1d3;
+}
+
+body {
+  background-color: var(--color-canvas);
 }
 
 :focus-visible {
