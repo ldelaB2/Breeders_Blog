@@ -24,6 +24,9 @@ dist-ssr
 *.sw?
 .env
 
+reset-for-launch.js
+sync-clerk-users.js
+
 .claude/
 .devcontainer/
 .vercel

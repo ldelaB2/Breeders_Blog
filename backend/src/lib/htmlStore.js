@@ -40,3 +40,34 @@ export async function deleteStitchedHtml(htmlSlug) {
   if (!htmlSlug) return;
   await client.from(Bucket).remove([htmlSlug]);
 }
+
+// Lists every object in the bucket (paginated - list() defaults to 100 per
+// page), not just ones a current PostBody.htmlSlug points at, so it also
+// catches any orphaned uploads (e.g. from an approval that never completed).
+// Used by scripts/reset-for-launch.js.
+export async function listAllStitchedHtml() {
+  const names = [];
+  const limit = 100;
+  let offset = 0;
+  for (;;) {
+    const { data, error } = await client.from(Bucket).list(undefined, { limit, offset });
+    if (error) throw error;
+    if (data.length === 0) break;
+    names.push(...data.map((f) => f.name));
+    offset += data.length;
+    if (data.length < limit) break;
+  }
+  return names;
+}
+
+// Empties the whole bucket. Used by scripts/reset-for-launch.js.
+export async function deleteAllStitchedHtml() {
+  const names = await listAllStitchedHtml();
+  // remove() takes a batch of paths - chunked so a very large bucket can't
+  // hit a request size limit.
+  for (let i = 0; i < names.length; i += 100) {
+    const { error } = await client.from(Bucket).remove(names.slice(i, i + 100));
+    if (error) throw error;
+  }
+  return names.length;
+}

@@ -11,8 +11,8 @@ function Footer() {
         &copy; {new Date().getFullYear()} Breeders Blog. All rights reserved.
       </p>
       <p className="text-xs mt-1">
-        Cite this site: breedersblog.com ({new Date().getFullYear()}).{" "}
-        <em>Breeders Blog</em>. Retrieved from https://yoursite.com
+        Cite this site: breedersblog.net ({new Date().getFullYear()}).{" "}
+        <em>Breeders Blog</em>. Retrieved from https://breedersblog.net
       </p>
     </footer>
   );
