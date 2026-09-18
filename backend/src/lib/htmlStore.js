@@ -60,6 +60,20 @@ export async function listAllStitchedHtml() {
   return names;
 }
 
+// Restricts the bucket to accepting only text/html uploads - enforced by
+// Supabase Storage itself against the PUT's Content-Type header, for both
+// direct uploads and the signed URLs createStitchedHtmlUploadUrl mints, so a
+// non-HTML file is rejected even if a caller bypasses the admin UI/API and
+// PUTs straight to a signed URL. Idempotent; used by
+// scripts/configure-html-bucket.js. See that script's comment for why this
+// isn't just baked into deploy - it's a one-time bucket setting, not
+// something that needs re-applying on every deploy.
+export async function restrictHtmlBucketToHtml() {
+  const { data, error } = await client.updateBucket(Bucket, { allowedMimeTypes: ["text/html"] });
+  if (error) throw error;
+  return data;
+}
+
 // Empties the whole bucket. Used by scripts/reset-for-launch.js.
 export async function deleteAllStitchedHtml() {
   const names = await listAllStitchedHtml();

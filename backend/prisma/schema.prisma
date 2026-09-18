@@ -91,18 +91,14 @@ model PostBody {
   post   PostMetadata @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   // Storage key (post-upload bucket) for the author's original submitted
-  // file; source of truth. rawOriginalName/rawContentType are display-only
-  // (never used to build a path - the slug's filename segment is always
-  // exactly "upload.<ext>", see POST /posts/upload-url). rawSize is the
-  // storage-reported size, checked server-side against the upload limit.
+  // file; source of truth. rawOriginalName is display-only (never used to
+  // build a path - the slug's filename segment is always exactly
+  // "upload.<ext>", see POST /posts/upload-url).
   rawSlug         String
   rawOriginalName String
-  rawContentType  String
-  rawSize         Int
 
   // S3 key/slug for the moderator-stitched HTML, set on approval.
-  htmlSlug      String?
-  htmlUpdatedAt DateTime?
+  htmlSlug String?
 }
 
 // Short-lived ticket created when a signed upload URL is minted (see POST

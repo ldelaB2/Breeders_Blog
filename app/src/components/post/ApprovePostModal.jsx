@@ -7,6 +7,17 @@ import { useApi } from "../../lib/api";
 // file never passes through our own server, so it isn't bounded by
 // Vercel's ~4.5mb function request-body limit - only Supabase Storage's own
 // (much larger) per-file limit applies.
+// Matches the post-html Supabase Storage bucket's allowed_mime_types
+// restriction (text/html only) - checked client-side too so an unsupported
+// file fails fast with a clear message instead of a confusing upload error.
+// The bucket's own MIME restriction is the actual source of truth/enforcement.
+const ALLOWED_EXTENSIONS = ["html", "htm"];
+
+function extensionOf(filename) {
+  const match = /\.([a-zA-Z0-9]+)$/.exec(filename ?? "");
+  return match ? match[1].toLowerCase() : null;
+}
+
 function ApprovePostModal({ post, onClose, onApproved }) {
   const api = useApi();
   const fileInputRef = useRef(null);
@@ -19,6 +30,15 @@ function ApprovePostModal({ post, onClose, onApproved }) {
   function handleFileChange(e) {
     const selected = e.target.files?.[0];
     if (!selected) return;
+
+    const ext = extensionOf(selected.name);
+    if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
+      setError(`"${selected.name}" isn't a supported file type - choose an .html file`);
+      e.target.value = "";
+      return;
+    }
+
+    setError(null);
     setFileName(selected.name);
     setFile(selected);
   }

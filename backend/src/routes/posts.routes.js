@@ -323,8 +323,6 @@ router.post(
         .json({ error: `You can only submit ${POST_LIMIT} posts per 24 hours. Please try again later.` });
     }
 
-    const ext = extensionFromFilename(rawSlug);
-    const rawContentType = ALLOWED_UPLOAD_EXTENSIONS[ext];
     const info = await getRawUploadInfo(rawSlug);
     if (!info) {
       return res.status(400).json({ error: "Upload not found - try uploading again" });
@@ -349,8 +347,6 @@ router.post(
             create: {
               rawSlug,
               rawOriginalName: originalFilename.slice(0, 255),
-              rawContentType,
-              rawSize: info.metadata?.size ?? 0,
             },
           },
         },
@@ -409,7 +405,7 @@ router.post(
         status: "APPROVED",
         reviewedById: req.userId,
         reviewedAt: new Date(),
-        body: { update: { htmlSlug, htmlUpdatedAt: new Date() } },
+        body: { update: { htmlSlug } },
       },
       include,
     });
