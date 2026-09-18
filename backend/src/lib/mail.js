@@ -1,14 +1,12 @@
-// Post-workflow notification emails, via the Resend integration (Vercel
-// Marketplace). A send failure here should never break the request that
-// triggered it (an approval/rejection/submission already succeeded in the
-// DB by the time these run) - callers await these for simplicity, but every
-// failure is caught and logged rather than thrown.
+// Post-workflow notification emails via Resend. A send failure must never
+// break the request that triggered it (the approval/rejection/submission
+// already succeeded in the DB), so every failure is logged rather than thrown.
 import { Resend } from "resend";
 import { prisma } from "./prisma.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.EMAIL_FROM || "Breeders Blog <onboarding@resend.dev>";
-const SITE_URL = process.env.SITE_URL || "http://localhost:5173";
+const SITE_URL = process.env.SITE_URL;
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));

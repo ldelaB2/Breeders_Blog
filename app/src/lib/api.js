@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/react";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 async function request(path, { token, method = "GET", body } = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -21,21 +21,13 @@ async function request(path, { token, method = "GET", body } = {}) {
   return res.status === 204 ? null : res.json();
 }
 
-// Public reads - usable without a session token. fetchPosts optionally takes
-// one anyway: the backend includes a caller's own pending posts in the feed
-// only when it knows who's asking (see GET /posts in posts.routes.js).
-export const fetchPosts = (topicSlug, token) =>
-  request(`/posts${topicSlug ? `?topicSlug=${encodeURIComponent(topicSlug)}` : ""}`, { token });
-export const fetchTopPosts = (limit, token) =>
-  request(`/posts/top${limit ? `?limit=${limit}` : ""}`, { token });
-export const searchPosts = (q, token) => request(`/posts/search?q=${encodeURIComponent(q)}`, { token });
+// Public reads - usable without a session token.
 export const fetchPost = (id) => request(`/posts/${id}`);
 export const fetchComments = (postId) => request(`/posts/${postId}/comments`);
 
-// Streams the zip directly rather than going through the shared JSON
-// `request()` helper, then triggers a browser save via a temporary
-// object-URL anchor.
-export async function downloadPostZip(id, token) {
+// Streams the zip directly rather than going through the JSON `request()`
+// helper, then triggers a browser save via a temporary object-URL anchor.
+async function downloadPostZip(id, token) {
   const res = await fetch(`${BASE_URL}/posts/${id}/download`, {
     headers: { ...(token && { Authorization: `Bearer ${token}` }) },
   });
@@ -50,8 +42,10 @@ export async function downloadPostZip(id, token) {
   URL.revokeObjectURL(url);
 }
 
-// Bundles the reads above with authenticated write actions, attaching the
-// current Clerk session token automatically.
+// Every API call, with the current Clerk session token attached (null when
+// signed out). The list/search reads work anonymously but send the token
+// anyway: the backend includes a caller's own pending posts only when it
+// knows who's asking (see GET /posts in posts.routes.js).
 export function useApi() {
   const { getToken } = useAuth();
 
@@ -61,9 +55,9 @@ export function useApi() {
   }
 
   return {
-    fetchPosts: async (topicSlug) => fetchPosts(topicSlug, (await getToken()) || undefined),
-    fetchTopPosts: async (limit) => fetchTopPosts(limit, (await getToken()) || undefined),
-    searchPosts: async (q) => searchPosts(q, (await getToken()) || undefined),
+    fetchPosts: (topicSlug) => authed(`/posts${topicSlug ? `?topicSlug=${encodeURIComponent(topicSlug)}` : ""}`),
+    fetchTopPosts: (limit) => authed(`/posts/top${limit ? `?limit=${limit}` : ""}`),
+    searchPosts: (q) => authed(`/posts/search?q=${encodeURIComponent(q)}`),
     fetchPost,
     fetchComments,
     fetchCurrentUser: () => authed("/me"),

@@ -1,4 +1,3 @@
-// pages/PostPage.jsx
 import { useParams, useNavigate } from "react-router-dom";
 import PostReader from "../components/post/PostReader";
 

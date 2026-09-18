@@ -30,7 +30,6 @@ export function CurrentUserProvider({ children }) {
   }, [isLoaded, isSignedIn]);
 
   const value = {
-    role,
     isAdmin: role === "ADMIN",
     isModerator: role === "MODERATOR" || role === "ADMIN",
     loading,

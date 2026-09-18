@@ -18,35 +18,63 @@ function parseTocList(ulEl) {
   return items;
 }
 
-// Quarto normally intercepts same-page anchor clicks (TOC entries,
-// footnotes, cross-references) itself via quarto.js/tabsets.js - but those
-// load from a relative "libs/" path that isn't there once only the single
-// .html file is uploaded (no accompanying _files folder), so on a
-// non-self-contained export that JS silently never loads. Without it, any
-// stray `href="#..."` link left in the body falls through to a plain
-// browser navigation - and because the iframe's srcDoc content resolves
-// hrefs against the PARENT page's URL, that navigation hits the real
-// app URL and 404s inside the content area. This listener is our own
-// unconditional safety net: whatever the reason Quarto's own handling
-// didn't run, no in-page anchor click inside the iframe can ever escape
-// into a real navigation.
-const ANCHOR_GUARD_SCRIPT = `
-document.addEventListener("click", function (event) {
-  var link = event.target.closest('a[href^="#"]');
-  if (!link) return;
-  event.preventDefault();
-  var id = decodeURIComponent(link.getAttribute("href").slice(1));
-  var target = id && document.getElementById(id);
-  if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-});
+// Inside the sandbox (opaque origin) window.localStorage/sessionStorage
+// throw a SecurityError on access. Quarto's own page scripts (theme toggle,
+// tabsets) touch them, so this runs first and swaps in a harmless
+// in-memory Storage rather than letting those scripts die mid-setup.
+const STORAGE_SHIM = `
+(function () {
+  ["localStorage", "sessionStorage"].forEach(function (name) {
+    try { window[name]; return; } catch (e) {}
+    var store = new Map();
+    Object.defineProperty(window, name, { configurable: true, value: {
+      get length() { return store.size; },
+      key: function (i) { return Array.from(store.keys())[i] ?? null; },
+      getItem: function (k) { return store.has(String(k)) ? store.get(String(k)) : null; },
+      setItem: function (k, v) { store.set(String(k), String(v)); },
+      removeItem: function (k) { store.delete(String(k)); },
+      clear: function () { store.clear(); },
+    } });
+  });
+})();
 `;
 
-// Pulls the moderator-stitched HTML's own Quarto-generated TOC nav (if any)
-// out of the document so it isn't rendered a second time inside the iframe,
-// and returns it as {id, text, children}[] for the app's own sidebar.
-// Serializes the FULL document (not just <body>) - the old body-only
-// extraction silently dropped <head>, which is where Quarto/htmlwidgets
-// often put library script/style tags that now actually need to run.
+// Injected into every post so it can talk to PostReader across the sandbox
+// boundary (the iframe has an opaque origin, so the parent can't read its
+// document directly). Three messages:
+//   iframe -> parent  { type: "post-height", height }  keep the iframe sized to its content
+//   iframe -> parent  { type: "post-scroll", top }     scroll the page to a heading (top = offset within the iframe)
+//   parent -> iframe  { type: "post-goto", id }        a TOC click in the app's sidebar
+// In-page anchor clicks (footnotes, cross-refs, any stray href="#...") are
+// handled here too: srcDoc content resolves hrefs against the parent's URL,
+// so left alone they'd navigate the app to a 404.
+const BRIDGE_SCRIPT = `
+(function () {
+  var send = function (msg) { window.parent.postMessage(msg, "*"); };
+  var reportHeight = function () { send({ type: "post-height", height: document.documentElement.scrollHeight }); };
+  var scrollTo = function (id) {
+    var el = id && document.getElementById(id);
+    if (el) send({ type: "post-scroll", top: el.getBoundingClientRect().top });
+  };
+  new ResizeObserver(reportHeight).observe(document.documentElement);
+  window.addEventListener("load", reportHeight);
+  window.addEventListener("message", function (event) {
+    if (event.source === window.parent && event.data && event.data.type === "post-goto") scrollTo(event.data.id);
+  });
+  document.addEventListener("click", function (event) {
+    var link = event.target.closest('a[href^="#"]');
+    if (!link) return;
+    event.preventDefault();
+    scrollTo(decodeURIComponent(link.getAttribute("href").slice(1)));
+  });
+})();
+`;
+
+// Pulls the stitched HTML's own Quarto-generated TOC nav (if any) out of
+// the document so it isn't rendered a second time inside the iframe,
+// returns it as {id, text, children}[] for the app's sidebar, and injects
+// the two scripts above. Serializes the full document, not just <body> -
+// that's where Quarto/htmlwidgets put the script/style tags that need to run.
 export function extractPostHtml(html) {
   if (!html) return { html, toc: [] };
 
@@ -58,12 +86,12 @@ export function extractPostHtml(html) {
     const navEl = container.matches("nav#TOC") ? container : container.querySelector("nav#TOC");
     const topUl = navEl?.querySelector(":scope > ul");
     toc = topUl ? parseTocList(topUl) : [];
-    container.remove(); // strip it even if empty/malformed - never leak into the iframe
+    container.remove();
   }
 
-  const guardScript = doc.createElement("script");
-  guardScript.textContent = ANCHOR_GUARD_SCRIPT;
-  doc.body.appendChild(guardScript);
+  const script = (text) => Object.assign(doc.createElement("script"), { textContent: text });
+  doc.head.prepend(script(STORAGE_SHIM));
+  doc.body.appendChild(script(BRIDGE_SCRIPT));
 
   const doctype = doc.doctype ? "<!doctype html>" : "";
   return { html: doctype + doc.documentElement.outerHTML, toc };

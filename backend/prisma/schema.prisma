@@ -45,7 +45,7 @@ model User {
 }
 
 // Small, frequently-queried fields — everything a feed/list view needs.
-// Never touches raw_md or the stitched HTML.
+// The heavy content lives in storage, pointed at by PostBody.
 model PostMetadata {
   id        String     @id @default(cuid())
   title     String
@@ -84,8 +84,8 @@ model PostMetadata {
   @@index([status])
 }
 
-// Heavy content, 1:1 with PostMetadata. Kept separate so listing posts
-// never pulls raw markdown or HTML pointers off disk.
+// Storage pointers, 1:1 with PostMetadata. Kept separate so listing posts
+// never needs them.
 model PostBody {
   postId String       @id
   post   PostMetadata @relation(fields: [postId], references: [id], onDelete: Cascade)
@@ -97,7 +97,7 @@ model PostBody {
   rawSlug         String
   rawOriginalName String
 
-  // S3 key/slug for the moderator-stitched HTML, set on approval.
+  // Storage key (post-html bucket) for the moderator-stitched HTML, set on approval.
   htmlSlug String?
 }
 

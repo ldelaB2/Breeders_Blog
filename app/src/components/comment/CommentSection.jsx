@@ -4,9 +4,8 @@ import Comment from "./Comment";
 import AddCommentButton from "./AddCommentButton";
 import AddCommentForm from "./AddCommentForm";
 import { fetchComments, useApi } from "../../lib/api";
-import { useToast } from "../../lib/useToast";
-import { useOptimisticList } from "../../lib/useOptimisticList";
-import { applyVoteToggle } from "../../lib/voting";
+import { useRequireSignIn } from "../../lib/useRequireSignIn";
+import { useVoteActions } from "../../lib/useVoteActions";
 
 // Groups a post's comments by parentId so each node can look up its replies
 // in O(1); root-level comments live under key null.
@@ -22,12 +21,16 @@ function buildChildrenMap(comments) {
 
 function CommentSection({ postId, locked }) {
   const { user } = useUser();
-  const showToast = useToast();
+  const requireSignIn = useRequireSignIn();
   const api = useApi();
   const [comments, setComments] = useState([]);
   const [error, setError] = useState(null);
   const [addingRoot, setAddingRoot] = useState(false);
-  const { patch, runOptimistic } = useOptimisticList(setComments);
+  const { patch, onUpvote, onDownvote } = useVoteActions(
+    setComments,
+    { upvote: api.upvoteComment, downvote: api.downvoteComment },
+    setError
+  );
 
   const load = useCallback(() => {
     fetchComments(postId)
@@ -64,26 +67,6 @@ function CommentSection({ postId, locked }) {
     }
   }
 
-  function upvoteComment(commentId) {
-    if (!user) return;
-    runOptimistic(
-      commentId,
-      (c) => applyVoteToggle(c.upvotes, c.downvotes, user.id, 1),
-      () => api.upvoteComment(commentId),
-      setError,
-    );
-  }
-
-  function downvoteComment(commentId) {
-    if (!user) return;
-    runOptimistic(
-      commentId,
-      (c) => applyVoteToggle(c.upvotes, c.downvotes, user.id, -1),
-      () => api.downvoteComment(commentId),
-      setError,
-    );
-  }
-
   async function deleteComment(commentId) {
     try {
       const updated = await api.deleteComment(commentId);
@@ -116,10 +99,7 @@ function CommentSection({ postId, locked }) {
         {!locked && (
           <AddCommentButton
             open={addingRoot}
-            onClick={() => {
-              if (!user) return showToast("Please sign in to comment");
-              setAddingRoot((a) => !a);
-            }}
+            onClick={() => requireSignIn("comment") && setAddingRoot((a) => !a)}
           />
         )}
       </div>
@@ -148,8 +128,8 @@ function CommentSection({ postId, locked }) {
                 childrenByParent={childrenByParent}
                 locked={locked}
                 onAdd={addComment}
-                onUpvote={upvoteComment}
-                onDownvote={downvoteComment}
+                onUpvote={onUpvote}
+                onDownvote={onDownvote}
                 onDelete={deleteComment}
                 onRestore={restoreComment}
               />

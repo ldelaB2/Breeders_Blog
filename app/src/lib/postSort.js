@@ -13,7 +13,7 @@ const WEIGHTS = {
 };
 
 // A post's rank: net votes plus a bonus for comment activity.
-export function rankScore(post) {
+function rankScore(post) {
   return (
     post.upvotes.length * WEIGHTS.upvote -
     post.downvotes.length * WEIGHTS.downvote +

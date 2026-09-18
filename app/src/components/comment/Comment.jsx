@@ -5,7 +5,7 @@ import VoteControls from "../VoteControls";
 import AddCommentButton from "./AddCommentButton";
 import AddCommentForm from "./AddCommentForm";
 import { voteState } from "../../lib/voting";
-import { useToast } from "../../lib/useToast";
+import { useRequireSignIn } from "../../lib/useRequireSignIn";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import chevronIcon from "../../assets/chevron.svg?raw";
 
@@ -14,18 +14,12 @@ import chevronIcon from "../../assets/chevron.svg?raw";
 function Comment({ comment, childrenByParent, locked, onAdd, onUpvote, onDownvote, onDelete, onRestore }) {
   const { user } = useUser();
   const { isModerator } = useCurrentUser();
-  const showToast = useToast();
+  const requireSignIn = useRequireSignIn();
   const [expanded, setExpanded] = useState(true);
   const [replying, setReplying] = useState(false);
   const replies = childrenByParent.get(comment.id) || [];
   const hasReplies = replies.length > 0;
   const { score, myVote } = voteState(comment.upvotes, comment.downvotes, user?.id);
-
-  function requireSignIn(action) {
-    if (user) return true;
-    showToast(`Please sign in to ${action}`);
-    return false;
-  }
 
   return (
     <div>

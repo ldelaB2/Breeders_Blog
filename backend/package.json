@@ -8,11 +8,8 @@
   },
   "scripts": {
     "dev": "node --watch src/server.js",
-    "start": "node src/server.js",
     "postinstall": "prisma generate",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "sync:clerk-users": "node scripts/sync-clerk-users.js"
+    "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
     "@clerk/backend": "^1.21.0",

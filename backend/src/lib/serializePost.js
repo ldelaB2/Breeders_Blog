@@ -1,13 +1,12 @@
-// Shapes a PostMetadata row (with votes/pins/body/_count relations loaded)
-// into the flat object the frontend expects. Moderation detail is only
-// included for the post's author or a moderator/admin - everyone else only
-// ever sees the stitched HTML pointer once a post is approved. The raw
-// upload itself is never serialized here - a moderator gets it via
-// GET /:id/download instead.
+import { isModerator } from "./roles.js";
+
+// Shapes a PostMetadata row (with postInclude relations loaded) into the
+// flat object the frontend expects. Moderation detail is only included for
+// the post's author or a moderator/admin. The raw upload is never
+// serialized - an admin gets it via GET /posts/:id/download.
 export function serializePost(post, viewer = {}, opts = {}) {
   const { userId, userRole } = viewer;
-  const isModerator = userRole === "MODERATOR" || userRole === "ADMIN";
-  const canSeeReviewDetail = isModerator || userId === post.authorId;
+  const canSeeReviewDetail = isModerator(userRole) || userId === post.authorId;
 
   return {
     id: post.id,

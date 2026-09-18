@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/react";
 import logo from "./../assets/logo.png";
@@ -6,7 +6,7 @@ import { DYNAMIC_TOPICS, PERMANENT_TOPICS } from "../routes";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import SearchModal from "./SearchModal";
 
-function Header({ topics = DYNAMIC_TOPICS }) {
+function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -190,7 +190,7 @@ function Header({ topics = DYNAMIC_TOPICS }) {
 
                 {dropdownOpen && (
                   <ul className="absolute left-0 top-full z-20 mt-2 w-52 rounded-md border border-gray-200 bg-white shadow-lg py-1">
-                    {topics.map((topic) => (
+                    {DYNAMIC_TOPICS.map((topic) => (
                       <li key={topic.path}>
                         <Link
                           to={topic.path}
@@ -230,7 +230,7 @@ function Header({ topics = DYNAMIC_TOPICS }) {
           <ul className="flex flex-col divide-y divide-gray-100 text-gray-700 font-medium">
             {[
               ...navLinks.filter((l) => l.label !== "Topics"),
-              ...topics,
+              ...DYNAMIC_TOPICS,
             ].map((link) => (
               <li key={link.path}>
                 <NavLink

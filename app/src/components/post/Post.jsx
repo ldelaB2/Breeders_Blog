@@ -4,7 +4,7 @@ import Icon from "../Icon";
 import VoteControls from "../VoteControls";
 import DeletePostModal from "./DeletePostModal";
 import { voteState } from "../../lib/voting";
-import { useToast } from "../../lib/useToast";
+import { useRequireSignIn } from "../../lib/useRequireSignIn";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { topicLabel } from "../../routes";
 import pinIcon from "../../assets/pin.svg?raw";
@@ -29,19 +29,13 @@ function Post({
 }) {
   const { user } = useUser();
   const { isModerator, isAdmin } = useCurrentUser();
-  const showToast = useToast();
+  const requireSignIn = useRequireSignIn();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const isPinned = user ? post.pinnedBy.includes(user.id) : false;
   const { score, myVote } = voteState(post.upvotes, post.downvotes, user?.id);
   const isPending = post.status === "PENDING";
   const canModerate = isModerator && post.status === "APPROVED";
-
-  function requireSignIn(action) {
-    if (user) return true;
-    showToast(`Please sign in to ${action}`);
-    return false;
-  }
 
   const tile = (
     <div

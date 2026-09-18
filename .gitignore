@@ -25,12 +25,12 @@ dist-ssr
 .env
 
 reset-for-launch.js
-sync-clerk-users.js
 
 .claude/
 .devcontainer/
 .vercel
 .env*
+!.env.example
 .agents
 .vscode
 skills-lock.json

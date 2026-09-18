@@ -89,5 +89,5 @@ export function useOptimisticList(setItems) {
     timers.current[id] = setTimeout(() => send(id), SYNC_DELAY_MS);
   }
 
-  return { patch, optimisticUpdate, runOptimistic };
+  return { patch, runOptimistic };
 }
