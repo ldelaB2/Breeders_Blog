@@ -1,0 +1,58 @@
+---
+title: "Interactive Data Exploration"
+author: "Your Name"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    code-fold: true
+    theme: cosmo
+    embed-resources: true
+jupyter: breeders_blog
+---
+
+
+## Introduction
+
+This document demonstrates how to integrate Markdown text directly with dynamic Python code chunks and interactive visualization libraries.
+
+## Interactive Visualization
+
+Below is an interactive scatter plot using **Plotly**. Quarto automatically embeds the interactive JavaScript dependencies into the output HTML without exposing raw code unless toggled.
+
+```{python}
+#| label: fig-interactive-scatter
+#| fig-cap: "Interactive relationship between dataset variables"
+#| warning: false
+
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.io as pio
+
+# Required for Plotly to render correctly to HTML from VS Code's notebook engine
+pio.renderers.default = "plotly_mimetype+notebook_connected"
+
+# Generate sample dataset
+np.random.seed(42)
+df = pd.DataFrame({
+    'x_metric': np.random.randn(100).cumsum(),
+    'y_metric': np.random.randn(100).cumsum(),
+    'category': np.random.choice(['Group A', 'Group B', 'Group C'], 100),
+    'size': np.random.randint(10, 50, 100)
+})
+
+# Build interactive plot
+fig = px.scatter(
+    df,
+    x='x_metric',
+    y='y_metric',
+    color='category',
+    size='size',
+    title="Sample Dynamic Trajectory",
+    template="plotly_white"
+)
+
+fig.show()
+```

@@ -18,10 +18,12 @@ app.use(cors({ origin: allowedOrigins }));
 // body parser below.
 app.use("/api/webhooks/clerk", express.raw({ type: "application/json" }), webhooksRouter);
 
-// Bumped from Express's 100kb default: stitched HTML uploaded on approve
-// travels through this JSON body the same way rawMd already does. Capped
-// at 4mb (not the full 5mb this endpoint could use) to stay under Vercel's
-// ~4.5mb hard request body limit, which Express can't override.
+// Bumped from Express's 100kb default. Large content (stitched HTML on
+// approve, raw post uploads on create) never travels through this JSON
+// body - both go straight to Supabase Storage via a signed URL - so this
+// just needs headroom for normal metadata payloads. Capped at 4mb (not the
+// full 5mb this endpoint could use) to stay under Vercel's ~4.5mb hard
+// request body limit, which Express can't override.
 app.use(express.json({ limit: "4mb" }));
 
 // Caps write-endpoint abuse and bounds the Clerk API calls requireAuth

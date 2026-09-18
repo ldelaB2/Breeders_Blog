@@ -1,7 +1,9 @@
 // Shapes a PostMetadata row (with votes/pins/body/_count relations loaded)
-// into the flat object the frontend expects. `rawMd` and moderation detail
-// are only included for the post's author or a moderator/admin - everyone
-// else only ever sees the stitched HTML pointer once a post is approved.
+// into the flat object the frontend expects. Moderation detail is only
+// included for the post's author or a moderator/admin - everyone else only
+// ever sees the stitched HTML pointer once a post is approved. The raw
+// upload itself is never serialized here - a moderator gets it via
+// GET /:id/download instead.
 export function serializePost(post, viewer = {}, opts = {}) {
   const { userId, userRole } = viewer;
   const isModerator = userRole === "MODERATOR" || userRole === "ADMIN";
@@ -26,7 +28,6 @@ export function serializePost(post, viewer = {}, opts = {}) {
     pinnedBy: post.pins.map((p) => p.userId),
     ...(opts.html !== undefined && { html: opts.html }),
     ...(canSeeReviewDetail && {
-      rawMd: post.body?.rawMd ?? null,
       reviewedById: post.reviewedById,
       reviewedAt: post.reviewedAt,
       rejectionReason: post.rejectionReason,

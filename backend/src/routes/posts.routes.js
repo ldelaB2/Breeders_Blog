@@ -9,10 +9,33 @@ import {
   stitchedHtmlExists,
   deleteStitchedHtml,
 } from "../lib/htmlStore.js";
+import {
+  createRawUploadUrl,
+  getRawUploadInfo,
+  downloadRawUpload,
+  deleteRawUpload,
+} from "../lib/uploadStore.js";
 import { postInclude as include } from "../lib/postInclude.js";
 import { rankScore } from "../lib/rankScore.js";
 import { notifyAdminsOfPendingPost, notifyAuthorOfApproval, notifyAuthorOfRejection } from "../lib/mail.js";
 import { ZipArchive } from "archiver";
+import crypto from "node:crypto";
+
+// The only file types a post's raw upload may be; keyed by lowercased
+// extension (parsed from the client-supplied filename, not the browser's
+// often-inconsistent MIME type for .md/.qmd) to the content-type recorded
+// in the DB and sent on the PUT.
+const ALLOWED_UPLOAD_EXTENSIONS = {
+  md: "text/markdown",
+  qmd: "text/markdown",
+  zip: "application/zip",
+};
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+
+function extensionFromFilename(filename) {
+  const match = /\.([a-zA-Z0-9]+)$/.exec(typeof filename === "string" ? filename : "");
+  return match ? match[1].toLowerCase() : null;
+}
 
 const router = Router();
 
@@ -221,43 +244,119 @@ router.delete(
 const POST_LIMIT = 5;
 const POST_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
+// Caps submission volume per user, not just approved posts - counts all
+// statuses so this also protects the moderation queue from being spammed
+// with pending/rejected posts, not only the DB/backend from write load.
+async function isOverPostLimit(userId) {
+  const recentCount = await prisma.postMetadata.count({
+    where: { authorId: userId, createdAt: { gte: new Date(Date.now() - POST_LIMIT_WINDOW_MS) } },
+  });
+  return recentCount >= POST_LIMIT;
+}
+
+// Step 1 of creating a post: mints a signed URL the author's browser
+// uploads their raw .md/.qmd/.zip file to directly (Supabase Storage,
+// bypassing this server entirely) so the file never has to fit inside
+// Vercel's ~4.5mb function request-body limit, and can be as large as the
+// 50mb we allow. The extension is validated here (not the client-reported
+// MIME type, which browsers report inconsistently for .md/.qmd) and baked
+// into a fixed object name ("upload.<ext>") - the client's actual filename
+// never reaches the storage path, so there's no path-traversal surface.
 router.post(
-  "/",
+  "/upload-url",
   requireAuth,
   asyncHandler(async (req, res) => {
-    // Caps submission volume per user, not just approved posts - counts all
-    // statuses so this also protects the moderation queue from being spammed
-    // with pending/rejected posts, not only the DB/backend from write load.
-    const recentCount = await prisma.postMetadata.count({
-      where: { authorId: req.userId, createdAt: { gte: new Date(Date.now() - POST_LIMIT_WINDOW_MS) } },
-    });
-    if (recentCount >= POST_LIMIT) {
+    const ext = extensionFromFilename(req.body.filename);
+    if (!ext || !ALLOWED_UPLOAD_EXTENSIONS[ext]) {
+      return res.status(400).json({ error: "File must be a .md, .qmd, or .zip" });
+    }
+    // Early, non-authoritative check so a user already at their limit isn't
+    // asked to upload a file for nothing - POST / re-checks this for real.
+    if (await isOverPostLimit(req.userId)) {
       return res
         .status(429)
         .json({ error: `You can only submit ${POST_LIMIT} posts per 24 hours. Please try again later.` });
     }
 
+    const postId = crypto.randomUUID();
+    const rawSlug = `${postId}/upload.${ext}`;
+    await prisma.pendingPostUpload.create({ data: { id: postId, authorId: req.userId, rawSlug } });
+    const signedUrl = await createRawUploadUrl(rawSlug);
+    res.json({ postId, rawSlug, signedUrl, contentType: ALLOWED_UPLOAD_EXTENSIONS[ext] });
+  })
+);
+
+router.post(
+  "/",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const id = requireString(req.body.id, "id", res);
+    if (!id) return;
     const topicSlug = requireString(req.body.topicSlug, "topicSlug", res);
     if (!topicSlug) return;
     const title = requireString(req.body.title, "title", res);
     if (!title) return;
     const abstract = requireString(req.body.abstract, "abstract", res);
     if (!abstract) return;
-    const rawMd = requireString(req.body.rawMd, "rawMd", res);
-    if (!rawMd) return;
+    const rawSlug = requireString(req.body.rawSlug, "rawSlug", res);
+    if (!rawSlug) return;
+    const originalFilename = requireString(req.body.originalFilename, "originalFilename", res);
+    if (!originalFilename) return;
 
-    const post = await prisma.postMetadata.create({
-      data: {
-        topicSlug,
-        title,
-        abstract,
-        authorId: req.userId,
-        authorName: req.userName,
-        authorAvatarUrl: req.userAvatarUrl,
-        body: { create: { rawMd } },
-      },
-      include,
-    });
+    // The rawSlug can only turn into a post if the same authenticated user
+    // who minted it (via POST /upload-url) is the one finishing it here -
+    // otherwise a client could hand this route an arbitrary/unrelated
+    // rawSlug it never uploaded to.
+    const pending = await prisma.pendingPostUpload.findUnique({ where: { id } });
+    if (!pending || pending.authorId !== req.userId || pending.rawSlug !== rawSlug) {
+      return res.status(403).json({ error: "Upload ticket not found or already used - try uploading again" });
+    }
+
+    if (await isOverPostLimit(req.userId)) {
+      // Already-uploaded, now-blocked submission - don't leave the object
+      // (or its ticket) behind in storage/the DB.
+      await deleteRawUpload(rawSlug);
+      await prisma.pendingPostUpload.delete({ where: { id } }).catch(() => {});
+      return res
+        .status(429)
+        .json({ error: `You can only submit ${POST_LIMIT} posts per 24 hours. Please try again later.` });
+    }
+
+    const ext = extensionFromFilename(rawSlug);
+    const rawContentType = ALLOWED_UPLOAD_EXTENSIONS[ext];
+    const info = await getRawUploadInfo(rawSlug);
+    if (!info) {
+      return res.status(400).json({ error: "Upload not found - try uploading again" });
+    }
+    if (info.metadata?.size > MAX_UPLOAD_BYTES) {
+      await deleteRawUpload(rawSlug);
+      await prisma.pendingPostUpload.delete({ where: { id } }).catch(() => {});
+      return res.status(400).json({ error: "File is too large - uploads must be under 50 MB" });
+    }
+
+    const [post] = await prisma.$transaction([
+      prisma.postMetadata.create({
+        data: {
+          id,
+          topicSlug,
+          title,
+          abstract,
+          authorId: req.userId,
+          authorName: req.userName,
+          authorAvatarUrl: req.userAvatarUrl,
+          body: {
+            create: {
+              rawSlug,
+              rawOriginalName: originalFilename.slice(0, 255),
+              rawContentType,
+              rawSize: info.metadata?.size ?? 0,
+            },
+          },
+        },
+        include,
+      }),
+      prisma.pendingPostUpload.delete({ where: { id } }),
+    ]);
     await notifyAdminsOfPendingPost(post);
     res.status(201).json(serializePost(post, { userId: req.userId, userRole: req.userRole }));
   })
@@ -347,8 +446,8 @@ router.post(
   })
 );
 
-// Bundles a post's title/abstract/raw markdown into a zip for the admin to
-// review offline before deciding to approve/reject.
+// Bundles a post's title/abstract/original raw upload into a zip for the
+// admin to review offline before deciding to approve/reject.
 router.get(
   "/:id/download",
   requireAuth,
@@ -356,6 +455,15 @@ router.get(
   asyncHandler(async (req, res) => {
     const post = await findPost(req.params.id);
     if (!post) return res.status(404).json({ error: "Post not found" });
+
+    let rawBuffer;
+    try {
+      const blob = await downloadRawUpload(post.body.rawSlug);
+      rawBuffer = Buffer.from(await blob.arrayBuffer());
+    } catch (err) {
+      console.error(`Failed to download raw upload for post ${post.id}:`, err);
+      return res.status(502).json({ error: "Could not fetch the original upload from storage" });
+    }
 
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Disposition", `attachment; filename="${post.id}.zip"`);
@@ -365,7 +473,7 @@ router.get(
     archive.pipe(res);
     archive.append(post.title, { name: "title.txt" });
     archive.append(post.abstract, { name: "abstract.txt" });
-    archive.append(post.body?.rawMd ?? "", { name: "post.md" });
+    archive.append(rawBuffer, { name: post.body.rawOriginalName });
     await archive.finalize();
   })
 );

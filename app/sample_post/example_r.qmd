@@ -1,0 +1,51 @@
+---
+title: "Heritability Trends Across Trial Years"
+author: "Your Name"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    code-fold: true
+    theme: cosmo
+    embed-resources: true
+---
+
+## Introduction
+
+This document demonstrates how to combine Markdown text with executable R code chunks in Quarto. R chunks use the built-in `knitr` engine, so no extra `jupyter` field is needed in the header - just start a chunk with `` ```{r} ``.
+
+## Heritability by Trait
+
+Broad-sense heritability ($H^2$) tells us what fraction of the variation we see in a trait is actually due to genetics, as opposed to the environment. Below, we simulate a small set of heritability estimates across several trial years for a handful of traits.
+
+```{r}
+#| label: fig-heritability
+#| fig-cap: "Simulated broad-sense heritability by trait across trial years"
+#| warning: false
+
+library(ggplot2)
+
+set.seed(42)
+traits <- rep(c("Yield", "Plant Height", "Disease Score", "Days to Maturity"), each = 5)
+year <- rep(2020:2024, times = 4)
+heritability <- pmin(pmax(runif(20, 0.25, 0.9), 0), 1)
+
+df <- data.frame(trait = traits, year = year, heritability = heritability)
+
+ggplot(df, aes(x = year, y = heritability, color = trait)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(
+    title = "Heritability Trends by Trait",
+    x = "Trial Year",
+    y = expression(paste("Broad-sense heritability (", H^2, ")")),
+    color = "Trait"
+  ) +
+  theme_minimal()
+```
+
+## Takeaway
+
+Yield tends to show lower and noisier heritability than more visually/directly measured traits like plant height, since it's influenced by more environmental factors and gene-by-environment interactions.

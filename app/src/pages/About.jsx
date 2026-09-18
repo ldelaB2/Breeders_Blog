@@ -2,6 +2,22 @@
 import { useState } from "react";
 import Icon from "../components/Icon";
 import chevronIcon from "../assets/chevron.svg?raw";
+import addPostIcon from "../assets/add_post.svg?raw";
+import sampleMarkdown from "../../sample_post/example_markdown.md?url";
+import samplePythonQmd from "../../sample_post/example_python.qmd?url";
+import sampleRQmd from "../../sample_post/example_r.qmd?url";
+import sampleJuliaQmd from "../../sample_post/example_julia.qmd?url";
+
+// Downloadable starting points shown in "How to Create a Post" - one plain
+// .md example plus a .qmd example per language Quarto commonly runs code
+// chunks in (Python, R, Julia), so a new author can see the format before
+// writing their own.
+const SAMPLE_FILES = [
+  { label: ".md example", filename: "example_markdown.md", href: sampleMarkdown },
+  { label: ".qmd example (Python)", filename: "example_python.qmd", href: samplePythonQmd },
+  { label: ".qmd example (R)", filename: "example_r.qmd", href: sampleRQmd },
+  { label: ".qmd example (Julia)", filename: "example_julia.qmd", href: sampleJuliaQmd },
+];
 
 // Header + chevron toggle shared by each section below; body is only
 // rendered while open.
@@ -31,6 +47,7 @@ function About() {
   const [open, setOpen] = useState({
     manifesto: false,
     plantBreeding: false,
+    howToPost: false,
     rules: false,
   });
   const toggle = (key) => setOpen((o) => ({ ...o, [key]: !o[key] }));
@@ -46,100 +63,55 @@ function About() {
       >
         <div className="mt-4 text-gray-700 space-y-4">
           <p>
-            For thousands of years, the primary way humans have exchanged
-            academic ideas has been through the written word. From the Greeks,
-            to the great mathematicians of the Islamic Golden Age, through the
-            Renaissance and the scientific revolutions that followed,
-            generations of thinkers have built upon one another through books,
-            letters, and eventually the modern scientific paper. The paper has
-            served us remarkably well. But for the first time in centuries, the
-            way we share knowledge is changing.
+            Blogs, open-source projects, preprints, online communities, and
+            interactive media let us share ideas faster, more openly, and in
+            ways a printed page never could. An interactive plot can let you
+            explore an idea yourself. An animation can make a complex process
+            intuitive. Code can turn an equation into something you can
+            experiment with. We no longer have to simply tell people what we
+            discovered. We can give them the tools to see it, question it,
+            and build upon it.
+          </p>
+          <p className="font-semibold">
+            I believe plant breeding is uniquely positioned to benefit from
+            this change.
           </p>
           <p>
-            Today, we are blessed with something our predecessors could scarcely
-            have imagined:{" "}
-            <strong>the entirety of human knowledge at our fingertips</strong>,
-            accessible instantly to anyone with an internet connection. At the
-            same time, the pace at which new knowledge is being created has
-            accelerated dramatically. Nowhere is this more apparent than in the
-            recent explosion of artificial intelligence, where ideas, methods,
-            and technologies can advance faster than the traditional publishing
-            process can keep up.
-          </p>
-          <p>
-            This changing landscape has given rise to new forms of scientific
-            communication. Blogs, online communities, open-source projects,
-            preprints, and interactive media allow researchers to share ideas
-            rapidly, openly, and at a scale that simply was not possible before.
-            More importantly, the internet allows us to communicate ideas in
-            ways that a printed page never could. Interactive plots can let a
-            reader explore a concept for themselves. Animations can make complex
-            processes intuitive. Code can turn an equation into something you
-            can experiment with. Instead of simply telling someone what you
-            discovered, we can give them the tools to see it, play with it,
-            question it, and build upon it.
-          </p>
-          <p>
-            I believe{" "}
+            Breeders Blog is a place for{" "}
             <strong>
-              plant breeding is uniquely positioned to benefit from this change
-            </strong>
-            . Plant breeding has always been a wonderfully messy,
-            multidisciplinary science. It draws on genetics, statistics,
-            biology, agriculture, computer science, and engineering, bringing
-            together ideas from fields that might otherwise have little reason
-            to interact. Perhaps that is what makes plant breeding so exciting:
-            some of its greatest advances happen not within these disciplines
-            individually, but in the connections between them.
-          </p>
-          <p>
-            Breeders Blog exists to explore those spaces. The goal of this site
-            is to create a place for{" "}
-            <strong>
-              free thought, open discussion, experimentation, and rapid sharing
-              of ideas
+              free thought, open discussion, experimentation, and rapid
+              sharing of ideas
             </strong>{" "}
-            in plant breeding and quantitative genetics. It is a place to ask
-            questions that may not yet be ready for a journal. To explore ideas
-            that might fail. To explain concepts that deserve a better
-            explanation. To build interactive demonstrations that make difficult
-            ideas intuitive. And, most importantly, to connect ideas from
-            different fields and see what happens when we put them together.
+            in plant breeding and quantitative genetics. Because the
+            challenges facing agriculture are enormous, we need more than
+            better tools—we need new ways of thinking, new connections
+            between disciplines, and the freedom to experiment before an idea
+            is perfectly polished.
           </p>
           <p>
-            Agriculture faces enormous challenges, and keeping pace with them
-            will require more than simply improving the tools we already have.
-            It will require new ways of thinking, new connections between
-            disciplines, and a willingness to experiment with ideas before they
-            are perfectly polished. It will require us to look beyond the
-            boundaries of our own fields and learn from one another.
-          </p>
-          <p>
-            I want Breeders Blog to be a place where a plant breeder can learn
-            something from a computer scientist, where a quantitative geneticist
-            can discover a new application for an idea from machine learning,
-            where an agronomist can challenge an assumption made by a
-            statistician, and where{" "}
+            I want Breeders Blog to be a place where a plant breeder learns
+            from a computer scientist, a quantitative geneticist finds new
+            applications for machine learning, an agronomist challenges a
+            statistician, and{" "}
             <strong>
-              someone just beginning their journey can participate in the
-              conversation alongside someone who has spent decades in the field
+              someone just beginning their journey can contribute alongside
+              someone who has spent decades in the field
             </strong>
             .
           </p>
           <p>
-            Because the challenges facing agriculture are too important, and the
-            tools available to us are too powerful, to keep thinking in the same
-            boxes we always have.
-          </p>
-          <p>
             Scientific progress has never belonged to a single discipline,
-            institution, or generation. It has always been built by people
-            sharing ideas, challenging one another, and building something new
-            from what came before. The tools for doing that have never been more
-            powerful. So let's use them.
+            institution, or generation. It has always come from people
+            sharing ideas, challenging one another, and building something
+            new from what came before.
           </p>
           <p className="font-semibold">
-            Welcome to Breeders Blog. Are you ready to change the world?
+            The tools for doing that have never been more powerful.
+          </p>
+          <p className="font-semibold">So let's use them.</p>
+          <p>Welcome to Breeders Blog.</p>
+          <p className="font-semibold">
+            Are you ready to change the world?
           </p>
         </div>
       </Section>
@@ -238,6 +210,101 @@ function About() {
         </div>
       </Section>
 
+      {/* How to Create a Post Section */}
+      <Section
+        title="How to Create a Post"
+        as="h2"
+        open={open.howToPost}
+        onToggle={() => toggle("howToPost")}
+      >
+        <div className="mt-4 text-gray-700 space-y-4">
+          <p>
+            To start a post, click the create-post icon{" "}
+            <Icon
+              svg={addPostIcon}
+              className="h-5 w-5 inline-block align-text-bottom"
+            />{" "}
+            on any topic you'd like to write about. You'll be asked for a{" "}
+            <strong>title</strong>, a brief <strong>abstract</strong> (around
+            600 words), and a single{" "}
+            <strong>.md, .qmd, or .zip file</strong> containing your post.
+          </p>
+          <p>
+            A <code>.md</code> (Markdown) file is just plain text with a few
+            simple symbols for formatting—things like headings, bold text,
+            and links. A <code>.qmd</code> (Quarto) file is the same idea, but
+            can also include runnable code and its output. Both can be
+            written in any text editor. If you're new to Markdown or Quarto,{" "}
+            <a
+              href="https://quarto.org/docs/authoring/markdown-basics.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              Quarto's markdown basics guide
+            </a>{" "}
+            is a great place to see the syntax in action.
+          </p>
+          <div>
+            <p className="mb-2">
+              Not sure where to start? Download an example and use it as a
+              template:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {SAMPLE_FILES.map((sample) => (
+                <a
+                  key={sample.filename}
+                  href={sample.href}
+                  download={sample.filename}
+                  className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  {sample.label}
+                </a>
+              ))}
+            </div>
+          </div>
+          <p>
+            If your post needs images, charts, or a dataset, bundle
+            everything into a single <code>.zip</code> instead—your{" "}
+            <code>.md</code>/<code>.qmd</code> file plus an{" "}
+            <code>images/</code> folder (or whatever you'd like to call it)
+            referenced by relative path. The moderator pulls those files in
+            when stitching together your final page. Whichever file type you
+            upload, it must be under <strong>50 MB</strong>.
+          </p>
+          <p className="rounded-md bg-gray-50 border border-gray-200 p-3 text-sm">
+            <strong>Tip:</strong> photos straight off a phone or camera can
+            easily be several MB each and add up fast against that 50 MB
+            limit.{" "}
+            <a
+              href="https://ffmpeg.org/download.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              ffmpeg
+            </a>{" "}
+            is a free command-line tool that can shrink an image in seconds
+            by resizing it and re-encoding it at a lower (but still
+            perfectly readable) quality:
+          </p>
+          <pre className="overflow-x-auto rounded-md border border-gray-200 bg-gray-50 p-3 text-xs font-mono text-gray-800">
+            ffmpeg -i input.jpg -vf scale=1600:-1 -q:v 3 output.jpg
+          </pre>
+          <p>
+            Once submitted, your post is marked <strong>pending</strong> and a
+            moderator is notified to review it and stitch together the final
+            page. You'll typically get an email within about 24 hours letting
+            you know whether it was approved or, if not, why—after approval,
+            your post goes live for the whole community to see.
+          </p>
+          <p>
+            To keep things sane for our moderators, each user can submit up
+            to <strong>5 posts every 24 hours</strong>.
+          </p>
+        </div>
+      </Section>
+
       {/* Rules of Contribution Section */}
       <Section
         title="Rules of Contribution"
@@ -247,12 +314,8 @@ function About() {
       >
         <div className="mt-4 text-gray-700 space-y-4">
           <p>
-            {/* TODO: Replace with your own guidelines */}
             Breeders Blog welcomes posts, comments, and ideas from anyone —
-            students, researchers, and practitioners alike. Contributions should
-            be honest about uncertainty, open to critique, and focused on
-            advancing shared understanding rather than promoting any single
-            person or product.
+            the only rule is <strong>be kind!</strong>
           </p>
         </div>
       </Section>

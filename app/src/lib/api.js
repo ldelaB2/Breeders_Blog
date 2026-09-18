@@ -75,6 +75,7 @@ export function useApi() {
     approvePost: (id) => authed(`/posts/${id}/approve`, { method: "POST" }),
     rejectPost: (id, rejectionReason) =>
       authed(`/posts/${id}/reject`, { method: "POST", body: { rejectionReason } }),
+    getPostUploadUrl: (filename) => authed("/posts/upload-url", { method: "POST", body: { filename } }),
     createPost: (data) => authed("/posts", { method: "POST", body: data }),
     upvotePost: (id) => authed(`/posts/${id}/upvote`, { method: "POST" }),
     downvotePost: (id) => authed(`/posts/${id}/downvote`, { method: "POST" }),

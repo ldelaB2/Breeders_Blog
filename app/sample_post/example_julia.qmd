@@ -1,0 +1,68 @@
+---
+title: "Simulating Genetic Gain from Truncation Selection"
+author: "Your Name"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    code-fold: true
+    theme: cosmo
+    embed-resources: true
+# Name of the Jupyter kernel Quarto should use to run the Julia chunks below.
+# Replace this with whatever kernelspec `jupyter kernelspec list` shows on
+# your machine (commonly something like "julia-1.10").
+jupyter: julia-1.10
+---
+
+## Introduction
+
+This document demonstrates how to combine Markdown text with executable Julia code chunks in Quarto, run through a Julia Jupyter kernel (via `IJulia`).
+
+## Simulating Selection Response
+
+A simple way to see genetic gain in action is to simulate repeated rounds of truncation selection on a normally-distributed breeding value, keeping only the top fraction of individuals each generation.
+
+```{julia}
+#| label: fig-genetic-gain
+#| fig-cap: "Simulated mean breeding value over generations of truncation selection"
+#| warning: false
+
+using Random
+using Statistics
+using Plots
+
+Random.seed!(42)
+
+n_individuals = 200
+n_generations = 15
+selection_fraction = 0.2
+heritability = 0.4
+
+mean_bv = Float64[]
+population = randn(n_individuals)
+push!(mean_bv, mean(population))
+
+for _ in 1:n_generations
+    n_selected = round(Int, n_individuals * selection_fraction)
+    selected = sort(population, rev = true)[1:n_selected]
+    parent_mean = mean(selected)
+
+    # Offspring regress toward the selected parents' mean, scaled by heritability,
+    # plus fresh environmental/genetic noise each generation.
+    global population = parent_mean .* heritability .+ randn(n_individuals) .* (1 - heritability)
+    push!(mean_bv, mean(population))
+end
+
+plot(0:n_generations, mean_bv,
+    xlabel = "Generation",
+    ylabel = "Mean breeding value",
+    title = "Response to Truncation Selection",
+    legend = false,
+    linewidth = 2,
+    marker = :circle)
+```
+
+## Takeaway
+
+Even this toy simulation shows the classic diminishing-returns shape of a selection response curve - genetic gain per generation is largest early on and tapers off as the population approaches the limits of its existing genetic variation.

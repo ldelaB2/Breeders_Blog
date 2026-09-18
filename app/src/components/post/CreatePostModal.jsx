@@ -2,21 +2,31 @@ import { useState, useRef } from "react";
 import { useApi } from "../../lib/api";
 
 const TITLE_LIMIT = 100;
-const ABSTRACT_LIMIT = 600;
-// Matches the backend's express.json({ limit: "4mb" }) - see backend/src/app.js.
-// The file's content rides along as a JSON string field, so this is the real
-// ceiling; checked client-side too so an oversized file fails fast with a
-// clear message instead of a confusing request error.
-const MAX_FILE_SIZE_BYTES = 4 * 1024 * 1024;
-const MAX_FILE_SIZE_LABEL = "4 MB";
+const ABSTRACT_LIMIT = 3800; // ~600 words
+// Matches the backend's ALLOWED_UPLOAD_EXTENSIONS/MAX_UPLOAD_BYTES in
+// backend/src/routes/posts.routes.js - checked client-side too so an
+// unsupported/oversized file fails fast with a clear message instead of a
+// confusing request error. The backend (and the storage bucket's own
+// file_size_limit) is the actual source of truth/enforcement.
+const ALLOWED_EXTENSIONS = ["md", "qmd", "zip"];
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+const MAX_FILE_SIZE_LABEL = "50 MB";
 // Matches the backend's POST_LIMIT in backend/src/routes/posts.routes.js -
 // only used for the "you've hit your limit" message text, the backend is
 // the actual source of truth/enforcement (a 429 response).
 const POST_LIMIT = 5;
 
-// Popup for submitting a new post: title, abstract, and a markdown file
-// read client-side and sent as rawMd. The backend always creates it with
-// status PENDING - it stays invisible to everyone but its author and a
+function extensionOf(filename) {
+  const match = /\.([a-zA-Z0-9]+)$/.exec(filename ?? "");
+  return match ? match[1].toLowerCase() : null;
+}
+
+// Popup for submitting a new post: title, abstract, and a single raw file
+// (.md/.qmd/.zip). The file is uploaded directly to Supabase Storage via a
+// short-lived signed URL the backend mints (POST /posts/upload-url), then
+// POST /posts is called to finalize - mirroring ApprovePostModal's existing
+// direct-upload pattern. The backend always creates the post with status
+// PENDING - it stays invisible to everyone but its author and a
 // moderator/admin until reviewed.
 function CreatePostModal({ topicSlug, onClose, onCreated }) {
   const api = useApi();
@@ -24,46 +34,58 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
 
   const [title, setTitle] = useState("");
   const [abstract, setAbstract] = useState("");
-  const [fileName, setFileName] = useState("");
-  const [rawMd, setRawMd] = useState("");
+  const [file, setFile] = useState(null);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
 
   function handleFileChange(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const selected = e.target.files?.[0];
+    if (!selected) return;
 
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      setError(`"${file.name}" is too large - files must be under ${MAX_FILE_SIZE_LABEL}`);
+    const ext = extensionOf(selected.name);
+    if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
+      setError(`"${selected.name}" isn't a supported file type - choose a .md, .qmd, or .zip file`);
+      e.target.value = "";
+      return;
+    }
+    if (selected.size > MAX_FILE_SIZE_BYTES) {
+      setError(`"${selected.name}" is too large - files must be under ${MAX_FILE_SIZE_LABEL}`);
       e.target.value = ""; // allow re-selecting the same file after trimming it
       return;
     }
 
     setError(null);
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = () => setRawMd(String(reader.result || ""));
-    reader.readAsText(file);
+    setFile(selected);
   }
 
-  const canSubmit = Boolean(title.trim() && abstract.trim() && rawMd.trim());
+  const canSubmit = Boolean(title.trim() && abstract.trim() && file);
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!canSubmit) {
-      setError("Title, abstract, and a markdown file are all required");
+      setError("Title, abstract, and a file are all required");
       return;
     }
 
     setSubmitting(true);
     setError(null);
     try {
+      const { postId, rawSlug, signedUrl, contentType } = await api.getPostUploadUrl(file.name);
+      const uploadRes = await fetch(signedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": contentType, "x-upsert": "true" },
+        body: file,
+      });
+      if (!uploadRes.ok) throw new Error(`Upload failed (${uploadRes.status})`);
+
       const created = await api.createPost({
+        id: postId,
         topicSlug,
         title: title.trim(),
         abstract: abstract.trim(),
-        rawMd,
+        rawSlug,
+        originalFilename: file.name,
       });
       onCreated(created);
       onClose();
@@ -151,11 +173,11 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
               </div>
 
               <div>
-                <span className="mb-1 block text-sm font-medium text-gray-700">Markdown file</span>
+                <span className="mb-1 block text-sm font-medium text-gray-700">Post file</span>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".md,.qmd,text/markdown"
+                  accept=".md,.qmd,.zip"
                   onChange={handleFileChange}
                   className="hidden"
                 />
@@ -164,9 +186,9 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
                   onClick={() => fileInputRef.current?.click()}
                   className="w-full truncate rounded-md border border-dashed border-gray-300 px-3 py-2 text-left text-sm text-gray-600 transition-colors hover:bg-gray-50"
                 >
-                  {fileName || "Upload markdown file…"}
+                  {file?.name || "Upload .md, .qmd, or .zip file…"}
                 </button>
-                <p className="mt-1 text-xs text-gray-400">.md or .qmd, up to {MAX_FILE_SIZE_LABEL}</p>
+                <p className="mt-1 text-xs text-gray-400">.md, .qmd, or .zip, up to {MAX_FILE_SIZE_LABEL}</p>
               </div>
 
               <div className="mt-2 flex justify-end gap-2">
