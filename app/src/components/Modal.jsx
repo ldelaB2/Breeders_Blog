@@ -20,7 +20,10 @@ function Modal({ onClose, align = "center", className = "", children }) {
         onClose();
       }}
     >
-      <div className={`w-full rounded-lg bg-white shadow-xl ${className}`} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`w-full rounded-lg bg-white shadow-xl ${className}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         {children}
       </div>
     </div>
