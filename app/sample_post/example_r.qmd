@@ -1,23 +1,59 @@
 ---
-title: "Heritability Trends Across Trial Years"
+# BREEDERS BLOG .qmd TEMPLATE (R)
+# Lines starting with # inside this header are comments - delete them when done.
+title: "Your Title Goes Here"
 author: "Your Name"
 date: today
 format:
   html:
-    toc: true
-    toc-depth: 2
-    code-fold: true
+    toc: true              # sidebar table of contents built from ## headings
+    toc-depth: 2           # two heading levels is plenty
+    code-fold: true        # code is collapsed by default; readers can expand it
     theme: cosmo
-    embed-resources: true
+    embed-resources: true  # bundle plots/images into one self-contained HTML
+# R chunks run through knitr, which Quarto finds automatically - no `jupyter:`
+# key needed. Install R + the rmarkdown package, then see
+# https://quarto.org/docs/computations/r.html
 ---
+
+<!--
+Before you start
+- Install Quarto: https://quarto.org/docs/get-started/ (VS Code, RStudio, or
+  any editor + the command line all work).
+- Render locally with `quarto render example_r.qmd` (or the Render button in
+  RStudio / Preview in VS Code) and read the HTML before you submit.
+- Markdown syntax: https://quarto.org/docs/authoring/markdown-basics.html
+- Everything Quarto can do: https://quarto.org/docs/guide/
+- Delete these comment blocks before submitting.
+-->
 
 ## Introduction
 
-This document demonstrates how to combine Markdown text with executable R code chunks in Quarto. R chunks use the built-in `knitr` engine, so no extra `jupyter` field is needed in the header - just start a chunk with `` ```{r} ``.
+<!-- One or two paragraphs: what question are you looking at and why does it
+matter? -->
 
-## Heritability by Trait
+State the problem. For example: how much of the variation we see in a trait is
+actually genetic, and how stable is that estimate from year to year?
 
-Broad-sense heritability ($H^2$) tells us what fraction of the variation we see in a trait is actually due to genetics, as opposed to the environment. Below, we simulate a small set of heritability estimates across several trial years for a handful of traits.
+## Background
+
+<!-- Optional. Inline math goes between single dollar signs; a display equation
+between double dollar signs. LaTeX syntax:
+https://www.overleaf.com/learn/latex/Mathematical_expressions -->
+
+Broad-sense heritability is $H^2 = \sigma_G^2 / \sigma_P^2$. Under the classic
+one-way model, the phenotype of individual $j$ in genotype $i$ is
+
+$$
+y_{ij} = \mu + g_i + e_{ij}, \qquad g_i \sim N(0, \sigma_G^2),\; e_{ij} \sim N(0, \sigma_e^2).
+$$
+
+## Analysis
+
+<!-- One runnable chunk per idea. `#| label:` names the chunk, `#| fig-cap:`
+captions the figure. Add `#| echo: false` to hide code entirely, or
+`#| eval: false` to show code without running it. Always set a seed so
+readers can reproduce your numbers. -->
 
 ```{r}
 #| label: fig-heritability
@@ -29,7 +65,7 @@ library(ggplot2)
 set.seed(42)
 traits <- rep(c("Yield", "Plant Height", "Disease Score", "Days to Maturity"), each = 5)
 year <- rep(2020:2024, times = 4)
-heritability <- pmin(pmax(runif(20, 0.25, 0.9), 0), 1)
+heritability <- runif(20, 0.25, 0.9)
 
 df <- data.frame(trait = traits, year = year, heritability = heritability)
 
@@ -37,15 +73,27 @@ ggplot(df, aes(x = year, y = heritability, color = trait)) +
   geom_line(linewidth = 1) +
   geom_point(size = 2) +
   scale_y_continuous(limits = c(0, 1)) +
-  labs(
-    title = "Heritability Trends by Trait",
-    x = "Trial Year",
-    y = expression(paste("Broad-sense heritability (", H^2, ")")),
-    color = "Trait"
-  ) +
+  labs(x = "Trial year", y = expression(H^2), color = "Trait") +
   theme_minimal()
 ```
 
-## Takeaway
+<!-- Refer back to a labelled figure with @fig-heritability. To include a
+pre-made image instead, put it in images/ next to this file, write
+![Caption](images/my_figure.png), and upload everything as one .zip. -->
 
-Yield tends to show lower and noisier heritability than more visually/directly measured traits like plant height, since it's influenced by more environmental factors and gene-by-environment interactions.
+## Results
+
+<!-- Interpret the figure. What does it show, and what does it not show? -->
+
+Describe what @fig-heritability tells you.
+
+## Takeaways
+
+<!-- Two to four sentences: what should the reader do differently? -->
+
+## References
+
+<!-- Link papers by DOI. -->
+
+- Falconer, D. S., & Mackay, T. F. C. (1996). *Introduction to Quantitative
+  Genetics* (4th ed.). Longman.

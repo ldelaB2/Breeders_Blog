@@ -1,45 +1,92 @@
 ---
-title: "Trends in Selection Intensity"
+# BREEDERS BLOG .Rmd TEMPLATE (classic R Markdown)
+# Lines starting with # inside this header are comments - delete them when done.
+title: "Your Title Goes Here"
 author: "Your Name"
 date: "`r Sys.Date()`"
+# R Markdown's header differs from Quarto's: options live under `output:` and
+# use snake_case. Reference: https://bookdown.org/yihui/rmarkdown/html-document.html
 output:
   html_document:
-    toc: true
-    toc_depth: 2
-    code_folding: hide
+    toc: true            # sidebar table of contents built from ## headings
+    toc_depth: 2         # two heading levels is plenty
+    code_folding: hide   # code is collapsed by default; readers can expand it
     theme: cosmo
+    self_contained: true # bundle plots/images into one self-contained HTML
 ---
+
+<!--
+Before you start
+- Install R and RStudio, then in R: install.packages(c("rmarkdown", "ggplot2"))
+- Knit with the Knit button in RStudio (or rmarkdown::render("example_rmd.Rmd"))
+  and read the HTML before you submit.
+- R Markdown book: https://bookdown.org/yihui/rmarkdown/
+- Cheat sheet:      https://rstudio.github.io/cheatsheets/html/rmarkdown.html
+- Already on Quarto? Use the .qmd (R) template instead - the chunk syntax is
+  nearly identical, only the header and chunk options differ.
+- Delete these comment blocks before submitting.
+-->
 
 ## Introduction
 
-This document demonstrates how to combine Markdown text with executable R code chunks in classic R Markdown (`.Rmd`), rendered with the `rmarkdown`/`knitr` packages. This is the format Quarto's `.qmd` files were built on top of - the chunk syntax is nearly identical, but the YAML header options are R Markdown's own (snake_case, under an `output:` key) rather than Quarto's.
+<!-- One or two paragraphs: what question are you looking at and why does it
+matter? -->
 
-## Selection Intensity by Selected Fraction
+State the problem. For example: how much extra selection intensity do you
+actually buy by selecting a smaller fraction of your population?
 
-Selection intensity ($i$) measures how much better the selected group's mean is than the population mean, in standard deviation units, for a given selected fraction. Below, we compute and plot it across a range of selection intensities.
+## Background
+
+<!-- Optional. Inline math goes between single dollar signs; a display equation
+between double dollar signs. LaTeX syntax:
+https://www.overleaf.com/learn/latex/Mathematical_expressions -->
+
+Selection intensity $i$ is the mean of the selected group in standard deviation
+units. For a selected proportion $p$ under a normal distribution,
+
+$$
+i = \frac{\phi(z)}{p}, \qquad z = \Phi^{-1}(1 - p),
+$$
+
+where $\phi$ and $\Phi$ are the standard normal density and CDF.
+
+## Analysis
+
+<!-- In .Rmd, chunk options go inside the braces: the first word is the label,
+then fig.cap=, warning=, echo=FALSE (hide code), eval=FALSE (show but don't
+run). Always set a seed for anything random. -->
 
 ```{r fig-selection-intensity, fig.cap="Selection intensity as a function of the selected proportion", warning=FALSE}
 library(ggplot2)
 
 selected_fraction <- seq(0.01, 0.99, by = 0.01)
-# Standard normal-distribution approximation of selection intensity:
-# i = phi(z) / p, where z is the truncation point and phi is the standard
-# normal density.
 z <- qnorm(1 - selected_fraction)
 intensity <- dnorm(z) / selected_fraction
 
 df <- data.frame(selected_fraction = selected_fraction, intensity = intensity)
 
 ggplot(df, aes(x = selected_fraction, y = intensity)) +
-  geom_line(linewidth = 1, color = "#2c7fb8") +
-  labs(
-    title = "Selection Intensity vs. Selected Fraction",
-    x = "Fraction selected",
-    y = "Selection intensity (i)"
-  ) +
+  geom_line(linewidth = 1, color = "#2f4a3c") +
+  labs(x = "Fraction selected", y = "Selection intensity (i)") +
   theme_minimal()
 ```
 
-## Takeaway
+<!-- To include a pre-made image instead, put it in images/ next to this file,
+write ![Caption](images/my_figure.png), and upload everything as one .zip. -->
 
-Selection intensity climbs quickly as the selected fraction shrinks below about 20%, but with rapidly diminishing returns - going from 10% to 1% selected buys much less extra intensity than going from 50% to 10% did.
+## Results
+
+<!-- Interpret the figure. What does it show, and what does it not show? -->
+
+Describe what the figure tells you.
+
+## Takeaways
+
+<!-- Two to four sentences: what should the reader do differently? -->
+
+## References
+
+<!-- Link papers by DOI. -->
+
+- Falconer, D. S., & Mackay, T. F. C. (1996). *Introduction to Quantitative
+  Genetics* (4th ed.). Longman.

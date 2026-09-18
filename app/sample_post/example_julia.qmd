@@ -1,68 +1,105 @@
 ---
-title: "Simulating Genetic Gain from Truncation Selection"
+# BREEDERS BLOG .qmd TEMPLATE (Julia)
+# Lines starting with # inside this header are comments - delete them when done.
+title: "Your Title Goes Here"
 author: "Your Name"
 date: today
 format:
   html:
-    toc: true
-    toc-depth: 2
-    code-fold: true
+    toc: true              # sidebar table of contents built from ## headings
+    toc-depth: 2           # two heading levels is plenty
+    code-fold: true        # code is collapsed by default; readers can expand it
     theme: cosmo
-    embed-resources: true
-# Name of the Jupyter kernel Quarto should use to run the Julia chunks below.
-# Replace this with whatever kernelspec `jupyter kernelspec list` shows on
-# your machine (commonly something like "julia-1.10").
+    embed-resources: true  # bundle plots into one self-contained HTML
+# Julia chunks run through the IJulia Jupyter kernel. In the Julia REPL:
+#   using Pkg; Pkg.add(["IJulia", "Plots"])
+# then `jupyter kernelspec list` shows the kernel name to put here
+# (commonly "julia-1.10"). See https://quarto.org/docs/computations/julia.html
 jupyter: julia-1.10
 ---
 
+<!--
+Before you start
+- Install Quarto: https://quarto.org/docs/get-started/
+- Install Julia + IJulia (see the header comment above).
+- Render locally with `quarto render example_julia.qmd` and read the HTML
+  before you submit.
+- Markdown syntax: https://quarto.org/docs/authoring/markdown-basics.html
+- Everything Quarto can do: https://quarto.org/docs/guide/
+- Delete these comment blocks before submitting.
+-->
+
 ## Introduction
 
-This document demonstrates how to combine Markdown text with executable Julia code chunks in Quarto, run through a Julia Jupyter kernel (via `IJulia`).
+<!-- One or two paragraphs: what question are you looking at and why does it
+matter? -->
 
-## Simulating Selection Response
+State the problem. For example: how fast does a population respond to
+repeated truncation selection, and when does the response slow down?
 
-A simple way to see genetic gain in action is to simulate repeated rounds of truncation selection on a normally-distributed breeding value, keeping only the top fraction of individuals each generation.
+## Background
+
+<!-- Optional. Inline math goes between single dollar signs; a display equation
+between double dollar signs. LaTeX syntax:
+https://www.overleaf.com/learn/latex/Mathematical_expressions -->
+
+With selection intensity $i$ and heritability $h^2$, the breeder's equation
+gives the expected per-generation response
+
+$$
+R = i \, h^2 \, \sigma_P .
+$$
+
+## Analysis
+
+<!-- One runnable chunk per idea. `#| label:` names the chunk, `#| fig-cap:`
+captions the figure. Add `#| echo: false` to hide code entirely, or
+`#| eval: false` to show code without running it. Always set a seed. -->
 
 ```{julia}
 #| label: fig-genetic-gain
 #| fig-cap: "Simulated mean breeding value over generations of truncation selection"
 #| warning: false
 
-using Random
-using Statistics
-using Plots
-
+using Random, Statistics, Plots
 Random.seed!(42)
 
-n_individuals = 200
-n_generations = 15
-selection_fraction = 0.2
-heritability = 0.4
+n_individuals, n_generations = 200, 15
+selection_fraction, heritability = 0.2, 0.4
 
-mean_bv = Float64[]
 population = randn(n_individuals)
-push!(mean_bv, mean(population))
+mean_bv = [mean(population)]
 
 for _ in 1:n_generations
     n_selected = round(Int, n_individuals * selection_fraction)
-    selected = sort(population, rev = true)[1:n_selected]
-    parent_mean = mean(selected)
-
-    # Offspring regress toward the selected parents' mean, scaled by heritability,
-    # plus fresh environmental/genetic noise each generation.
-    global population = parent_mean .* heritability .+ randn(n_individuals) .* (1 - heritability)
+    parent_mean = mean(sort(population, rev = true)[1:n_selected])
+    # Offspring regress toward the selected parents' mean, scaled by
+    # heritability, plus fresh noise each generation.
+    global population = parent_mean * heritability .+ randn(n_individuals) .* (1 - heritability)
     push!(mean_bv, mean(population))
 end
 
 plot(0:n_generations, mean_bv,
-    xlabel = "Generation",
-    ylabel = "Mean breeding value",
-    title = "Response to Truncation Selection",
-    legend = false,
-    linewidth = 2,
-    marker = :circle)
+    xlabel = "Generation", ylabel = "Mean breeding value",
+    legend = false, linewidth = 2, marker = :circle)
 ```
 
-## Takeaway
+<!-- Refer back to a labelled figure with @fig-genetic-gain. To include a
+pre-made image instead, put it in images/ next to this file, write
+![Caption](images/my_figure.png), and upload everything as one .zip. -->
 
-Even this toy simulation shows the classic diminishing-returns shape of a selection response curve - genetic gain per generation is largest early on and tapers off as the population approaches the limits of its existing genetic variation.
+## Results
+
+<!-- Interpret the figure. What does it show, and what does it not show? -->
+
+Describe what @fig-genetic-gain tells you.
+
+## Takeaways
+
+<!-- Two to four sentences: what should the reader do differently? -->
+
+## References
+
+<!-- Link papers by DOI. -->
+
+- Lush, J. L. (1937). *Animal Breeding Plans*. Iowa State College Press.

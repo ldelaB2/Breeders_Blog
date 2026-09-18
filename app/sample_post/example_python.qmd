@@ -1,58 +1,110 @@
 ---
-title: "Interactive Data Exploration"
+# BREEDERS BLOG .qmd TEMPLATE (Python)
+# Lines starting with # inside this header are comments - delete them when done.
+title: "Your Title Goes Here"
 author: "Your Name"
 date: today
 format:
   html:
-    toc: true
-    toc-depth: 2
-    code-fold: true
+    toc: true              # sidebar table of contents built from ## headings
+    toc-depth: 2           # two heading levels is plenty
+    code-fold: true        # code is collapsed by default; readers can expand it
     theme: cosmo
-    embed-resources: true
-jupyter: breeders_blog
+    embed-resources: true  # bundle plots into one self-contained HTML
+# Python chunks run through a Jupyter kernel. `python3` is the default kernel
+# name after `pip install jupyter`; if you use a conda/venv kernel, run
+# `jupyter kernelspec list` and put its name here instead.
+# See https://quarto.org/docs/computations/python.html
+jupyter: python3
 ---
 
+<!--
+Before you start
+- Install Quarto: https://quarto.org/docs/get-started/ (VS Code + the Quarto
+  extension is the smoothest Python setup).
+- pip install jupyter pandas numpy plotly
+- Render locally with `quarto render example_python.qmd` (or Preview in VS
+  Code) and read the HTML before you submit.
+- Markdown syntax: https://quarto.org/docs/authoring/markdown-basics.html
+- Everything Quarto can do: https://quarto.org/docs/guide/
+- Delete these comment blocks before submitting.
+-->
 
 ## Introduction
 
-This document demonstrates how to integrate Markdown text directly with dynamic Python code chunks and interactive visualization libraries.
+<!-- One or two paragraphs: what question are you looking at and why does it
+matter? -->
 
-## Interactive Visualization
+State the problem. For example: how quickly does genomic prediction accuracy
+saturate as the training population grows?
 
-Below is an interactive scatter plot using **Plotly**. Quarto automatically embeds the interactive JavaScript dependencies into the output HTML without exposing raw code unless toggled.
+## Background
+
+<!-- Optional. Inline math goes between single dollar signs; a display equation
+between double dollar signs. LaTeX syntax:
+https://www.overleaf.com/learn/latex/Mathematical_expressions -->
+
+Prediction accuracy is the correlation $r = \mathrm{cor}(\hat{g}, g)$ between
+predicted and true breeding values. A common approximation for GBLUP is
+
+$$
+r \approx \sqrt{\frac{N h^2}{N h^2 + M_e}}
+$$
+
+where $N$ is the training size and $M_e$ the effective number of chromosome
+segments.
+
+## Analysis
+
+<!-- One runnable chunk per idea. `#| label:` names the chunk, `#| fig-cap:`
+captions the figure. Add `#| echo: false` to hide code entirely, or
+`#| eval: false` to show code without running it. Always set a seed. -->
 
 ```{python}
-#| label: fig-interactive-scatter
-#| fig-cap: "Interactive relationship between dataset variables"
+#| label: fig-accuracy
+#| fig-cap: "Expected genomic prediction accuracy versus training population size"
 #| warning: false
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import plotly.express as px
-import plotly.io as pio
 
-# Required for Plotly to render correctly to HTML from VS Code's notebook engine
-pio.renderers.default = "plotly_mimetype+notebook_connected"
-
-# Generate sample dataset
 np.random.seed(42)
-df = pd.DataFrame({
-    'x_metric': np.random.randn(100).cumsum(),
-    'y_metric': np.random.randn(100).cumsum(),
-    'category': np.random.choice(['Group A', 'Group B', 'Group C'], 100),
-    'size': np.random.randint(10, 50, 100)
-})
 
-# Build interactive plot
-fig = px.scatter(
-    df,
-    x='x_metric',
-    y='y_metric',
-    color='category',
-    size='size',
-    title="Sample Dynamic Trajectory",
-    template="plotly_white"
-)
+M_e = 1000
+N = np.arange(100, 5001, 100)
+rows = []
+for h2 in (0.2, 0.5, 0.8):
+    r = np.sqrt(N * h2 / (N * h2 + M_e))
+    rows.append(pd.DataFrame({"N": N, "accuracy": r, "h2": f"h² = {h2}"}))
+df = pd.concat(rows)
 
+# Plotly figures stay interactive in the rendered post (hover, zoom, legend
+# toggling). Swap in matplotlib/seaborn if you prefer a static image.
+fig = px.line(df, x="N", y="accuracy", color="h2",
+              labels={"N": "Training population size", "accuracy": "Accuracy"},
+              template="plotly_white")
 fig.show()
 ```
+
+<!-- Refer back to a labelled figure with @fig-accuracy. To include a pre-made
+image instead, put it in images/ next to this file, write
+![Caption](images/my_figure.png), and upload everything as one .zip. -->
+
+## Results
+
+<!-- Interpret the figure. What does it show, and what does it not show? -->
+
+Describe what @fig-accuracy tells you.
+
+## Takeaways
+
+<!-- Two to four sentences: what should the reader do differently? -->
+
+## References
+
+<!-- Link papers by DOI. -->
+
+- Daetwyler, H. D., Villanueva, B., & Woolliams, J. A. (2008). Accuracy of
+  predicting the genetic risk of disease using a genome-wide approach.
+  *PLoS ONE*, 3(10), e3395. <https://doi.org/10.1371/journal.pone.0003395>
