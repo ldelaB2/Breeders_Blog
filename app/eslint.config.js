@@ -18,4 +18,6 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  // Vercel Functions run in Node, not the browser.
+  { files: ['api/**/*.js'], languageOptions: { globals: globals.node } },
 ])

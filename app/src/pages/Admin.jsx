@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useApi } from "../lib/api";
 import AdminPostRow from "../components/post/AdminPostRow";
 import ApprovePostModal from "../components/post/ApprovePostModal";
+import { useSeo } from "../lib/useSeo";
 
 // Admin-only moderation queue. Access is enforced by RequireRole at the
 // route level (App.jsx) and, more importantly, on every endpoint this page
@@ -9,6 +10,7 @@ import ApprovePostModal from "../components/post/ApprovePostModal";
 // component mounts, the caller is already a confirmed admin.
 export default function Admin() {
   const api = useApi();
+  useSeo({ title: "Admin", noindex: true });
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);

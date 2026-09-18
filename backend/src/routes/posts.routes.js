@@ -259,7 +259,9 @@ router.get(
     const canView = post.status === "APPROVED" || isModerator(req.userRole) || req.userId === post.authorId;
     if (!canView) throw new HttpError(404, "Post not found");
     // Only this route pulls the HTML out of storage - list views never do.
-    const html = await getStitchedHtml(post.body?.htmlSlug);
+    // ?html=0 skips it too: the frontend's api/post.js only needs the
+    // metadata to fill a post page's <head>.
+    const html = req.query.html === "0" ? undefined : await getStitchedHtml(post.body?.htmlSlug);
     res.json(serializePost(post, viewer(req), { html }));
   })
 );

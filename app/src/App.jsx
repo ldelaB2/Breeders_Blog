@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Topic from "./pages/Topic";
 import Admin from "./pages/Admin";
 import PostPage from "./pages/PostPage";
+import NotFound from "./pages/NotFound";
 import { PERMANENT_TOPICS } from "./routes";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -21,7 +22,7 @@ export default function App() {
             )}
 
             <Route path="/topics/:topic" element={<Topic />} />
-            <Route path="/posts/:id" element={<PostPage />} />
+            <Route path="/posts/:id/:slug?" element={<PostPage />} />
             <Route
               path="/admin"
               element={
@@ -30,6 +31,7 @@ export default function App() {
                 </RequireRole>
               }
             />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
         <Footer />

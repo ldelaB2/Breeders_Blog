@@ -11,7 +11,7 @@ import chevronIcon from "../../assets/chevron.svg?raw";
 
 const SCROLL_AMOUNT = 400; // tile width (w-96 = 384px) + gap-4 (16px)
 
-function PostCarousel({ title, fetchPosts, emptyMessage, onSelectPost }) {
+function PostCarousel({ title, fetchPosts, emptyMessage }) {
   const api = useApi();
   const scrollRef = useRef(null);
   const [posts, setPosts] = useState([]);
@@ -77,7 +77,6 @@ function PostCarousel({ title, fetchPosts, emptyMessage, onSelectPost }) {
                 <Post
                   post={post}
                   showTopic
-                  onSelect={(p) => onSelectPost?.(p.id)}
                   onTogglePin={onTogglePin}
                   onUpvote={onUpvote}
                   onDownvote={onDownvote}

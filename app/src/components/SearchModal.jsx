@@ -80,7 +80,7 @@ function SearchModal({ onClose, onSelectPost }) {
             <li key={post.id}>
               <button
                 type="button"
-                onClick={() => onSelectPost(post.id)}
+                onClick={() => onSelectPost(post)}
                 className="flex w-full flex-col gap-1 px-1 py-3 text-left transition-colors hover:bg-gray-50"
               >
                 <div className="flex items-center justify-between gap-2">

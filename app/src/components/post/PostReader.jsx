@@ -4,11 +4,9 @@ import CommentSection from "../comment/CommentSection";
 import { fetchPost } from "../../lib/api";
 import { extractPostHtml } from "../../lib/postHtml";
 import { setCitation } from "../../lib/citation";
+import { postSeo } from "../../lib/seo";
+import { useSeo } from "../../lib/useSeo";
 import backArrowIcon from "../../assets/backarrow.svg?raw";
-
-const DEFAULT_TITLE = "Breeders Blog";
-const DEFAULT_DESCRIPTION =
-  "Breeders Blog — research and notes on genomic selection, quantitative genetics, and modern breeding methods.";
 
 // One "On this page" entry per TOC node, recursing into nested entries
 // (Quarto nests h3s etc. under their parent h2) with deeper levels indented.
@@ -55,19 +53,13 @@ function PostReader({ postId, onBack }) {
       .catch((err) => setError(err.message));
   }, [postId]);
 
-  // Tab title, meta description and the footer's citation follow the open
-  // post, and revert to the site defaults on the way out.
+  // Page metadata and the footer's citation follow the open post (the
+  // citation reverts on the way out; the next page sets its own metadata).
+  useSeo(post ? postSeo(post, window.location.origin) : error ? { title: "Post not found", noindex: true } : null);
   useEffect(() => {
     if (!post) return;
-    document.title = `${post.title} — ${DEFAULT_TITLE}`;
-    const meta = document.querySelector('meta[name="description"]');
-    meta?.setAttribute("content", post.abstract);
     setCitation({ title: post.title, author: post.authorName, date: post.createdAt });
-    return () => {
-      document.title = DEFAULT_TITLE;
-      meta?.setAttribute("content", DEFAULT_DESCRIPTION);
-      setCitation(null);
-    };
+    return () => setCitation(null);
   }, [post]);
 
   // The iframe is sandboxed (see below), so the post talks to us via

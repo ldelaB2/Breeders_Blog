@@ -1,21 +1,23 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useUser } from "@clerk/react";
 import { DYNAMIC_TOPICS } from "../routes";
 import Post from "../components/post/Post";
 import CreatePostModal from "../components/post/CreatePostModal";
 import Icon from "../components/Icon";
+import NotFound from "./NotFound";
 import { useApi } from "../lib/api";
 import { sortPosts } from "../lib/postSort";
 import { usePostActions } from "../lib/usePostActions";
+import { useSeo } from "../lib/useSeo";
 import addPostIcon from "../assets/add_post.svg?raw";
 
 export default function Topic() {
   const { topic } = useParams();
   const { user } = useUser();
   const api = useApi();
-  const navigate = useNavigate();
   const match = DYNAMIC_TOPICS.find((t) => t.slug === topic);
+  useSeo(match && { title: match.label, description: match.description, path: match.path });
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,7 +63,7 @@ export default function Topic() {
     }
   }
 
-  if (!match) return <div>Topic not found</div>;
+  if (!match) return <NotFound />;
 
   const sortedPosts = sortPosts(posts, user?.id);
 
@@ -99,7 +101,6 @@ export default function Topic() {
             <Post
               key={post.id}
               post={post}
-              onSelect={(p) => navigate(`/posts/${p.id}`)}
               onTogglePin={handleTogglePin}
               onUpvote={handleUpvote}
               onDownvote={handleDownvote}

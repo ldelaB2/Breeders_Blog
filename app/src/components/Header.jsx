@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/react";
-import logo from "./../assets/logo.png";
 import { DYNAMIC_TOPICS, PERMANENT_TOPICS } from "../routes";
 import { useCurrentUser } from "../lib/useCurrentUser";
+import { postPath } from "../lib/seo";
 import SearchModal from "./SearchModal";
 
 function Header() {
@@ -14,9 +14,9 @@ function Header() {
   const { isAdmin } = useCurrentUser();
   const navigate = useNavigate();
 
-  function handleSelectSearchResult(postId) {
+  function handleSelectSearchResult(post) {
     setSearchOpen(false);
-    navigate(`/posts/${postId}`);
+    navigate(postPath(post));
   }
   // Kept out of the shared PERMANENT_TOPICS export (routes.jsx) since
   // App.jsx also uses that array to auto-generate routes for everyone -
@@ -76,20 +76,20 @@ function Header() {
         <div className="flex min-w-0 items-center justify-center gap-2 sm:gap-3">
           <Link to="/" className="sm:hidden shrink-0" aria-label="Breeders Blog home">
             <img
-              src={logo}
-              alt="Site logo"
+              src="/logo.png"
+              alt="Breeders Blog logo"
               className="h-10 w-10 rounded-full object-cover"
             />
           </Link>
           <a
-            href={logo}
+            href="/logo.png"
             target="_blank"
             rel="noopener noreferrer"
             className="hidden shrink-0 sm:inline-flex"
           >
             <img
-              src={logo}
-              alt="Site logo"
+              src="/logo.png"
+              alt="Breeders Blog logo"
               className="sm:h-16 sm:w-16 md:h-20 md:w-20 rounded-full object-cover"
             />
           </a>

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import Icon from "../components/Icon";
+import { useSeo } from "../lib/useSeo";
 import chevronIcon from "../assets/chevron.svg?raw";
 import addPostIcon from "../assets/add_post.svg?raw";
 import sampleMarkdown from "../../sample_post/example_markdown.md?url";
@@ -57,8 +58,8 @@ function ExtLink({ href, children }) {
   );
 }
 
-// Header + chevron toggle shared by each section below; body is only
-// rendered while open.
+// Header + chevron toggle shared by each section below. The body stays in
+// the DOM while collapsed (hidden, not unmounted) so crawlers can read it.
 function Section({ title, as: Tag, open, onToggle, children }) {
   return (
     <div className={Tag === "h1" ? "" : "mt-10"}>
@@ -76,7 +77,7 @@ function Section({ title, as: Tag, open, onToggle, children }) {
         />
         <Tag className="text-xl font-bold">{title}</Tag>
       </button>
-      {open && children}
+      <div hidden={!open}>{children}</div>
     </div>
   );
 }
@@ -89,6 +90,12 @@ function About() {
     rules: false,
   });
   const toggle = (key) => setOpen((o) => ({ ...o, [key]: !o[key] }));
+  useSeo({
+    title: "About",
+    description:
+      "Why Breeders Blog exists, what plant breeding is, and how to write and submit a post in Markdown, Quarto or R Markdown.",
+    path: "/about",
+  });
 
   return (
     <div className="px-6 py-10 max-w-6xl mx-auto">

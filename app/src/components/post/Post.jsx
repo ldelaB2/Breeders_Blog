@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/react";
 import Icon from "../Icon";
 import VoteControls from "../VoteControls";
@@ -7,6 +8,7 @@ import { voteState } from "../../lib/voting";
 import { useRequireSignIn } from "../../lib/useRequireSignIn";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { topicLabel } from "../../routes";
+import { postPath } from "../../lib/seo";
 import pinIcon from "../../assets/pin.svg?raw";
 import commentIcon from "../../assets/comment.svg?raw";
 import lockIcon from "../../assets/lock.svg?raw";
@@ -18,7 +20,6 @@ import deleteIcon from "../../assets/delete_icon.svg?raw";
 // obvious from its own heading, so it leaves this off.
 function Post({
   post,
-  onSelect,
   onTogglePin,
   onUpvote,
   onDownvote,
@@ -30,6 +31,7 @@ function Post({
   const { user } = useUser();
   const { isModerator, isAdmin } = useCurrentUser();
   const requireSignIn = useRequireSignIn();
+  const navigate = useNavigate();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const isPinned = user ? post.pinnedBy.includes(user.id) : false;
@@ -40,7 +42,7 @@ function Post({
   const tile = (
     <div
       onClick={() => {
-        if (!isPending) onSelect?.(post);
+        if (!isPending) navigate(postPath(post));
       }}
       className={`group rounded-lg border border-canvas-border bg-white p-4 shadow-sm transition-shadow ${
         isPending ? "cursor-default" : "cursor-pointer hover:shadow-md"
@@ -49,7 +51,17 @@ function Post({
       {/* Header row: title, author, pin */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-baseline gap-2">
-          <h3 className="truncate text-lg font-bold text-gray-900">{post.title}</h3>
+          {/* A real link (not just the tile's onClick) so crawlers can
+              follow it; stopPropagation keeps the tile from navigating twice. */}
+          <h3 className="truncate text-lg font-bold text-gray-900">
+            {isPending ? (
+              post.title
+            ) : (
+              <Link to={postPath(post)} onClick={(e) => e.stopPropagation()}>
+                {post.title}
+              </Link>
+            )}
+          </h3>
 
           {post.authorAvatarUrl && !avatarFailed ? (
             <img

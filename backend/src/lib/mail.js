@@ -3,6 +3,7 @@
 // already succeeded in the DB), so every failure is logged rather than thrown.
 import { Resend } from "resend";
 import { prisma } from "./prisma.js";
+import { postUrl } from "./postUrl.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.EMAIL_FROM || "Breeders Blog <onboarding@resend.dev>";
@@ -52,7 +53,7 @@ export async function notifyAuthorOfApproval(post) {
     author.email,
     `Your post "${post.title}" was approved`,
     `<p>Your post <strong>${title}</strong> to Breeders Blog was approved! Thanks for adding to the discussion.</p>
-     <p><a href="${SITE_URL}/posts/${post.id}">View your post</a></p>`
+     <p><a href="${postUrl(post)}">View your post</a></p>`
   );
 }
 

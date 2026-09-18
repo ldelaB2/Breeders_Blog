@@ -1,4 +1,5 @@
 import { isModerator } from "./roles.js";
+import { slugify } from "./postUrl.js";
 
 // Shapes a PostMetadata row (with postInclude relations loaded) into the
 // flat object the frontend expects. Moderation detail is only included for
@@ -12,6 +13,7 @@ export function serializePost(post, viewer = {}, opts = {}) {
     id: post.id,
     topicSlug: post.topicSlug,
     title: post.title,
+    slug: slugify(post.title),
     abstract: post.abstract,
     status: post.status,
     locked: post.locked,
