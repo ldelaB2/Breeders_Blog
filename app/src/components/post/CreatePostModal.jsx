@@ -8,7 +8,7 @@ const ABSTRACT_LIMIT = 3800; // ~600 words
 // unsupported/oversized file fails fast with a clear message instead of a
 // confusing request error. The backend (and the storage bucket's own
 // file_size_limit) is the actual source of truth/enforcement.
-const ALLOWED_EXTENSIONS = ["md", "qmd", "zip"];
+const ALLOWED_EXTENSIONS = ["md", "qmd", "rmd", "zip"];
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 const MAX_FILE_SIZE_LABEL = "50 MB";
 // Matches the backend's POST_LIMIT in backend/src/routes/posts.routes.js -
@@ -22,7 +22,7 @@ function extensionOf(filename) {
 }
 
 // Popup for submitting a new post: title, abstract, and a single raw file
-// (.md/.qmd/.zip). The file is uploaded directly to Supabase Storage via a
+// (.md/.qmd/.rmd/.zip). The file is uploaded directly to Supabase Storage via a
 // short-lived signed URL the backend mints (POST /posts/upload-url), then
 // POST /posts is called to finalize - mirroring ApprovePostModal's existing
 // direct-upload pattern. The backend always creates the post with status
@@ -45,7 +45,7 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
 
     const ext = extensionOf(selected.name);
     if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
-      setError(`"${selected.name}" isn't a supported file type - choose a .md, .qmd, or .zip file`);
+      setError(`"${selected.name}" isn't a supported file type - choose a .md, .qmd, .rmd, or .zip file`);
       e.target.value = "";
       return;
     }
@@ -177,7 +177,7 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".md,.qmd,.zip"
+                  accept=".md,.qmd,.rmd,.zip"
                   onChange={handleFileChange}
                   className="hidden"
                 />
@@ -186,9 +186,9 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
                   onClick={() => fileInputRef.current?.click()}
                   className="w-full truncate rounded-md border border-dashed border-gray-300 px-3 py-2 text-left text-sm text-gray-600 transition-colors hover:bg-gray-50"
                 >
-                  {file?.name || "Upload .md, .qmd, or .zip file…"}
+                  {file?.name || "Upload .md, .qmd, .rmd, or .zip file…"}
                 </button>
-                <p className="mt-1 text-xs text-gray-400">.md, .qmd, or .zip, up to {MAX_FILE_SIZE_LABEL}</p>
+                <p className="mt-1 text-xs text-gray-400">.md, .qmd, .rmd, or .zip, up to {MAX_FILE_SIZE_LABEL}</p>
               </div>
 
               <div className="mt-2 flex justify-end gap-2">

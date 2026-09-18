@@ -1,0 +1,45 @@
+---
+title: "Trends in Selection Intensity"
+author: "Your Name"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    code_folding: hide
+    theme: cosmo
+---
+
+## Introduction
+
+This document demonstrates how to combine Markdown text with executable R code chunks in classic R Markdown (`.Rmd`), rendered with the `rmarkdown`/`knitr` packages. This is the format Quarto's `.qmd` files were built on top of - the chunk syntax is nearly identical, but the YAML header options are R Markdown's own (snake_case, under an `output:` key) rather than Quarto's.
+
+## Selection Intensity by Selected Fraction
+
+Selection intensity ($i$) measures how much better the selected group's mean is than the population mean, in standard deviation units, for a given selected fraction. Below, we compute and plot it across a range of selection intensities.
+
+```{r fig-selection-intensity, fig.cap="Selection intensity as a function of the selected proportion", warning=FALSE}
+library(ggplot2)
+
+selected_fraction <- seq(0.01, 0.99, by = 0.01)
+# Standard normal-distribution approximation of selection intensity:
+# i = phi(z) / p, where z is the truncation point and phi is the standard
+# normal density.
+z <- qnorm(1 - selected_fraction)
+intensity <- dnorm(z) / selected_fraction
+
+df <- data.frame(selected_fraction = selected_fraction, intensity = intensity)
+
+ggplot(df, aes(x = selected_fraction, y = intensity)) +
+  geom_line(linewidth = 1, color = "#2c7fb8") +
+  labs(
+    title = "Selection Intensity vs. Selected Fraction",
+    x = "Fraction selected",
+    y = "Selection intensity (i)"
+  ) +
+  theme_minimal()
+```
+
+## Takeaway
+
+Selection intensity climbs quickly as the selected fraction shrinks below about 20%, but with rapidly diminishing returns - going from 10% to 1% selected buys much less extra intensity than going from 50% to 10% did.

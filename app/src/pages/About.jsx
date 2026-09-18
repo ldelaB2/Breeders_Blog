@@ -7,16 +7,18 @@ import sampleMarkdown from "../../sample_post/example_markdown.md?url";
 import samplePythonQmd from "../../sample_post/example_python.qmd?url";
 import sampleRQmd from "../../sample_post/example_r.qmd?url";
 import sampleJuliaQmd from "../../sample_post/example_julia.qmd?url";
+import sampleRmd from "../../sample_post/example_rmd.Rmd?url";
 
 // Downloadable starting points shown in "How to Create a Post" - one plain
-// .md example plus a .qmd example per language Quarto commonly runs code
-// chunks in (Python, R, Julia), so a new author can see the format before
-// writing their own.
+// .md example, a .qmd example per language Quarto commonly runs code chunks
+// in (Python, R, Julia), and a classic .Rmd example, so a new author can see
+// the format before writing their own.
 const SAMPLE_FILES = [
   { label: ".md example", filename: "example_markdown.md", href: sampleMarkdown },
   { label: ".qmd example (Python)", filename: "example_python.qmd", href: samplePythonQmd },
   { label: ".qmd example (R)", filename: "example_r.qmd", href: sampleRQmd },
   { label: ".qmd example (Julia)", filename: "example_julia.qmd", href: sampleJuliaQmd },
+  { label: ".Rmd example (R)", filename: "example_rmd.Rmd", href: sampleRmd },
 ];
 
 // Header + chevron toggle shared by each section below; body is only
@@ -227,14 +229,18 @@ function About() {
             on any topic you'd like to write about. You'll be asked for a{" "}
             <strong>title</strong>, a brief <strong>abstract</strong> (around
             600 words), and a single{" "}
-            <strong>.md, .qmd, or .zip file</strong> containing your post.
+            <strong>.md, .qmd, .Rmd, or .zip file</strong> containing your
+            post.
           </p>
           <p>
             A <code>.md</code> (Markdown) file is just plain text with a few
             simple symbols for formatting—things like headings, bold text,
             and links. A <code>.qmd</code> (Quarto) file is the same idea, but
-            can also include runnable code and its output. Both can be
-            written in any text editor. If you're new to Markdown or Quarto,{" "}
+            can also include runnable code (Python, R, Julia, and more) and
+            its output. A <code>.Rmd</code> (R Markdown) file is the classic,
+            R-specific ancestor of <code>.qmd</code>—if you already write
+            R Markdown, there's no need to switch. All three can be written
+            in any text editor. If you're new to Markdown or Quarto,{" "}
             <a
               href="https://quarto.org/docs/authoring/markdown-basics.html"
               target="_blank"
@@ -256,13 +262,24 @@ function About() {
                   key={sample.filename}
                   href={sample.href}
                   download={sample.filename}
-                  className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                  className="rounded-md bg-accent px-3 py-1.5 text-sm text-white transition-colors hover:bg-accent-dark"
                 >
                   {sample.label}
                 </a>
               ))}
             </div>
           </div>
+          <p>
+            If your <code>.qmd</code> or <code>.Rmd</code> file sets{" "}
+            <code>toc: true</code> in its YAML header—like every example
+            above already does—Quarto/R Markdown builds a table of contents
+            when it renders your file to HTML. Once your post is approved,
+            that table of contents automatically appears as a sidebar on the
+            left, letting readers jump straight to any section. (This only
+            applies to rendered <code>.qmd</code>/<code>.Rmd</code> output—a
+            plain <code>.md</code> file has no separate rendering step, so
+            it won't get one.)
+          </p>
           <p>
             If your post needs images, charts, or a dataset, bundle
             everything into a single <code>.zip</code> instead—your{" "}
@@ -272,25 +289,29 @@ function About() {
             when stitching together your final page. Whichever file type you
             upload, it must be under <strong>50 MB</strong>.
           </p>
-          <p className="rounded-md bg-gray-50 border border-gray-200 p-3 text-sm">
-            <strong>Tip:</strong> photos straight off a phone or camera can
-            easily be several MB each and add up fast against that 50 MB
-            limit.{" "}
-            <a
-              href="https://ffmpeg.org/download.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              ffmpeg
-            </a>{" "}
-            is a free command-line tool that can shrink an image in seconds
-            by resizing it and re-encoding it at a lower (but still
-            perfectly readable) quality:
-          </p>
-          <pre className="overflow-x-auto rounded-md border border-gray-200 bg-gray-50 p-3 text-xs font-mono text-gray-800">
-            ffmpeg -i input.jpg -vf scale=1600:-1 -q:v 3 output.jpg
-          </pre>
+          <div className="rounded-md bg-canvas p-3">
+            <h4 className="mb-1 font-semibold text-gray-900">
+              Tip: compressing images
+            </h4>
+            <p className="text-sm">
+              Photos straight off a phone or camera can easily be several MB
+              each and add up fast against that 50 MB limit.{" "}
+              <a
+                href="https://ffmpeg.org/download.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                ffmpeg
+              </a>{" "}
+              is a free command-line tool that can shrink an image in
+              seconds by resizing it and re-encoding it at a lower (but
+              still perfectly readable) quality:
+            </p>
+            <pre className="mt-2 overflow-x-auto bg-canvas text-xs font-mono text-gray-800">
+              ffmpeg -i input.jpg -vf scale=1600:-1 -q:v 3 output.jpg
+            </pre>
+          </div>
           <p>
             Once submitted, your post is marked <strong>pending</strong> and a
             moderator is notified to review it and stitch together the final

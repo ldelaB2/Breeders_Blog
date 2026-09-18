@@ -23,11 +23,12 @@ import crypto from "node:crypto";
 
 // The only file types a post's raw upload may be; keyed by lowercased
 // extension (parsed from the client-supplied filename, not the browser's
-// often-inconsistent MIME type for .md/.qmd) to the content-type recorded
+// often-inconsistent MIME type for .md/.qmd/.rmd) to the content-type recorded
 // in the DB and sent on the PUT.
 const ALLOWED_UPLOAD_EXTENSIONS = {
   md: "text/markdown",
   qmd: "text/markdown",
+  rmd: "text/markdown",
   zip: "application/zip",
 };
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
@@ -255,11 +256,11 @@ async function isOverPostLimit(userId) {
 }
 
 // Step 1 of creating a post: mints a signed URL the author's browser
-// uploads their raw .md/.qmd/.zip file to directly (Supabase Storage,
+// uploads their raw .md/.qmd/.rmd/.zip file to directly (Supabase Storage,
 // bypassing this server entirely) so the file never has to fit inside
 // Vercel's ~4.5mb function request-body limit, and can be as large as the
 // 50mb we allow. The extension is validated here (not the client-reported
-// MIME type, which browsers report inconsistently for .md/.qmd) and baked
+// MIME type, which browsers report inconsistently for .md/.qmd/.rmd) and baked
 // into a fixed object name ("upload.<ext>") - the client's actual filename
 // never reaches the storage path, so there's no path-traversal surface.
 router.post(
@@ -268,7 +269,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const ext = extensionFromFilename(req.body.filename);
     if (!ext || !ALLOWED_UPLOAD_EXTENSIONS[ext]) {
-      return res.status(400).json({ error: "File must be a .md, .qmd, or .zip" });
+      return res.status(400).json({ error: "File must be a .md, .qmd, .rmd, or .zip" });
     }
     // Early, non-authoritative check so a user already at their limit isn't
     // asked to upload a file for nothing - POST / re-checks this for real.
