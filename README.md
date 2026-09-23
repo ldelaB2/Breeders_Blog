@@ -52,6 +52,7 @@ Things configured in dashboards rather than code:
 - **Supabase Storage** — two private buckets (no anon/authenticated policies; the backend uses the service role key and mints short-lived signed URLs):
   - `post-html` (stitched HTML for approved posts): *Allowed MIME types* = `text/html`.
   - `post-upload` (authors' raw uploads): *File size limit* = 50 MB.
+- **Supabase Data API** — turned off (*Project Settings -> Data API*, *Exposed schemas* emptied). Nothing here speaks PostgREST: Prisma connects straight to Postgres and Storage goes through `/storage/v1` with the service role key, so an open REST gateway only ever exposed the tables. Every table in `public` also has RLS enabled with no policies as a second layer (migration `enable_rls`) — authorization lives in Express, not in SQL policies. Safe because the app connects as Supabase's `postgres` role, which has `BYPASSRLS`; do not add `FORCE ROW LEVEL SECURITY`, it would lock Prisma out.
 - **Clerk** — a webhook for `user.created` and `user.updated` pointing at `<backend>/api/webhooks/clerk`, with its signing secret in `CLERK_WEBHOOK_SIGNING_SECRET`. Roles are assigned per user under *Private metadata* as `{ "role": "ADMIN" }` (or `MODERATOR`).
 - **Vercel** — every variable in `backend/.env.example` and `app/.env.example` set on the respective project, with `SITE_URL`/`CORS_ORIGIN` pointing at the frontend's production URL.
 
