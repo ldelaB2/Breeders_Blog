@@ -108,56 +108,57 @@ function About() {
       >
         <div className="mt-4 text-gray-700 space-y-4">
           <p>
-            Blogs, open-source projects, preprints, online communities, and
-            interactive media let us share ideas faster, more openly, and in
-            ways a printed page never could. An interactive plot can let you
-            explore an idea yourself. An animation can make a complex process
-            intuitive. Code can turn an equation into something you can
-            experiment with. We no longer have to simply tell people what we
-            discovered. We can give them the tools to see it, question it,
-            and build upon it.
+            For thousands of years, the written word has been the primary way
+            humans have shared academic ideas. Today, we have something our
+            predecessors could hardly have imagined: all of human knowledge at
+            our fingertips.
+          </p>
+          <p className="font-semibold">That changes how we do science.</p>
+          <p>
+            Blogs, open-source projects, online communities, and interactive
+            media let us share ideas faster, more openly, and in ways a printed
+            page never could. An interactive plot lets you explore an idea
+            yourself. An animation can make a complex process intuitive. Code
+            can turn an equation into something you can experiment with.
+          </p>
+          <p>
+            We no longer have to simply tell someone what we discovered. We can
+            give them the tools to see it, question it, break it, and build
+            upon it.
           </p>
           <p className="font-semibold">
             I believe plant breeding is uniquely positioned to benefit from
             this change.
           </p>
           <p>
-            Breeders Blog is a place for{" "}
-            <strong>
-              free thought, open discussion, experimentation, and rapid
-              sharing of ideas
-            </strong>{" "}
-            in plant breeding and quantitative genetics. Because the
-            challenges facing agriculture are enormous, we need more than
-            better tools—we need new ways of thinking, new connections
-            between disciplines, and the freedom to experiment before an idea
-            is perfectly polished.
+            Agriculture faces enormous challenges, and meeting them will
+            require more than refining the tools we already have. It will
+            require new ideas, unexpected connections, and the willingness to
+            share results before everything is perfectly polished.
+          </p>
+          <p>That is what I want Breeders Blog to be.</p>
+          <p>
+            A place for free thought, open discussion, and experimentation. A
+            place to ask questions before they are ready for a journal, to
+            explore ideas that might fail, and to build on ideas that might
+            lead somewhere unexpected.
           </p>
           <p>
-            I want Breeders Blog to be a place where a plant breeder learns
-            from a computer scientist, a quantitative geneticist finds new
-            applications for machine learning, an agronomist challenges a
-            statistician, and{" "}
-            <strong>
-              someone just beginning their journey can contribute alongside
-              someone who has spent decades in the field
-            </strong>
-            .
+            A place where a plant breeder can learn from a computer scientist,
+            where a quantitative geneticist can find inspiration in machine
+            learning, and where someone just beginning their journey can
+            contribute alongside someone who has spent decades in the field.
           </p>
           <p>
             Scientific progress has never belonged to a single discipline,
-            institution, or generation. It has always come from people
-            sharing ideas, challenging one another, and building something
-            new from what came before.
+            institution, or generation. It has always come from regular people
+            sharing ideas, challenging assumptions, and building something new
+            from what came before.
           </p>
-          <p className="font-semibold">
-            The tools for doing that have never been more powerful.
-          </p>
-          <p className="font-semibold">So let's use them.</p>
-          <p>Welcome to Breeders Blog.</p>
-          <p className="font-semibold">
-            Are you ready to change the world?
-          </p>
+          <p>The tools to do that have never been more powerful.</p>
+          <p>So let's use them.</p>
+          <p className="font-semibold">Welcome to Breeders Blog.</p>
+          <p className="font-semibold">Are you ready to change the world?</p>
         </div>
       </Section>
 
