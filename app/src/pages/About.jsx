@@ -52,7 +52,12 @@ const SAMPLE_FILES = [
 // External links in the posting guide all open in a new tab.
 function ExtLink({ href, children }) {
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="underline">
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline"
+    >
       {children}
     </a>
   );
@@ -123,25 +128,25 @@ function About() {
           </p>
           <p>
             We no longer have to simply tell someone what we discovered. We can
-            give them the tools to see it, question it, break it, and build
-            upon it.
+            give them the tools to see it, question it, break it, and build upon
+            it.
           </p>
           <p className="font-semibold">
-            I believe plant breeding is uniquely positioned to benefit from
-            this change.
+            I believe plant breeding is uniquely positioned to benefit from this
+            change.
           </p>
           <p>
-            Agriculture faces enormous challenges, and meeting them will
-            require more than refining the tools we already have. It will
-            require new ideas, unexpected connections, and the willingness to
-            share results before everything is perfectly polished.
+            Agriculture faces enormous challenges, and meeting them will require
+            more than refining the tools we already have. It will require new
+            ideas, unexpected connections, and the willingness to share results
+            before everything is perfectly polished.
           </p>
           <p>That is what I want Breeders Blog to be.</p>
           <p>
             A place for free thought, open discussion, and experimentation. A
             place to ask questions before they are ready for a journal, to
-            explore ideas that might fail, and to build on ideas that might
-            lead somewhere unexpected.
+            explore ideas that might fail, and to build on ideas that might lead
+            somewhere unexpected.
           </p>
           <p>
             A place where a plant breeder can learn from a computer scientist,
@@ -174,36 +179,37 @@ function About() {
             <strong>
               Plant breeding is the science and art of making better crops
             </strong>
-            —higher yield, better disease resistance, improved nutrition, or
-            the ability to handle heat, drought, and other stresses.
+            —higher yield, better disease resistance, improved nutrition, or the
+            ability to handle heat, drought, and other stresses.
           </p>
           <p>
-            The classic recipe is simple: cross two plants with traits you
-            like, grow their offspring, keep the few that combine the best of
-            both, and repeat—often for <strong>7–10 years</strong> before a
-            new variety is ready. Every cross produces thousands of unique
-            plants, so breeding is really a giant search problem: build a
-            haystack, then spend years looking for the needle.
+            The classic recipe is simple: cross two plants with traits you like,
+            grow their offspring, keep the few that combine the best of both,
+            and repeat—often for <strong>7–10 years</strong> before a new
+            variety is ready. Every cross produces thousands of unique plants,
+            so breeding is really a giant search problem: build a haystack, then
+            spend years looking for the needle.
           </p>
           <p>
             What's changing is how we search. Cheap{" "}
             <strong>DNA sequencing</strong> lets us predict how a plant will
-            perform before it's ever grown; drones, cameras, and sensors
-            measure whole fields in minutes; <strong>machine learning</strong>{" "}
-            finds patterns in the resulting mountains of data; and gene
-            editing tools like <strong>CRISPR</strong> let us create traits
-            rather than only hunt for them. Along the way the field borrows
-            freely from statistics, computer science, engineering, and
-            molecular biology—which is exactly what makes it so much fun.
+            perform before it's ever grown; drones, cameras, and sensors measure
+            whole fields in minutes; <strong>machine learning</strong> finds
+            patterns in the resulting mountains of data; and gene editing tools
+            like <strong>CRISPR</strong> let us create traits rather than only
+            hunt for them. Along the way the field borrows freely from
+            statistics, computer science, engineering, and molecular
+            biology—which is exactly what makes it so much fun.
           </p>
           <p>
             All of it serves one simple question:{" "}
-            <span className="font-semibold">How do we make a better plant?</span>{" "}
+            <span className="font-semibold">
+              How do we make a better plant?
+            </span>{" "}
             The question is simple. The answer is anything but.
           </p>
           <p>
-            Want the long version—from the first domesticated grasses to
-            genomic selection? Head over to the{" "}
+            Want the long version? Head over to the{" "}
             <Link to="/topics/history" className="underline">
               History of Breeding
             </Link>{" "}
@@ -247,32 +253,30 @@ function About() {
           <p>
             Every format is plain text you can write in any editor, and the
             moderator renders all of them with{" "}
-            <ExtLink href="https://quarto.org/">Quarto</ExtLink>, so
-            headings, tables, links, and LaTeX equations work everywhere.
-            The difference is whether your post runs code.
+            <ExtLink href="https://quarto.org/">Quarto</ExtLink>, so headings,
+            tables, links, and LaTeX equations work everywhere. The difference
+            is whether your post runs code.
           </p>
           <ul className="list-disc space-y-2 pl-6">
             <li>
-              <code>.md</code> (Markdown) — prose only. Best for essays,
-              opinion pieces, reviews, and anything without code. Nothing to
-              install.
+              <code>.md</code> (Markdown) — prose only. Best for essays, opinion
+              pieces, reviews, and anything without code. Nothing to install.
             </li>
             <li>
               <code>.qmd</code> (Quarto) — Markdown plus runnable{" "}
-              <strong>Python, R, or Julia</strong> chunks whose output
-              (tables, static or interactive plots) is embedded in the post.
-              Our recommendation for anything with analysis or simulation.
+              <strong>Python, R, or Julia</strong> chunks whose output (tables,
+              static or interactive plots) is embedded in the post. Our
+              recommendation for anything with analysis or simulation.
             </li>
             <li>
-              <code>.Rmd</code> (R Markdown) — the classic R-only ancestor
-              of <code>.qmd</code>. If you already write R Markdown, keep
-              doing so; there's no need to switch.
+              <code>.Rmd</code> (R Markdown) — the classic R-only ancestor of{" "}
+              <code>.qmd</code>. If you already write R Markdown, keep doing so;
+              there's no need to switch.
             </li>
             <li>
-              <code>.zip</code> — any of the above plus an{" "}
-              <code>images/</code> or <code>data/</code> folder referenced by
-              relative path. Use this whenever your post needs photos,
-              pre-made figures, or a dataset.
+              <code>.zip</code> — any of the above plus an <code>images/</code>{" "}
+              or <code>data/</code> folder referenced by relative path. Use this
+              whenever your post needs photos, pre-made figures, or a dataset.
             </li>
           </ul>
 
@@ -280,8 +284,8 @@ function About() {
             Setting up your environment
           </h3>
           <p>
-            For a <code>.md</code> post you need nothing beyond a text
-            editor; skim{" "}
+            For a <code>.md</code> post you need nothing beyond a text editor;
+            skim{" "}
             <ExtLink href="https://www.markdownguide.org/basic-syntax/">
               Markdown basic syntax
             </ExtLink>{" "}
@@ -289,8 +293,7 @@ function About() {
             <ExtLink href="https://quarto.org/docs/authoring/markdown-basics.html">
               Quarto's markdown basics
             </ExtLink>{" "}
-            and you're set. For <code>.qmd</code>, install Quarto by
-            following{" "}
+            and you're set. For <code>.qmd</code>, install Quarto by following{" "}
             <ExtLink href="https://quarto.org/docs/get-started/">
               Get Started with Quarto
             </ExtLink>
@@ -300,8 +303,8 @@ function About() {
           <ul className="list-disc space-y-2 pl-6">
             <li>
               <strong>R</strong> — Quarto uses <code>knitr</code>, so an R
-              install with <code>rmarkdown</code> and your plotting packages
-              is all you need. See{" "}
+              install with <code>rmarkdown</code> and your plotting packages is
+              all you need. See{" "}
               <ExtLink href="https://quarto.org/docs/computations/r.html">
                 Using R
               </ExtLink>
@@ -319,16 +322,15 @@ function About() {
             </li>
             <li>
               <strong>Julia</strong> — install the <code>IJulia</code> package
-              to register a Jupyter kernel, then reference it in the header.
-              See{" "}
+              to register a Jupyter kernel, then reference it in the header. See{" "}
               <ExtLink href="https://quarto.org/docs/computations/julia.html">
                 Using Julia
               </ExtLink>
               .
             </li>
             <li>
-              <strong>.Rmd</strong> — RStudio with the{" "}
-              <code>rmarkdown</code> package; the{" "}
+              <strong>.Rmd</strong> — RStudio with the <code>rmarkdown</code>{" "}
+              package; the{" "}
               <ExtLink href="https://bookdown.org/yihui/rmarkdown/">
                 R Markdown book
               </ExtLink>{" "}
@@ -337,22 +339,24 @@ function About() {
           </ul>
           <p>
             The full{" "}
-            <ExtLink href="https://quarto.org/docs/guide/">Quarto Guide</ExtLink>{" "}
+            <ExtLink href="https://quarto.org/docs/guide/">
+              Quarto Guide
+            </ExtLink>{" "}
             is the reference for figures, cross-references, callouts, and
-            citations. Whatever you write in, render it locally first
-            (<code>quarto render my_post.qmd</code>, the Preview button in
-            your editor, or Knit in RStudio) and read the HTML—if it looks
-            right on your machine it will look right here.
+            citations. Whatever you write in, render it locally first (
+            <code>quarto render my_post.qmd</code>, the Preview button in your
+            editor, or Knit in RStudio) and read the HTML—if it looks right on
+            your machine it will look right here.
           </p>
 
           <h3 className="font-semibold text-gray-900">Equations with LaTeX</h3>
           <p>
-            Wrap LaTeX in single dollar signs for inline math and double
-            dollar signs for a display equation on its own line. Both work
-            in every format:
+            Wrap LaTeX in single dollar signs for inline math and double dollar
+            signs for a display equation on its own line. Both work in every
+            format:
           </p>
           <pre className="overflow-x-auto rounded-md bg-canvas p-3 text-xs font-mono text-gray-800">
-{`Narrow-sense heritability is $h^2 = \\sigma_A^2 / \\sigma_P^2$.
+            {`Narrow-sense heritability is $h^2 = \\sigma_A^2 / \\sigma_P^2$.
 
 $$
 R = i \\, h^2 \\, \\sigma_P
@@ -370,12 +374,14 @@ $$`}
             for the LaTeX syntax itself.
           </p>
 
-          <h3 className="font-semibold text-gray-900">Templates to start from</h3>
+          <h3 className="font-semibold text-gray-900">
+            Templates to start from
+          </h3>
           <p>
             Each template is an annotated skeleton: a commented YAML header,
             placeholder sections, an example equation, and one small runnable
-            chunk. Download one, fill in the sections, delete the comments,
-            and submit.
+            chunk. Download one, fill in the sections, delete the comments, and
+            submit.
           </p>
           <ul className="list-disc space-y-1 pl-6 text-sm">
             {SAMPLE_FILES.map((sample) => (
@@ -398,9 +404,9 @@ $$`}
           <ul className="list-disc space-y-2 pl-6">
             <li>
               <strong>Lead with the question.</strong> Say what problem you're
-              looking at and why it matters in the first paragraph or two.
-              Your abstract is what readers see on the topic page, so make it
-              stand on its own.
+              looking at and why it matters in the first paragraph or two. Your
+              abstract is what readers see on the topic page, so make it stand
+              on its own.
             </li>
             <li>
               <strong>Use headings.</strong> <code>##</code> sections with{" "}
@@ -409,16 +415,15 @@ $$`}
             </li>
             <li>
               <strong>Show runnable code.</strong> Prefer a code chunk over a
-              pasted screenshot. Give chunks a <code>label</code> and figures
-              a <code>fig-cap</code>, and leave <code>code-fold: true</code>{" "}
-              on so readers can expand the code without it dominating the
-              page.
+              pasted screenshot. Give chunks a <code>label</code> and figures a{" "}
+              <code>fig-cap</code>, and leave <code>code-fold: true</code> on so
+              readers can expand the code without it dominating the page.
             </li>
             <li>
               <strong>Make it self-contained.</strong> Keep{" "}
-              <code>embed-resources: true</code> so plots and images are
-              bundled into the HTML, and set a random seed in any simulation
-              so others get the same result.
+              <code>embed-resources: true</code> so plots and images are bundled
+              into the HTML, and set a random seed in any simulation so others
+              get the same result.
             </li>
             <li>
               <strong>Cite your sources.</strong> Link papers by DOI and end
@@ -439,9 +444,9 @@ $$`}
               Photos straight off a phone or camera can easily be several MB
               each and add up fast against the 50 MB limit.{" "}
               <ExtLink href="https://ffmpeg.org/download.html">ffmpeg</ExtLink>{" "}
-              is a free command-line tool that can shrink an image in
-              seconds by resizing it and re-encoding it at a lower (but
-              still perfectly readable) quality:
+              is a free command-line tool that can shrink an image in seconds by
+              resizing it and re-encoding it at a lower (but still perfectly
+              readable) quality:
             </p>
             <pre className="mt-2 overflow-x-auto bg-canvas text-xs font-mono text-gray-800">
               ffmpeg -i input.jpg -vf scale=1600:-1 -q:v 3 output.jpg
@@ -453,11 +458,11 @@ $$`}
           </h3>
           <p>
             Your post is marked <strong>pending</strong> and only you and the
-            moderators can see it. A moderator renders your file, checks
-            that it displays correctly, and approves it—or emails you with
-            what needs fixing. Either way you'll hear back within about 24
-            hours. To keep things sane for the moderators, each user can
-            submit up to <strong>5 posts every 24 hours</strong>.
+            moderators can see it. A moderator renders your file, checks that it
+            displays correctly, and approves it—or emails you with what needs
+            fixing. Either way you'll hear back within about 24 hours. To keep
+            things sane for the moderators, each user can submit up to{" "}
+            <strong>5 posts every 24 hours</strong>.
           </p>
         </div>
       </Section>
@@ -471,8 +476,8 @@ $$`}
       >
         <div className="mt-4 text-gray-700 space-y-4">
           <p>
-            Breeders Blog welcomes posts, comments, and ideas from anyone —
-            the only rule is <strong>be kind!</strong>
+            Breeders Blog welcomes posts, comments, and ideas from anyone — the
+            only rule is <strong>be kind!</strong>
           </p>
         </div>
       </Section>
