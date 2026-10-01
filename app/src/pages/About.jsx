@@ -340,8 +340,11 @@ $$`}
             </li>
             <li>
               <strong>Respect the reader's time.</strong> Aim for something
-              readable in 5–15 minutes. Long posts are welcome—just split them
-              into sections.
+              readable in 5–15 minutes. If your work runs longer, consider
+              splitting it into a series of shorter posts (say, background,
+              methods, and results) and linking each part to the others so
+              readers can follow the thread from any of them (see{" "}
+              <strong>Linking posts</strong> below).
             </li>
           </ul>
 
