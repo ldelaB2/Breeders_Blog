@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import PostReader from "../components/post/PostReader";
+import PostReader from "@/components/post/reader/PostReader";
 
 export default function PostPage() {
   const { id } = useParams();

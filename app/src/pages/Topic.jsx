@@ -1,124 +1,69 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useUser } from "@clerk/react";
-import { DYNAMIC_TOPICS } from "../routes";
-import Post from "../components/post/Post";
-import CreatePostModal from "../components/post/CreatePostModal";
-import Icon from "../components/Icon";
+import PostTile from "@/components/post/PostTile";
+import CreatePostModal from "@/components/post/CreatePostModal";
+import IconButton from "@/components/ui/IconButton";
+import Message from "@/components/ui/Message";
+import Page from "@/components/ui/Page";
+import Tooltip from "@/components/ui/Tooltip";
 import NotFound from "./NotFound";
-import { useApi } from "../lib/api";
-import { sortPosts } from "../lib/postSort";
-import { usePostActions } from "../lib/usePostActions";
-import { useSeo } from "../lib/useSeo";
-import addPostIcon from "../assets/add_post.svg?raw";
+import { findTopic } from "@/config/topics";
+import { sortPosts } from "@/lib/post/postSort";
+import { usePostFeed } from "@/lib/post/usePostFeed";
+import { useSeo } from "@/lib/seo/useSeo";
 
 export default function Topic() {
-  const { topic } = useParams();
+  const { topic: slug } = useParams();
   const { user } = useUser();
-  const api = useApi();
-  const match = DYNAMIC_TOPICS.find((t) => t.slug === topic);
-  useSeo(match && { title: match.label, description: match.description, path: match.path });
+  const topic = findTopic(slug);
+  useSeo(topic && { title: topic.label, description: topic.description, path: topic.path });
 
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { posts, loading, error, actions, addPost } = usePostFeed((api) => api.fetchPosts(slug), [slug], {
+    enabled: Boolean(topic),
+  });
   const [creatingPost, setCreatingPost] = useState(false);
 
-  useEffect(() => {
-    if (!match) return;
-    // Reset before the new fetch resolves so switching topics never briefly
-    // shows the previous topic's posts under the new heading.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true);
-    setError(null);
-    api
-      .fetchPosts(match.slug)
-      .then(setPosts)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [match]);
-
-  const { onTogglePin: handleTogglePin, onUpvote: handleUpvote, onDownvote: handleDownvote } =
-    usePostActions(setPosts, api, setError);
-
-  async function handleToggleLock(postId) {
-    try {
-      const updated = await api.lockPost(postId);
-      setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function handleArchive(postId) {
-    if (!window.confirm("Archive this post? This moves it to the Archive topic and locks it.")) {
-      return;
-    }
-    try {
-      await api.archivePost(postId);
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  if (!match) return <NotFound />;
+  if (!topic) return <NotFound />;
 
   const sortedPosts = sortPosts(posts, user?.id);
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <Page>
       <div className="mb-6 flex items-center justify-center gap-2">
-        <h1 className="text-2xl font-bold text-gray-900">{match.label}</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{topic.label}</h1>
 
         {user && (
-          <div className="group relative">
-            <button
-              type="button"
+          <Tooltip label="Create a new post">
+            <IconButton
+              icon="add-post"
+              label="Create a new post"
+              tone={null}
+              className="text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+              iconClassName="h-6 w-6"
               onClick={() => setCreatingPost(true)}
-              aria-label="Create a new post"
-              className="rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
-            >
-              <Icon svg={addPostIcon} className="h-6 w-6" />
-            </button>
-            <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100">
-              Create a new post
-            </span>
-          </div>
+            />
+          </Tooltip>
         )}
       </div>
 
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+      {error && <Message tone="error" className="mb-4">{error}</Message>}
 
       {loading ? (
-        <p className="text-gray-500">Loading posts…</p>
+        <Message>Loading posts…</Message>
       ) : sortedPosts.length === 0 ? (
-        <p className="text-gray-500">No posts yet for this topic.</p>
+        <Message>No posts yet for this topic.</Message>
       ) : (
         <div className="flex flex-col gap-4">
           {sortedPosts.map((post) => (
-            <Post
-              key={post.id}
-              post={post}
-              onTogglePin={handleTogglePin}
-              onUpvote={handleUpvote}
-              onDownvote={handleDownvote}
-              onToggleLock={handleToggleLock}
-              onArchive={handleArchive}
-              onDeleted={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
-            />
+            <PostTile key={post.id} post={post} actions={actions} />
           ))}
         </div>
       )}
 
       {creatingPost && (
-        <CreatePostModal
-          topicSlug={match.slug}
-          onClose={() => setCreatingPost(false)}
-          onCreated={(created) => setPosts((prev) => [created, ...prev])}
-        />
+        <CreatePostModal topicSlug={topic.slug} onClose={() => setCreatingPost(false)} onCreated={addPost} />
       )}
-    </div>
+    </Page>
   );
 }
