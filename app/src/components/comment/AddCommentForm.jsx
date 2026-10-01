@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Button from "@/components/ui/Button";
 
 // Wide inline textarea for composing a new comment or reply.
 function AddCommentForm({ onSubmit, onCancel }) {
@@ -27,20 +28,12 @@ function AddCommentForm({ onSubmit, onCancel }) {
         className="w-full rounded-md border border-gray-200 p-2 text-sm text-gray-700 focus:border-transparent focus:outline-none"
       />
       <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-md bg-gray-900 px-3 py-1 text-sm text-white transition-colors hover:bg-gray-700 disabled:opacity-50"
-        >
+        <Button type="submit" size="sm" disabled={submitting}>
           Post
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-md px-3 py-1 text-sm text-gray-500 transition-colors hover:bg-gray-100"
-        >
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   );

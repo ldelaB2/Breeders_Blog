@@ -1,6 +1,11 @@
 import { useState } from "react";
-import Icon from "../Icon";
-import downloadIcon from "../../assets/download.svg?raw";
+import Button from "@/components/ui/Button";
+import IconButton from "@/components/ui/IconButton";
+import Message from "@/components/ui/Message";
+import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
+
+const FIELD_CLASS =
+  "rounded-md border border-gray-200 p-1.5 text-sm focus:border-transparent focus:outline-none";
 
 // One row in the Admin Control queue: a static (non-interactive) post
 // preview on the left, moderation controls on the right. Approving opens
@@ -9,37 +14,19 @@ import downloadIcon from "../../assets/download.svg?raw";
 function AdminPostRow({ post, onDownload, onReject, onApprove }) {
   const [decision, setDecision] = useState("APPROVE");
   const [reason, setReason] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
+  const { run, pending, error, setError } = useAsyncAction();
 
-  async function handleDownload() {
-    setError(null);
-    try {
-      await onDownload(post.id);
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function handleSubmit() {
+  function handleSubmit() {
     setError(null);
     if (decision === "APPROVE") {
       onApprove(post);
       return;
     }
-
     if (!reason.trim()) {
       setError("A rejection reason is required");
       return;
     }
-    setSubmitting(true);
-    try {
-      await onReject(post.id, reason.trim());
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSubmitting(false);
-    }
+    run(() => onReject(post.id, reason.trim()));
   }
 
   return (
@@ -50,36 +37,24 @@ function AdminPostRow({ post, onDownload, onReject, onApprove }) {
           <span className="shrink-0 text-sm text-gray-500">{post.authorName}</span>
         </div>
         <p className="mt-2 line-clamp-3 text-sm text-gray-600">{post.abstract}</p>
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        {error && <Message tone="error" className="mt-2">{error}</Message>}
       </div>
 
       <div className="flex shrink-0 flex-col items-end gap-2">
-        <button
-          type="button"
-          onClick={handleDownload}
-          aria-label="Download post files"
-          className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100"
-        >
-          <Icon svg={downloadIcon} className="h-5 w-5" />
-        </button>
+        <IconButton icon="download" label="Download post files" onClick={() => run(() => onDownload(post.id))} />
 
         <div className="flex items-center gap-2">
           <select
             value={decision}
             onChange={(e) => setDecision(e.target.value)}
-            className="rounded-md border border-gray-200 p-1.5 text-sm text-gray-700 focus:border-transparent focus:outline-none"
+            className={`${FIELD_CLASS} text-gray-700`}
           >
             <option value="APPROVE">Approve</option>
             <option value="REJECT">Reject</option>
           </select>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white transition-colors hover:bg-gray-700 disabled:opacity-50"
-          >
-            {submitting ? "Submitting…" : "Submit"}
-          </button>
+          <Button onClick={handleSubmit} disabled={pending}>
+            {pending ? "Submitting…" : "Submit"}
+          </Button>
         </div>
 
         {decision === "REJECT" && (
@@ -88,7 +63,7 @@ function AdminPostRow({ post, onDownload, onReject, onApprove }) {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Rejection reason"
-            className="w-48 rounded-md border border-gray-200 p-1.5 text-sm text-gray-900 focus:border-transparent focus:outline-none"
+            className={`${FIELD_CLASS} w-48 text-gray-900`}
           />
         )}
       </div>

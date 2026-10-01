@@ -1,7 +1,6 @@
 import { useState } from "react";
-import Icon from "../../Icon";
+import IconButton from "@/components/ui/IconButton";
 import ShareModal from "./ShareModal";
-import shareIcon from "../../../assets/share.svg?raw";
 
 // Sits in the post header next to Back — mirrors its styling so the title
 // block stays visually centered between the two.
@@ -10,15 +9,7 @@ function SharePostButton({ post }) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Share"
-        className="shrink-0 rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100"
-      >
-        <Icon svg={shareIcon} className="h-6 w-6" />
-      </button>
-
+      <IconButton icon="share" label="Share" size="lg" tone="strong" className="shrink-0" onClick={() => setOpen(true)} />
       {open && <ShareModal post={post} onClose={() => setOpen(false)} />}
     </>
   );
