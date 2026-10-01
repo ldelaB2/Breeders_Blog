@@ -9,7 +9,7 @@ import { useAsync } from "@/lib/hooks/useAsync";
 import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { usePostSearch } from "@/lib/post/usePostSearch";
 
-// How long after one link is added before another can be.
+// How long after a link is added or removed before the next change can be made.
 const LINK_COOLDOWN_MS = 750;
 
 // Opened from a post tile's chain-link icon (author/moderator/admin only,
@@ -28,29 +28,33 @@ function LinkPostModal({ postId, onClose }) {
   const addableResults = search.results.filter((p) => p.id !== postId && !linkedIds.has(p.id));
   const error = actionError || linked.error || search.error;
 
-  // One add at a time, plus a short cooldown after each. The ref blocks a
-  // double click synchronously (state wouldn't update between two clicks
-  // in the same tick); `adding` drives the disabled look.
-  const addLockRef = useRef(false);
-  const [adding, setAdding] = useState(false);
+  // One add/remove at a time, plus a short cooldown after each, so a double
+  // click can't send the same change twice. The ref blocks synchronously
+  // (state wouldn't update between two clicks in the same tick); `busy`
+  // drives the disabled look.
+  const lockRef = useRef(false);
+  const [busy, setBusy] = useState(false);
 
-  const addLink = async (post) => {
-    if (addLockRef.current) return;
-    addLockRef.current = true;
-    setAdding(true);
-    await run(async () => {
+  const runLocked = async (fn) => {
+    if (lockRef.current) return;
+    lockRef.current = true;
+    setBusy(true);
+    await run(fn);
+    setTimeout(() => {
+      lockRef.current = false;
+      setBusy(false);
+    }, LINK_COOLDOWN_MS);
+  };
+
+  const addLink = (post) =>
+    runLocked(async () => {
       await api.linkPost(postId, post.id);
       linked.setData((prev) => (prev.some((p) => p.id === post.id) ? prev : [...prev, post]));
       setQuery("");
     });
-    setTimeout(() => {
-      addLockRef.current = false;
-      setAdding(false);
-    }, LINK_COOLDOWN_MS);
-  };
 
   const removeLink = (targetId) =>
-    run(async () => {
+    runLocked(async () => {
       await api.unlinkPost(postId, targetId);
       linked.setData((prev) => prev.filter((p) => p.id !== targetId));
     });
@@ -68,7 +72,7 @@ function LinkPostModal({ postId, onClose }) {
             results={addableResults}
             loading={search.loading}
             onSelect={addLink}
-            disabled={adding}
+            disabled={busy}
           />
         </div>
       )}
@@ -98,8 +102,9 @@ function LinkPostModal({ postId, onClose }) {
                   icon="delete"
                   label="Remove linked post"
                   tone="danger"
-                  className="shrink-0"
+                  className="shrink-0 disabled:cursor-wait disabled:opacity-50"
                   onClick={() => removeLink(post.id)}
+                  disabled={busy}
                 />
               </li>
             ))}
