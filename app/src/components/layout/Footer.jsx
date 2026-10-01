@@ -1,8 +1,9 @@
 import { useLocation } from "react-router-dom";
-import { PERMANENT_TOPICS, topicLabel } from "../routes";
-import { useCitation } from "../lib/citation";
+import { routeLabel } from "@/config/routes";
+import { topicLabel } from "@/config/topics";
+import { SITE_NAME, TAGLINE } from "@/config/site";
+import { useCitation } from "@/lib/post/citation";
 
-const SITE_NAME = "Breeders Blog";
 const MLA_MONTHS = ["Jan.", "Feb.", "Mar.", "Apr.", "May", "June", "July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec."];
 
 function formatMLADate(date) {
@@ -10,11 +11,10 @@ function formatMLADate(date) {
 }
 
 function getPageTitle(pathname) {
-  const permanent = PERMANENT_TOPICS.find((r) => r.path === pathname && r.component);
-  if (permanent) return permanent.label;
+  const label = routeLabel(pathname);
+  if (label) return label;
   const topicMatch = pathname.match(/^\/topics\/([^/]+)/);
   if (topicMatch) return topicLabel(topicMatch[1]);
-  if (pathname === "/admin") return "Admin";
   return SITE_NAME;
 }
 
@@ -35,9 +35,7 @@ function Footer() {
 
   return (
     <footer className="bg-accent-dark text-white/70 text-center py-6 px-4 mt-10">
-      <p className="text-base mb-2 text-white/90">
-        The only people that change the world are the ones crazy enough to think they can
-      </p>
+      <p className="text-base mb-2 text-white/90">{TAGLINE}</p>
       <p className="text-sm">
         &copy; {new Date().getFullYear()} {SITE_NAME}
       </p>

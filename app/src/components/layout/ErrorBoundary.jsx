@@ -1,4 +1,5 @@
 import { Component } from "react";
+import Button from "@/components/ui/Button";
 
 class ErrorBoundary extends Component {
   state = { hasError: false };
@@ -19,13 +20,9 @@ class ErrorBoundary extends Component {
           <p className="text-gray-600">
             Sorry about that — please refresh the page to keep going.
           </p>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="rounded-md bg-accent px-5 py-2.5 text-lg text-white transition-colors hover:bg-accent-dark"
-          >
+          <Button variant="accent" size="lg" onClick={() => window.location.reload()}>
             Refresh
-          </button>
+          </Button>
         </div>
       );
     }
