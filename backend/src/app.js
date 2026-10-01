@@ -2,10 +2,10 @@ import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { postsRouter } from "./modules/posts/index.js";
-import commentsRouter from "./routes/comments.routes.js";
-import meRouter from "./routes/me.routes.js";
-import sitemapRouter from "./routes/sitemap.routes.js";
-import webhooksRouter from "./routes/webhooks.routes.js";
+import { commentsRoutes } from "./modules/comments/comments.routes.js";
+import { meRoutes } from "./modules/me/me.routes.js";
+import { sitemapRoutes } from "./modules/sitemap/sitemap.routes.js";
+import { clerkWebhookRoutes } from "./modules/webhooks/clerk.routes.js";
 import { createAuthMiddleware } from "./middleware/auth.js";
 import { errorHandler, notFound } from "./middleware/errors.js";
 import { env } from "./config/env.js";
@@ -28,7 +28,7 @@ export function createApp(deps = defaultDeps()) {
 
   // Needs the raw request body to verify Clerk's signature, so it's mounted
   // with express.raw() ahead of the JSON parser and the rate limiter.
-  app.use("/api/webhooks/clerk", express.raw({ type: "application/json" }), webhooksRouter);
+  app.use("/api/webhooks/clerk", express.raw({ type: "application/json" }), clerkWebhookRoutes());
 
   // Bumped from Express's 100kb default for metadata payloads only - post
   // uploads and stitched HTML go straight to Supabase Storage via signed URLs
@@ -42,9 +42,9 @@ export function createApp(deps = defaultDeps()) {
 
   app.get("/api/health", (req, res) => res.json({ status: "ok" }));
   app.use("/api/posts", postsRouter(ctx));
-  app.use("/api", commentsRouter(ctx));
-  app.use("/api", meRouter(ctx));
-  app.use(sitemapRouter);
+  app.use("/api", commentsRoutes(ctx));
+  app.use("/api", meRoutes(ctx));
+  app.use(sitemapRoutes());
 
   app.use(notFound);
   app.use(errorHandler);

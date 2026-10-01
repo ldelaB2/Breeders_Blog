@@ -1,30 +1,24 @@
 import { Router } from "express";
-import { prisma } from "../lib/db/prisma.js";
-import { serializeComment } from "../lib/serializeComment.js";
-import { asyncHandler } from "../lib/http/asyncHandler.js";
-import { HttpError } from "../lib/http/httpError.js";
-import { requireText } from "../lib/http/validate.js";
-import { isModerator } from "../modules/users/roles.js";
-import { toggleVote } from "../modules/engagement/toggles.js";
+import { prisma } from "../../lib/db/prisma.js";
+import { asyncHandler } from "../../lib/http/asyncHandler.js";
+import { HttpError } from "../../lib/http/httpError.js";
+import { requireText } from "../../lib/http/validate.js";
+import { COMMENT_MAX } from "../../config/limits.js";
+import { loadResource } from "../../middleware/loadResource.js";
+import { ownsOrModerates } from "../users/roles.js";
+import { voteRoutes } from "../engagement/voteRoutes.js";
+import { serializeComment } from "./serializeComment.js";
 
-const COMMENT_MAX = 5000;
+const include = { votes: true };
+const findComment = (id) => prisma.comment.findUnique({ where: { id }, include });
+const updateComment = (id, data) => prisma.comment.update({ where: { id }, data, include });
 
-export default function commentsRouter({ auth }) {
+// A post's comment thread (mounted at /api): listing and adding comments
+// under /posts/:postId/comments, and per-comment actions under /comments/:id.
+export function commentsRoutes({ auth }) {
   const { requireAuth, requireModerator } = auth;
-
   const router = Router();
-  const include = { votes: true };
-  const findComment = (id) => prisma.comment.findUnique({ where: { id }, include });
-
-  // Every "/comments/:id" route below gets the comment loaded as req.comment, or a 404.
-  router.param(
-    "id",
-    asyncHandler(async (req, res, next, id) => {
-      req.comment = await findComment(id);
-      if (!req.comment) throw new HttpError(404, "Comment not found");
-      next();
-    })
-  );
+  loadResource(router, "id", { find: findComment, as: "comment", notFound: "Comment not found" });
 
   // Flat list; the frontend threads replies client-side via parentId.
   router.get(
@@ -36,7 +30,7 @@ export default function commentsRouter({ auth }) {
         orderBy: { createdAt: "asc" },
       });
       res.json(comments.map(serializeComment));
-    })
+    }),
   );
 
   router.post(
@@ -60,11 +54,11 @@ export default function commentsRouter({ auth }) {
       }
 
       const comment = await prisma.comment.create({
-        data: { postId, parentId: parentId || null, authorId: req.user?.id, authorName: req.user.name, text },
+        data: { postId, parentId: parentId || null, authorId: req.user.id, authorName: req.user.name, text },
         include,
       });
       res.status(201).json(serializeComment(comment));
-    })
+    }),
   );
 
   // Soft-delete by the author or a moderator/admin. The text stays in the
@@ -73,10 +67,9 @@ export default function commentsRouter({ auth }) {
     "/comments/:id",
     requireAuth,
     asyncHandler(async (req, res) => {
-      if (req.comment.authorId !== req.user?.id && !isModerator(req.user?.role)) throw new HttpError(403, "Forbidden");
-      const updated = await prisma.comment.update({ where: { id: req.comment.id }, data: { deletedAt: new Date() }, include });
-      res.json(serializeComment(updated));
-    })
+      if (!ownsOrModerates(req.user, req.comment.authorId)) throw new HttpError(403, "Forbidden");
+      res.json(serializeComment(await updateComment(req.comment.id, { deletedAt: new Date() })));
+    }),
   );
 
   // Moderator/admin only - unlike deleting, restoring is never left to the author.
@@ -85,19 +78,17 @@ export default function commentsRouter({ auth }) {
     requireModerator,
     asyncHandler(async (req, res) => {
       if (!req.comment.deletedAt) throw new HttpError(400, "Comment is not deleted");
-      const updated = await prisma.comment.update({ where: { id: req.comment.id }, data: { deletedAt: null }, include });
-      res.json(serializeComment(updated));
-    })
+      res.json(serializeComment(await updateComment(req.comment.id, { deletedAt: null })));
+    }),
   );
 
-  async function vote(req, res, value) {
-    const where = { commentId_userId: { commentId: req.comment.id, userId: req.user?.id } };
-    await toggleVote(prisma.commentVote, where, value);
-    res.json(serializeComment(await findComment(req.comment.id)));
-  }
-
-  router.post("/comments/:id/upvote", requireAuth, asyncHandler((req, res) => vote(req, res, 1)));
-  router.post("/comments/:id/downvote", requireAuth, asyncHandler((req, res) => vote(req, res, -1)));
+  voteRoutes(router, {
+    path: "/comments/:id",
+    guards: [requireAuth],
+    model: prisma.commentVote,
+    keyFor: (req) => ({ commentId_userId: { commentId: req.comment.id, userId: req.user.id } }),
+    respond: async (req) => serializeComment(await findComment(req.comment.id)),
+  });
 
   return router;
 }

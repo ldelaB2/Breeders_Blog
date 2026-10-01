@@ -6,9 +6,9 @@
 // on, or pinned), then recommend that user's highest-ranked unseen posts in
 // those topics. Backfills with global top posts when there isn't enough
 // topic-affinity signal (e.g. a brand-new account).
-import { prisma } from "./db/prisma.js";
-import { postInclude as include } from "../modules/posts/posts.repo.js";
-import { rankPosts } from "../modules/posts/ranking.js";
+import { prisma } from "../../lib/db/prisma.js";
+import { listPosts } from "../posts/posts.repo.js";
+import { rankPosts } from "../posts/ranking.js";
 
 async function engagedTopicsAndPostIds(userId) {
   const [votes, pins, comments] = await Promise.all([
@@ -27,16 +27,13 @@ async function engagedTopicsAndPostIds(userId) {
   return { topics: new Set(posts.map((p) => p.topicSlug)), postIds };
 }
 
-export async function getRecommendedPosts({ user, limit = 6 }) {
+export async function getRecommendedPosts({ user, limit }) {
   const { topics, postIds } = await engagedTopicsAndPostIds(user.id);
 
   const fromTopics = topics.size
     ? rankPosts(
-        await prisma.postMetadata.findMany({
-          where: { status: "APPROVED", topicSlug: { in: [...topics] }, id: { notIn: [...postIds] } },
-          include,
-        }),
-        user
+        await listPosts({ status: "APPROVED", topicSlug: { in: [...topics] }, id: { notIn: [...postIds] } }),
+        user,
       )
     : [];
 
@@ -46,13 +43,7 @@ export async function getRecommendedPosts({ user, limit = 6 }) {
   // Backfill with global top posts, excluding anything already interacted
   // with or already picked above.
   const excluded = new Set([...postIds, ...recommendations.map((p) => p.id)]);
-  const backfill = rankPosts(
-    await prisma.postMetadata.findMany({
-      where: { status: "APPROVED", id: { notIn: [...excluded] } },
-      include,
-    }),
-    user
-  );
+  const backfill = rankPosts(await listPosts({ status: "APPROVED", id: { notIn: [...excluded] } }), user);
 
   return [...recommendations, ...backfill].slice(0, limit);
 }

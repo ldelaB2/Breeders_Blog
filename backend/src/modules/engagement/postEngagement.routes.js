@@ -17,7 +17,7 @@ export function postEngagementRoutes({ auth }) {
   const keyFor = (req) => ({ postId_userId: { postId: req.post.id, userId: req.user.id } });
   const respond = async (req) => serializePost(await findPost(req.post.id), req.user);
 
-  voteRoutes(router, { guards, delegate: () => prisma.vote, keyFor, respond });
+  voteRoutes(router, { guards, model: prisma.vote, keyFor, respond });
 
   router.post(
     "/:id/pin",
