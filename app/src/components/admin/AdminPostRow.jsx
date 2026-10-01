@@ -15,9 +15,12 @@ function AdminPostRow({ post, onDownload, onReject, onApprove }) {
   const [decision, setDecision] = useState("APPROVE");
   const [reason, setReason] = useState("");
   const { run, pending, error, setError } = useAsyncAction();
+  // Separate from the submit action, so a download doesn't show as "Submitting…".
+  const download = useAsyncAction();
 
   function handleSubmit() {
     setError(null);
+    download.setError(null);
     if (decision === "APPROVE") {
       onApprove(post);
       return;
@@ -37,11 +40,22 @@ function AdminPostRow({ post, onDownload, onReject, onApprove }) {
           <span className="shrink-0 text-sm text-gray-500">{post.authorName}</span>
         </div>
         <p className="mt-2 line-clamp-3 text-sm text-gray-600">{post.abstract}</p>
-        {error && <Message tone="error" className="mt-2">{error}</Message>}
+        {(error || download.error) && (
+          <Message tone="error" className="mt-2">{error || download.error}</Message>
+        )}
       </div>
 
       <div className="flex shrink-0 flex-col items-end gap-2">
-        <IconButton icon="download" label="Download post files" onClick={() => run(() => onDownload(post.id))} />
+        <IconButton
+          icon="download"
+          label="Download post files"
+          className="disabled:cursor-wait disabled:opacity-50"
+          disabled={download.pending}
+          onClick={() => {
+            setError(null);
+            download.run(() => onDownload(post.id));
+          }}
+        />
 
         <div className="flex items-center gap-2">
           <select
