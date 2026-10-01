@@ -1,5 +1,5 @@
 import { useUser } from "@clerk/react";
-import { useToast } from "./useToast";
+import { useToast } from "@/lib/toast/toast";
 
 // Returns requireSignIn(action): true when signed in, otherwise shows a
 // "Please sign in to <action>" toast and returns false.

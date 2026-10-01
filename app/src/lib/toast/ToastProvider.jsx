@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef } from "react";
-import { ToastContext } from "./toastContext";
+import { ToastContext } from "./toast";
 
-// App-wide toast used for one thing right now: telling a signed-out
-// visitor to sign in before an action (vote/pin/comment) that needs it.
+// App-wide toast: tells a signed-out visitor to sign in before an action
+// (vote/pin/comment) that needs it, and confirms share actions like
+// "Link copied!".
 export function ToastProvider({ children }) {
   const [toast, setToast] = useState(null); // { id, text }
   const timeoutRef = useRef(null);
