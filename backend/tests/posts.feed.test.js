@@ -54,7 +54,7 @@ test("a post serializes to the shape the frontend expects", async () => {
   const [anon] = (await request(ctx.app).get("/api/posts")).body;
   assert.deepEqual(Object.keys(anon).sort(), [
     "abstract", "authorAvatarUrl", "authorId", "authorName", "commentCount", "createdAt", "downvotes", "htmlSlug",
-    "id", "linkedPostCount", "locked", "pinnedBy", "slug", "status", "title", "topicSlug", "updatedAt", "upvotes",
+    "id", "imageUrl", "linkedPostCount", "locked", "pinnedBy", "slug", "status", "title", "topicSlug", "updatedAt", "upvotes",
   ]);
   assert.equal(anon.slug, "resume-of-genomic-selection");
   assert.deepEqual(anon.upvotes, ["voter"]);

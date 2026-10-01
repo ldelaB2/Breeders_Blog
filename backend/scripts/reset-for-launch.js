@@ -1,8 +1,8 @@
 // One-time pre-launch cleanup: wipes every post (and, via cascade, every
 // PostBody/Vote/Pin/Comment/CommentVote tied to a post) and every User,
-// leaving the database fully empty. Also empties both Supabase Storage
-// buckets - the stitched HTML files and authors' raw .md/.qmd/.zip uploads -
-// and any leftover PendingPostUpload tickets, since those live outside the
+// leaving the database fully empty. Also empties the Supabase Storage
+// buckets - the stitched HTML files, authors' raw .md/.qmd/.zip uploads and
+// share images - and any leftover PendingPostUpload tickets, since those live outside the
 // Postgres cascade and wiped posts would otherwise leave orphans behind.
 //
 // User rows are re-created lazily the next time each person signs back in
@@ -25,17 +25,19 @@ import { defaultDeps } from "../src/deps.js";
 // The whole reset, with its storage passed in so tests/resetForLaunch.test.js
 // can run it against the local test database and fake buckets.
 export async function resetForLaunch({ stores, confirm, log = console.log }) {
-  const [users, posts, comments, votes, commentVotes, pins, pendingUploads, htmlFiles, rawFiles] = await Promise.all([
-    prisma.user.count(),
-    prisma.postMetadata.count(),
-    prisma.comment.count(),
-    prisma.vote.count(),
-    prisma.commentVote.count(),
-    prisma.pin.count(),
-    prisma.pendingPostUpload.count(),
-    stores.html.listAll(),
-    stores.upload.listAll(),
-  ]);
+  const [users, posts, comments, votes, commentVotes, pins, pendingUploads, htmlFiles, rawFiles, imageFiles] =
+    await Promise.all([
+      prisma.user.count(),
+      prisma.postMetadata.count(),
+      prisma.comment.count(),
+      prisma.vote.count(),
+      prisma.commentVote.count(),
+      prisma.pin.count(),
+      prisma.pendingPostUpload.count(),
+      stores.html.listAll(),
+      stores.upload.listAll(),
+      stores.image.listAll(),
+    ]);
 
   log("Current DB counts (all of this gets permanently deleted):");
   log(`  users:            ${users}`);
@@ -47,6 +49,7 @@ export async function resetForLaunch({ stores, confirm, log = console.log }) {
   log(`  pending uploads:  ${pendingUploads}`);
   log(`  html bucket files: ${htmlFiles.length}`);
   log(`  upload bucket files: ${rawFiles.length}`);
+  log(`  image bucket files: ${imageFiles.length}`);
 
   if (!confirm) {
     log("\nDry run only - nothing was deleted. Re-run with --confirm to actually apply this.");
@@ -66,6 +69,7 @@ export async function resetForLaunch({ stores, confirm, log = console.log }) {
   log(`DB done. ${remainingUsers} user(s) and ${remainingPosts} post(s) remain.`);
   log(`HTML bucket done. Deleted ${await stores.html.removeAll()} file(s).`);
   log(`Upload bucket done. Deleted ${await stores.upload.removeAll()} file(s).`);
+  log(`Image bucket done. Deleted ${await stores.image.removeAll()} file(s).`);
 }
 
 // Run directly (not imported by the test).

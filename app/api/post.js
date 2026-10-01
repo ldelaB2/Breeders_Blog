@@ -35,16 +35,22 @@ export default async function handler(req, res) {
     return res.status(404).send(setTag(shell, 'name="robots"', "content", "noindex"));
   }
 
-  const { title, description, type, jsonLd } = postSeo(post, origin);
+  const { title, description, type, image, jsonLd } = postSeo(post, origin);
   const fullTitle = `${title} — ${SITE_NAME}`;
   const url = postUrl(post, origin);
   let html = shell.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(fullTitle)}</title>`);
   html = setTag(html, 'name="description"', "content", description);
   html = setTag(html, 'rel="canonical"', "href", url);
-  html = setTag(html, 'property="og:title"', "content", fullTitle);
+  // The bare title: previews already show the site name (og:site_name) and domain.
+  html = setTag(html, 'property="og:title"', "content", title);
   html = setTag(html, 'property="og:description"', "content", description);
   html = setTag(html, 'property="og:url"', "content", url);
   html = setTag(html, 'property="og:type"', "content", type);
+  if (image) {
+    html = setTag(html, 'property="og:image"', "content", image);
+    html = setTag(html, 'property="og:image:alt"', "content", title);
+    html = setTag(html, 'name="twitter:card"', "content", "summary_large_image");
+  }
   // "<" is escaped so a title containing "</script>" can't end the block early.
   const json = JSON.stringify(jsonLd).replace(/</g, "\\u003c");
   html = html.replace("</head>", `<script type="application/ld+json">${json}</script></head>`);

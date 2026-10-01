@@ -4,6 +4,11 @@ import { createFakes } from "./fakes.js";
 
 assertLocalDatabase();
 
+// Storage is faked, but share-image URLs are built from these (imageUrlFor
+// in src/modules/posts/posts.repo.js), so give them fixed test values.
+process.env.SUPABASE_URL = "https://storage.test";
+process.env.SUPABASE_IMAGE_BUCKET = "post-image";
+
 const { createApp } = await import("../../src/app.js");
 const { prisma } = await import("../../src/lib/db/prisma.js");
 

@@ -59,7 +59,7 @@ export function createApi(getToken) {
     fetchTopPosts: (limit) => get(`/posts/top${query("limit", limit)}`),
     fetchPendingPosts: () => get("/posts/pending"),
     searchPosts: (q) => get(`/posts/search?q=${encodeURIComponent(q)}`),
-    getPostUploadUrl: (filename) => post("/posts/upload-url", { filename }),
+    getPostUploadUrl: (filename, imageFilename) => post("/posts/upload-url", { filename, imageFilename }),
     createPost: (data) => post("/posts", data),
     deletePost: (id) => del(`/posts/${id}`),
     upvotePost: (id) => post(`/posts/${id}/upvote`),
@@ -75,8 +75,8 @@ export function createApi(getToken) {
 
     // Moderation
     downloadPost: async (id) => downloadPostZip(id, await getToken()),
-    getApproveUploadUrl: (id) => post(`/posts/${id}/approve/upload-url`),
-    approvePost: (id) => post(`/posts/${id}/approve`),
+    getApproveUploadUrl: (id, imageFilename) => post(`/posts/${id}/approve/upload-url`, { imageFilename }),
+    approvePost: (id, imageSlug) => post(`/posts/${id}/approve`, { imageSlug }),
     rejectPost: (id, rejectionReason) => post(`/posts/${id}/reject`, { rejectionReason }),
 
     // Comments

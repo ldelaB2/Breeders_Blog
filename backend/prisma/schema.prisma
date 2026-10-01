@@ -102,6 +102,11 @@ model PostBody {
 
   // Storage key (post-html bucket) for the moderator-stitched HTML, set on approval.
   htmlSlug String?
+
+  // Storage key (public post-image bucket) for the optional share image -
+  // the og:image shown when the post's link is shared. Uploaded by the
+  // author on submission; an admin can replace it on approval.
+  imageSlug String?
 }
 
 // Short-lived ticket created when a signed upload URL is minted (see POST
@@ -115,6 +120,8 @@ model PendingPostUpload {
   id        String   @id
   authorId  String
   rawSlug   String
+  // The optional share image minted alongside the raw upload.
+  imageSlug String?
   createdAt DateTime @default(now())
 
   @@index([authorId])

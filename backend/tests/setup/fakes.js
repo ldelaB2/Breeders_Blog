@@ -77,7 +77,11 @@ function createFakeMailer() {
 
 export function createFakes() {
   const clerk = createFakeClerk();
-  const stores = { html: createFakeBucketStore("post-html"), upload: createFakeBucketStore("post-upload") };
+  const stores = {
+    html: createFakeBucketStore("post-html"),
+    upload: createFakeBucketStore("post-upload"),
+    image: createFakeBucketStore("post-image"),
+  };
   const mailer = createFakeMailer();
   return { clerk, stores, mailer, deps: { clerk, stores, mailer } };
 }

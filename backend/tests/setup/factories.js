@@ -21,6 +21,7 @@ export function createPost({
   htmlSlug = status === "APPROVED" ? `${id}.html` : null,
   rawSlug = `${id}/upload.md`,
   rawOriginalName = "post.md",
+  imageSlug = null,
   createdAt,
 } = {}) {
   return prisma.postMetadata.create({
@@ -34,7 +35,7 @@ export function createPost({
       authorId: author.id,
       authorName: author.name,
       ...(createdAt && { createdAt }),
-      body: { create: { rawSlug, rawOriginalName, htmlSlug } },
+      body: { create: { rawSlug, rawOriginalName, htmlSlug, imageSlug } },
     },
   });
 }

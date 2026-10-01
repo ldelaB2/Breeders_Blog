@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import { prisma } from "../../lib/db/prisma.js";
 import { asyncHandler } from "../../lib/http/asyncHandler.js";
 import { HttpError } from "../../lib/http/httpError.js";
-import { requireText } from "../../lib/http/validate.js";
+import { optionalString, requireText } from "../../lib/http/validate.js";
 import {
   ABSTRACT_MAX,
   MAX_UPLOAD_BYTES,
@@ -14,13 +14,9 @@ import {
   UPLOAD_TYPES,
 } from "../../config/limits.js";
 import { TOPIC_SLUGS } from "../../config/topics.js";
-import { postInclude, rawSlugFor } from "./posts.repo.js";
+import { extensionOf, postInclude, rawSlugFor } from "./posts.repo.js";
 import { serializePost } from "./serializePost.js";
-
-function extensionOf(filename) {
-  const match = /\.([a-zA-Z0-9]+)$/.exec(typeof filename === "string" ? filename : "");
-  return match ? match[1].toLowerCase() : null;
-}
+import { assertImageUploaded, mintImageUpload } from "./shareImage.js";
 
 // Caps submission volume per user across all statuses.
 async function assertUnderPostLimit(userId) {
@@ -35,7 +31,8 @@ async function assertUnderPostLimit(userId) {
 // Submitting a post is two steps around a direct browser-to-storage upload,
 // so the file never has to fit inside Vercel's ~4.5mb request-body limit:
 //   1. POST /upload-url  - validate the file type, mint an upload ticket + signed URL
-//   2. POST /            - check the upload landed, create the PENDING post
+//                          (plus one for the optional share image)
+//   2. POST /            - check the upload(s) landed, create the PENDING post
 export function submitRoutes({ auth, stores, notify }) {
   const router = Router();
 
@@ -43,6 +40,7 @@ export function submitRoutes({ auth, stores, notify }) {
   // submission is abandoned or rejected before it becomes a post.
   async function discardUpload(ticket) {
     await stores.upload.remove(ticket.rawSlug);
+    await stores.image.remove(ticket.imageSlug);
     await prisma.pendingPostUpload.delete({ where: { id: ticket.id } }).catch(() => {});
   }
 
@@ -54,6 +52,7 @@ export function submitRoutes({ auth, stores, notify }) {
     asyncHandler(async (req, res) => {
       const ext = extensionOf(req.body.filename);
       if (!ext || !UPLOAD_TYPES[ext]) throw new HttpError(400, "File must be a .md, .qmd, .rmd, or .zip");
+      const imageFilename = optionalString(req.body.imageFilename, "imageFilename");
       // Early check so a user at their limit isn't asked to upload for
       // nothing - POST / re-checks this for real.
       await assertUnderPostLimit(req.user.id);
@@ -65,9 +64,12 @@ export function submitRoutes({ auth, stores, notify }) {
 
       const postId = crypto.randomUUID();
       const rawSlug = rawSlugFor(postId, ext);
-      await prisma.pendingPostUpload.create({ data: { id: postId, authorId: req.user.id, rawSlug } });
+      const image = imageFilename ? await mintImageUpload(stores.image, postId, imageFilename) : null;
+      await prisma.pendingPostUpload.create({
+        data: { id: postId, authorId: req.user.id, rawSlug, imageSlug: image?.slug ?? null },
+      });
       const signedUrl = await stores.upload.signedUploadUrl(rawSlug);
-      res.json({ postId, rawSlug, signedUrl, contentType: UPLOAD_TYPES[ext] });
+      res.json({ postId, rawSlug, signedUrl, contentType: UPLOAD_TYPES[ext], image });
     }),
   );
 
@@ -80,6 +82,7 @@ export function submitRoutes({ auth, stores, notify }) {
       const title = requireText(req.body.title, "title", TITLE_MAX);
       const abstract = requireText(req.body.abstract, "abstract", ABSTRACT_MAX);
       const rawSlug = requireText(req.body.rawSlug, "rawSlug", 128);
+      const imageSlug = optionalString(req.body.imageSlug, "imageSlug") || null;
       // Display-only, but it becomes a zip entry name in GET /:id/download -
       // basename() keeps a crafted "../x" from ever escaping an unzip.
       const originalFilename = path.basename(requireText(req.body.originalFilename, "originalFilename", 255));
@@ -88,7 +91,7 @@ export function submitRoutes({ auth, stores, notify }) {
       // The ticket binds the rawSlug to the user who minted it, so a post can
       // only be created from an upload the same user actually initiated.
       const ticket = await prisma.pendingPostUpload.findUnique({ where: { id } });
-      if (!ticket || ticket.authorId !== req.user.id || ticket.rawSlug !== rawSlug) {
+      if (!ticket || ticket.authorId !== req.user.id || ticket.rawSlug !== rawSlug || ticket.imageSlug !== imageSlug) {
         throw new HttpError(403, "Upload ticket not found or already used - try uploading again");
       }
       if (extensionOf(originalFilename) !== extensionOf(rawSlug)) {
@@ -108,6 +111,7 @@ export function submitRoutes({ auth, stores, notify }) {
         await discardUpload(ticket);
         throw new HttpError(400, "File is too large - uploads must be under 50 MB");
       }
+      if (imageSlug) await assertImageUploaded(stores.image, imageSlug);
 
       const [post] = await prisma.$transaction([
         prisma.postMetadata.create({
@@ -119,7 +123,7 @@ export function submitRoutes({ auth, stores, notify }) {
             authorId: req.user.id,
             authorName: req.user.name,
             authorAvatarUrl: req.user.avatarUrl,
-            body: { create: { rawSlug, rawOriginalName: originalFilename } },
+            body: { create: { rawSlug, rawOriginalName: originalFilename, imageSlug } },
           },
           include: postInclude,
         }),

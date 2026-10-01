@@ -12,6 +12,7 @@ async function seed() {
   await createComment({ post, author });
   ctx.stores.html.put("p1.html", "<p/>");
   ctx.stores.upload.put("p1/upload.md", "#");
+  ctx.stores.image.put("p1/share.png", "png");
 }
 
 test("the reset script's dry run reports counts and deletes nothing", async () => {
@@ -25,7 +26,7 @@ test("the reset script's dry run reports counts and deletes nothing", async () =
   assert.equal(ctx.stores.html.objects.size, 1);
 });
 
-test("the reset script with confirm wipes the database and both buckets", async () => {
+test("the reset script with confirm wipes the database and every bucket", async () => {
   await seed();
   await resetForLaunch({ stores: ctx.stores, confirm: true, log: () => {} });
 
@@ -34,4 +35,5 @@ test("the reset script with confirm wipes the database and both buckets", async 
   assert.equal(await prisma.comment.count(), 0);
   assert.equal(ctx.stores.html.objects.size, 0);
   assert.equal(ctx.stores.upload.objects.size, 0);
+  assert.equal(ctx.stores.image.objects.size, 0);
 });

@@ -6,7 +6,8 @@ import { env } from "../../config/env.js";
 // authenticated with the service role key so it can read/write the private
 // buckets directly, bypassing RLS. Neither bucket grants anon/authenticated
 // access - only this client, or the short-lived signed URLs it mints, can
-// touch them. Created on first use so importing this never needs env vars.
+// touch them. The exception is post-image, which is public-read (see
+// imageUrlFor in modules/posts/posts.repo.js). Created on first use so importing this never needs env vars.
 let client;
 function storageClient() {
   client ??= new StorageClient(`${env.supabaseUrl}/storage/v1`, {

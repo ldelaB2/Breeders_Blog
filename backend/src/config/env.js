@@ -33,6 +33,9 @@ export const env = {
   get uploadBucket() {
     return process.env.SUPABASE_UPLOAD_BUCKET;
   },
+  get imageBucket() {
+    return process.env.SUPABASE_IMAGE_BUCKET;
+  },
 
   get resendApiKey() {
     return process.env.RESEND_API_KEY;

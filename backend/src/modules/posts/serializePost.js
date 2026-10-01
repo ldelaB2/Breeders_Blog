@@ -1,6 +1,7 @@
 import { ownsOrModerates } from "../users/roles.js";
 import { serializeVotes } from "../engagement/serializeVotes.js";
 import { slugify } from "./postUrl.js";
+import { imageUrlFor } from "./posts.repo.js";
 
 // Shapes a post row (loaded with postInclude) into the flat object the
 // frontend expects. `viewer` is req.user (undefined when anonymous).
@@ -22,6 +23,7 @@ export function serializePost(post, viewer, opts = {}) {
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
     htmlSlug: post.body?.htmlSlug ?? null,
+    imageUrl: imageUrlFor(post.body?.imageSlug),
     commentCount: post._count?.comments ?? undefined,
     linkedPostCount: post._count?.linksFrom ?? undefined,
     ...serializeVotes(post.votes),

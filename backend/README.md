@@ -30,7 +30,7 @@ npm test                # test suite, see "Tests"
 | `SITE_URL` | Frontend origin, used for sitemap and email links |
 | `CORS_ORIGIN` | Comma-separated origins allowed to call the API |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Storage access (service role, server-side only) |
-| `SUPABASE_STORAGE_BUCKET`, `SUPABASE_UPLOAD_BUCKET` | `post-html` and `post-upload` |
+| `SUPABASE_STORAGE_BUCKET`, `SUPABASE_UPLOAD_BUCKET`, `SUPABASE_IMAGE_BUCKET` | `post-html`, `post-upload` and `post-image` |
 | `RESEND_API_KEY`, `EMAIL_FROM` | Notification emails |
 | `PORT` | Local port (default 4000) |
 
@@ -67,7 +67,7 @@ src/
 ### Composition and services
 - `createApp(deps)` builds the app around three injectable services from `deps.js`:
   - `clerk`: `verifySession`, `fetchUser`
-  - `stores`: `html` and `upload` buckets, both from `createBucketStore`
+  - `stores`: `html`, `upload` and `image` buckets, all from `createBucketStore`
   - `mailer`: `send`
 - Route modules are factories that receive what they need: `auth` middleware, `stores` and `notify`.
 - The deployed app uses the real services. The tests pass in-memory fakes with the same shape.
@@ -116,14 +116,14 @@ Mounted under `/api` unless noted. Auth column: **opt** = `optionalAuth`, **auth
 | `GET /posts/top?limit=` | opt | Top approved posts by rank (default 5, max 20) |
 | `GET /posts/search?q=` | opt | Approved posts whose title or abstract contains every word |
 | `GET /posts/:id[?html=0]` | opt | One post plus its stitched HTML (unapproved: author/mods only) |
-| `POST /posts/upload-url` | auth | Submit step 1: upload ticket + signed URL |
+| `POST /posts/upload-url` | auth | Submit step 1: upload ticket + signed URL (plus one for an optional `imageFilename`) |
 | `POST /posts` | auth | Submit step 2: create the PENDING post, email admins |
 | `GET /posts/pending` | admin | Review queue, oldest first |
-| `POST /posts/:id/approve/upload-url` | admin | Signed URL for the stitched HTML |
-| `POST /posts/:id/approve` | admin | Verify the HTML landed, approve, email author |
+| `POST /posts/:id/approve/upload-url` | admin | Signed URL for the stitched HTML (plus one for an optional replacement `imageFilename`) |
+| `POST /posts/:id/approve` | admin | Verify the HTML (and any `imageSlug`) landed, approve, email author |
 | `POST /posts/:id/reject` | admin | Reject with `rejectionReason`, email author |
-| `GET /posts/:id/download` | admin | Zip of title, abstract and original upload |
-| `DELETE /posts/:id` | admin | Permanent delete (DB cascade plus both storage objects) |
+| `GET /posts/:id/download` | admin | Zip of title, abstract, original upload and share image |
+| `DELETE /posts/:id` | admin | Permanent delete (DB cascade plus its storage objects) |
 | `POST /posts/:id/lock` | mod | Toggle locked (closes comments) |
 | `POST /posts/:id/archive` | mod | Move to the Archive topic and lock |
 | `POST /posts/:id/upvote`, `/downvote`, `/pin` | auth | Toggle (approved posts only) |
@@ -145,9 +145,10 @@ Mounted under `/api` unless noted. Auth column: **opt** = `optionalAuth`, **auth
 1. **Submit.**
    - `POST /posts/upload-url` checks the extension (`.md`, `.qmd`, `.rmd`, `.zip`) and the 5-posts-per-24h limit.
    - It replaces any earlier ticket, then stores a `PendingPostUpload` ticket for `<postId>/upload.<ext>`.
-   - The browser PUTs the file straight to the `post-upload` bucket.
-   - `POST /posts` checks that the ticket belongs to the caller, that the extension matches, that the object exists and is at most 50 MB, and the limit again. It then creates the post as `PENDING` and emails the admins.
-2. **Review.** The admin downloads the zip and renders it with Quarto. They upload the stitched HTML to `post-html` as `<postId>.html` via a signed URL, then approve. Approval checks that the object exists and emails the author.
+   - With an optional `imageFilename` (`.png`, `.jpg`, `.webp`), the ticket also covers a share image at `<postId>/share.<ext>`.
+   - The browser PUTs the file straight to the `post-upload` bucket, and any share image to `post-image`.
+   - `POST /posts` checks that the ticket belongs to the caller, that the extension matches, that the object exists and is at most 50 MB, that any share image exists and is at most 5 MB, and the limit again. It then creates the post as `PENDING` and emails the admins.
+2. **Review.** The admin downloads the zip and renders it with Quarto. They upload the stitched HTML to `post-html` as `<postId>.html` via a signed URL, then approve. They can also upload a share image that replaces the author's. Approval checks that the objects exist and emails the author.
 3. **Reject.** Needs a reason, which is emailed to the author.
 4. **After approval:**
    - Readers vote, pin and comment.
@@ -160,7 +161,7 @@ Emails go through `modules/moderation/notifications.js`. A failed send is logged
 
 - **`User`** mirrors a Clerk user: name, role, avatar and email, kept in sync by the webhook.
 - **`PostMetadata`** holds the post: title, abstract, topic, status, locked, author snapshot and review fields.
-  - **`PostBody`** stores the storage slugs (`rawSlug`, `rawOriginalName`, `htmlSlug`).
+  - **`PostBody`** stores the storage slugs (`rawSlug`, `rawOriginalName`, `htmlSlug`, and the optional `imageSlug`). Posts serialize the share image as a public `imageUrl`, which the frontend uses as the post's `og:image`.
   - **`PendingPostUpload`** holds submit tickets.
 - **`Vote`, `Pin`, `PostLink`, `Comment`** (soft delete through `deletedAt`, self-referencing replies) and **`CommentVote`**.
 - Post children cascade on delete.
@@ -168,7 +169,7 @@ Emails go through `modules/moderation/notifications.js`. A failed send is logged
 
 ## Tests
 
-`npm test` runs the `node:test` + `supertest` suite (70 tests) against the real app and Prisma. Clerk, Storage and Resend are in-memory fakes (`tests/setup/fakes.js`).
+`npm test` runs the `node:test` + `supertest` suite (78 tests) against the real app and Prisma. Clerk, Storage and Resend are in-memory fakes (`tests/setup/fakes.js`).
 
 It uses a **local** Postgres database, never the one in `.env`:
 - `tests/setup/guard.js` refuses any non-localhost `DATABASE_URL` or `DIRECT_URL`.
@@ -194,9 +195,10 @@ If the test database drifts from the migrations, drop and recreate `breeders_tes
 
 ## Infrastructure (dashboard settings)
 
-- **Supabase Storage:** two private buckets with no anon/authenticated policies. The service role mints short-lived signed URLs.
+- **Supabase Storage:** `post-html` and `post-upload` are private buckets with no anon/authenticated policies. The service role mints short-lived signed URLs.
   - `post-html`: allowed MIME type `text/html`.
   - `post-upload`: file size limit 50 MB.
+  - `post-image`: **public** bucket, because link-preview scrapers fetch `og:image` anonymously and cache it for days. Allowed MIME types `image/png, image/jpeg, image/webp` (never SVG), file size limit 5 MB. Uploads still go through signed URLs; the unguessable post id keeps a pending post's image effectively private.
 - **Supabase Data API:** turned off.
   - Every `public` table has RLS enabled with no policies (migration `enable_rls`) as a second layer. Authorization lives in Express.
   - This is safe because Prisma connects as `postgres`, which has `BYPASSRLS`. Never add `FORCE ROW LEVEL SECURITY`, or Prisma gets locked out.
