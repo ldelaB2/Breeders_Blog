@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Icon from "../Icon";
 import CommentSection from "../comment/CommentSection";
 import LinkedPosts from "./LinkedPosts";
+import SharePostButton from "../share/components/SharePostButton";
 import { fetchPost } from "../../lib/api";
 import { extractPostHtml } from "../../lib/postHtml";
 import { setCitation } from "../../lib/citation";
@@ -116,6 +117,8 @@ function PostReader({ postId, onBack }) {
           <h1 className="truncate text-xl font-bold text-gray-900 md:text-2xl">{post?.title}</h1>
           <p className="text-sm text-gray-500">{post?.authorName}</p>
         </div>
+
+        {post?.status === "APPROVED" && <SharePostButton post={post} />}
       </div>
 
       {error && <p className="py-4 text-sm text-red-600">{error}</p>}
