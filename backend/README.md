@@ -190,8 +190,9 @@ If the test database drifts from the migrations, drop and recreate `breeders_tes
 
 ## Scripts
 
-`scripts/reset-for-launch.js` wipes every post, user and stored file. It was a one-time pre-launch cleanup.
-- `node scripts/reset-for-launch.js` is a dry run: it prints counts and changes nothing.
+`scripts/reset-for-launch.js` empties every table in the Prisma schema (one `TRUNCATE`) and every storage bucket. The schema and migration history stay, and Clerk accounts are untouched: users reappear, with their Clerk roles, when they next sign in.
+- It reads `backend/.env`, so it hits whatever database and buckets that file points at.
+- `node scripts/reset-for-launch.js` is a dry run: it prints row and file counts and changes nothing.
 - `--confirm` actually deletes everything. Back up the database first.
 
 ## Infrastructure (dashboard settings)

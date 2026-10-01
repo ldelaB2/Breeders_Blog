@@ -97,10 +97,15 @@ export function createBucketStore(bucketName) {
       return slugs;
     },
 
-    // Empties the bucket; resolves to the number of objects removed.
+    // Empties the bucket; resolves to the number of objects removed. Unlike
+    // remove() (best-effort cleanup after a post is deleted), a failure here
+    // throws, so a reset never reports files as deleted when they weren't.
     async removeAll() {
       const slugs = await store.listAll();
-      await store.remove(...slugs);
+      for (let i = 0; i < slugs.length; i += LIST_PAGE) {
+        const { error } = await bucket().remove(slugs.slice(i, i + LIST_PAGE));
+        if (error) throw error;
+      }
       return slugs.length;
     },
   };
