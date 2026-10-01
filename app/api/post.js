@@ -4,7 +4,7 @@
 // so without this every shared post link would unfurl as the generic site
 // card. The browser still boots the normal app from this HTML; useSeo then
 // writes the same values into the same tags.
-import { postSeo, SITE_NAME } from "../src/lib/seo.js";
+import { postSeo, postUrl, SITE_NAME } from "../src/lib/seo/seo.js";
 
 const API = process.env.VITE_API_BASE_URL;
 
@@ -35,9 +35,9 @@ export default async function handler(req, res) {
     return res.status(404).send(setTag(shell, 'name="robots"', "content", "noindex"));
   }
 
-  const { title, description, path, type, jsonLd } = postSeo(post, origin);
+  const { title, description, type, jsonLd } = postSeo(post, origin);
   const fullTitle = `${title} — ${SITE_NAME}`;
-  const url = `${origin}${path}`;
+  const url = postUrl(post, origin);
   let html = shell.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(fullTitle)}</title>`);
   html = setTag(html, 'name="description"', "content", description);
   html = setTag(html, 'rel="canonical"', "href", url);

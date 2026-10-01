@@ -1,6 +1,6 @@
 import PostCarousel from "./PostCarousel";
 
-// Rendered between a post's body and its comments (see PostReader.jsx).
+// Rendered between a post's body and its comments (see PostArticle.jsx).
 // `count` is the post's own linkedPostCount (from serializePost), so the
 // section - and the carousel's fetch - is skipped entirely for the common
 // case of a post with no linked posts, rather than flashing an empty header.

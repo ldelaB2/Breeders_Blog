@@ -1,33 +1,7 @@
-// src/pages/Contact.jsx
-import { useSeo } from "../lib/useSeo";
-
-// Fill these in with your real profile URLs. Anything left as "#" still
-// renders, it just doesn't go anywhere yet.
-const LINKS = {
-  linkedin: "https://www.linkedin.com/in/will-de-la-bretonne-8a95a1218/", // e.g. https://www.linkedin.com/in/your-handle
-  github: "https://github.com/ldelaB2", // e.g. https://github.com/your-handle
-  youtube: "https://www.youtube.com/@SquidBillyWilly", // e.g. https://www.youtube.com/@your-handle
-};
-
-const EMAIL = "ldelab2@outlook.com";
-
-// Drop the headshot at app/public/headshot.jpg (Vite serves /public at the
-// site root, same as the logo in Header.jsx). Square-ish crop looks best.
-const HEADSHOT = "/headshot.jpg";
-
-// External links open in a new tab, matching the posting guide on About.
-function ExtLink({ href, children }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="underline"
-    >
-      {children}
-    </a>
-  );
-}
+import ExternalLink from "@/components/ui/ExternalLink";
+import Page from "@/components/ui/Page";
+import { AUTHOR, CONTACT_EMAIL, GITHUB_URL, HEADSHOT, LINKEDIN_URL, YOUTUBE_URL } from "@/config/site";
+import { useSeo } from "@/lib/seo/useSeo";
 
 function Contact() {
   useSeo({
@@ -38,10 +12,8 @@ function Contact() {
   });
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10">
-      <h1 className="text-2xl font-bold">Contact</h1>
-
-      <div className="mt-4 text-gray-700 space-y-4">
+    <Page title="Contact">
+      <div className="space-y-4 text-gray-700">
         <p>
           Hi, I'm Will de la Bretonne. I'm just a guy passionate about science,
           plants, and learning new things.
@@ -50,7 +22,7 @@ function Contact() {
         {/* Headshot: floats beside the text on desktop, full width on mobile. */}
         <img
           src={HEADSHOT}
-          alt="Will de la Bretonne"
+          alt={AUTHOR}
           className="mx-auto w-48 rounded-lg object-cover sm:float-right sm:ml-6 sm:mb-4 sm:w-56"
         />
 
@@ -77,20 +49,20 @@ function Contact() {
         </p>
         <p>
           For my most up-to-date CV and résumé, visit my{" "}
-          <ExtLink href={LINKS.linkedin}>LinkedIn profile</ExtLink>. You can
-          also find my projects on <ExtLink href={LINKS.github}>GitHub</ExtLink>{" "}
-          and videos on <ExtLink href={LINKS.youtube}>YouTube</ExtLink>.
+          <ExternalLink href={LINKEDIN_URL}>LinkedIn profile</ExternalLink>. You can
+          also find my projects on <ExternalLink href={GITHUB_URL}>GitHub</ExternalLink>{" "}
+          and videos on <ExternalLink href={YOUTUBE_URL}>YouTube</ExternalLink>.
         </p>
         <p className="clear-both">
           If you have a question, a suggestion for the site, or just want to
           connect, feel free to reach out at{" "}
-          <a href={`mailto:${EMAIL}`} className="underline">
-            {EMAIL}
+          <a href={`mailto:${CONTACT_EMAIL}`} className="underline">
+            {CONTACT_EMAIL}
           </a>
           .
         </p>
       </div>
-    </div>
+    </Page>
   );
 }
 

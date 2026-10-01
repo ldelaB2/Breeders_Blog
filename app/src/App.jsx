@@ -1,12 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Topic from "./pages/Topic";
-import Admin from "./pages/Admin";
-import PostPage from "./pages/PostPage";
-import NotFound from "./pages/NotFound";
-import { PERMANENT_TOPICS } from "./routes";
-import Header from "./components/Header";
-import Footer from "./components/Footer";
-import RequireRole from "./components/RequireRole";
+import { ROUTES } from "@/config/routes";
+import Header from "@/components/layout/Header/Header";
+import Footer from "@/components/layout/Footer";
+import RequireRole from "@/components/layout/RequireRole";
 
 export default function App() {
   return (
@@ -15,23 +11,9 @@ export default function App() {
         <Header />
         <main className="flex-1">
           <Routes>
-            {PERMANENT_TOPICS.filter((r) => r.component).map(
-              ({ path, component: C }) => (
-                <Route key={path} path={path} element={<C />} />
-              ),
-            )}
-
-            <Route path="/topics/:topic" element={<Topic />} />
-            <Route path="/posts/:id/:slug?" element={<PostPage />} />
-            <Route
-              path="/admin"
-              element={
-                <RequireRole role="ADMIN">
-                  <Admin />
-                </RequireRole>
-              }
-            />
-            <Route path="*" element={<NotFound />} />
+            {ROUTES.filter((r) => r.element).map(({ path, element, role }) => (
+              <Route key={path} path={path} element={role ? <RequireRole role={role}>{element}</RequireRole> : element} />
+            ))}
           </Routes>
         </main>
         <Footer />

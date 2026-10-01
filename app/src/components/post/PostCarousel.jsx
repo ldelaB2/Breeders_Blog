@@ -1,35 +1,18 @@
-// pages/Home.jsx's building block: a titled row of post tiles that scrolls
-// horizontally. Used for Top Posts, Your Pinned Posts, and Recommended for
-// You - each just passes a different fetcher, so the row itself doesn't
-// know or care which one it's showing.
-import { useEffect, useRef, useState } from "react";
-import Post from "./Post";
-import { useApi } from "../../lib/api";
-import { usePostActions } from "../../lib/usePostActions";
-import Icon from "../Icon";
-import chevronIcon from "../../assets/chevron.svg?raw";
+import { useRef } from "react";
+import PostTile from "./PostTile";
+import Icon from "@/components/ui/Icon";
+import Message from "@/components/ui/Message";
+import { usePostFeed } from "@/lib/post/usePostFeed";
 
 const SCROLL_AMOUNT = 400; // tile width (w-96 = 384px) + gap-4 (16px)
 
+// A titled row of post tiles that scrolls horizontally. Used for the home
+// page's Top Posts, Your Pinned Posts and Recommended for You, and for a
+// post's Linked Posts - each just passes a different `fetchPosts(api)`, so
+// the row itself doesn't know or care which one it's showing.
 function PostCarousel({ title, fetchPosts, emptyMessage }) {
-  const api = useApi();
   const scrollRef = useRef(null);
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true);
-    setError(null);
-    fetchPosts(api)
-      .then(setPosts)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const { onTogglePin, onUpvote, onDownvote } = usePostActions(setPosts, api, setError);
+  const { posts, loading, error, actions } = usePostFeed(fetchPosts);
 
   // Wraps around at either end so repeatedly scrolling one direction cycles
   // through the row indefinitely instead of stopping at the last tile.
@@ -53,20 +36,13 @@ function PostCarousel({ title, fetchPosts, emptyMessage }) {
     <section>
       {title && <h2 className="mb-3 text-xl font-bold text-gray-900">{title}</h2>}
 
-      {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+      {error && <Message tone="error" className="mb-3">{error}</Message>}
 
       {posts.length === 0 ? (
-        <p className="text-gray-500">{emptyMessage}</p>
+        <Message>{emptyMessage}</Message>
       ) : (
         <div className="relative px-12">
-          <button
-            type="button"
-            onClick={() => scroll(-1)}
-            aria-label="Scroll left"
-            className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full border border-canvas-border bg-white p-3 text-gray-500 shadow-sm transition-colors hover:bg-gray-100"
-          >
-            <Icon svg={chevronIcon} className="h-5 w-5 rotate-90" />
-          </button>
+          <ScrollArrow direction={-1} onClick={() => scroll(-1)} />
 
           <div
             ref={scrollRef}
@@ -74,29 +50,31 @@ function PostCarousel({ title, fetchPosts, emptyMessage }) {
           >
             {posts.map((post) => (
               <div key={post.id} className="w-96 shrink-0 snap-start">
-                <Post
-                  post={post}
-                  showTopic
-                  onTogglePin={onTogglePin}
-                  onUpvote={onUpvote}
-                  onDownvote={onDownvote}
-                  onDeleted={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
-                />
+                <PostTile post={post} actions={actions} showTopic />
               </div>
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={() => scroll(1)}
-            aria-label="Scroll right"
-            className="absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full border border-canvas-border bg-white p-3 text-gray-500 shadow-sm transition-colors hover:bg-gray-100"
-          >
-            <Icon svg={chevronIcon} className="h-5 w-5 -rotate-90" />
-          </button>
+          <ScrollArrow direction={1} onClick={() => scroll(1)} />
         </div>
       )}
     </section>
+  );
+}
+
+// Round chevron button overlaid on either end of the row.
+function ScrollArrow({ direction, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={direction < 0 ? "Scroll left" : "Scroll right"}
+      className={`absolute top-1/2 z-10 -translate-y-1/2 rounded-full border border-canvas-border bg-white p-3 text-gray-500 shadow-sm transition-colors hover:bg-gray-100 ${
+        direction < 0 ? "left-0" : "right-0"
+      }`}
+    >
+      <Icon name="chevron" className={`h-5 w-5 ${direction < 0 ? "rotate-90" : "-rotate-90"}`} />
+    </button>
   );
 }
 

@@ -1,10 +1,9 @@
-// src/pages/About.jsx
-import { useState } from "react";
 import { Link } from "react-router-dom";
-import Icon from "../components/Icon";
-import { useSeo } from "../lib/useSeo";
-import chevronIcon from "../assets/chevron.svg?raw";
-import addPostIcon from "../assets/add_post.svg?raw";
+import Collapsible from "@/components/ui/Collapsible";
+import ExternalLink from "@/components/ui/ExternalLink";
+import Icon from "@/components/ui/Icon";
+import Page from "@/components/ui/Page";
+import { useSeo } from "@/lib/seo/useSeo";
 import sampleMarkdown from "../../sample_post/example_markdown.md?url";
 import samplePythonQmd from "../../sample_post/example_python.qmd?url";
 import sampleRQmd from "../../sample_post/example_r.qmd?url";
@@ -49,52 +48,17 @@ const SAMPLE_FILES = [
   },
 ];
 
-// External links in the posting guide all open in a new tab.
-function ExtLink({ href, children }) {
+// One collapsible top-level section of the page. Collapsed by default; the
+// body stays in the DOM so crawlers can read it.
+function Section({ title, as: Tag = "h2", children }) {
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="underline"
-    >
+    <Collapsible title={<Tag className="text-xl font-bold">{title}</Tag>} className={Tag === "h1" ? "" : "mt-10"}>
       {children}
-    </a>
-  );
-}
-
-// Header + chevron toggle shared by each section below. The body stays in
-// the DOM while collapsed (hidden, not unmounted) so crawlers can read it.
-function Section({ title, as: Tag, open, onToggle, children }) {
-  return (
-    <div className={Tag === "h1" ? "" : "mt-10"}>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        className="flex w-full items-center gap-2 text-left"
-      >
-        <Icon
-          svg={chevronIcon}
-          className={`h-4 w-4 shrink-0 text-gray-500 transition-transform ${
-            open ? "" : "-rotate-90"
-          }`}
-        />
-        <Tag className="text-xl font-bold">{title}</Tag>
-      </button>
-      <div hidden={!open}>{children}</div>
-    </div>
+    </Collapsible>
   );
 }
 
 function About() {
-  const [open, setOpen] = useState({
-    manifesto: false,
-    plantBreeding: false,
-    howToPost: false,
-    rules: false,
-  });
-  const toggle = (key) => setOpen((o) => ({ ...o, [key]: !o[key] }));
   useSeo({
     title: "About",
     description:
@@ -103,14 +67,9 @@ function About() {
   });
 
   return (
-    <div className="px-6 py-10 max-w-6xl mx-auto">
+    <Page>
       {/* Manifesto Section */}
-      <Section
-        title="Breeders Blog Manifesto"
-        as="h1"
-        open={open.manifesto}
-        onToggle={() => toggle("manifesto")}
-      >
+      <Section title="Breeders Blog Manifesto" as="h1">
         <div className="mt-4 text-gray-700 space-y-4">
           <p>
             For thousands of years, the written word has been the primary way
@@ -168,12 +127,7 @@ function About() {
       </Section>
 
       {/* What is Plant Breeding Section */}
-      <Section
-        title="What is Plant Breeding?"
-        as="h2"
-        open={open.plantBreeding}
-        onToggle={() => toggle("plantBreeding")}
-      >
+      <Section title="What is Plant Breeding?">
         <div className="mt-4 text-gray-700 space-y-4">
           <p>
             <strong>
@@ -219,22 +173,14 @@ function About() {
       </Section>
 
       {/* How to Create a Post Section */}
-      <Section
-        title="How to Create a Post"
-        as="h2"
-        open={open.howToPost}
-        onToggle={() => toggle("howToPost")}
-      >
+      <Section title="How to Create a Post">
         <div className="mt-4 text-gray-700 space-y-4">
           <h3 className="font-semibold text-gray-900">The short version</h3>
           <ol className="list-decimal space-y-1 pl-6">
             <li>Pick the topic your post belongs in and open it.</li>
             <li>
               Click the create-post icon{" "}
-              <Icon
-                svg={addPostIcon}
-                className="h-5 w-5 inline-block align-text-bottom"
-              />{" "}
+              <Icon name="add-post" inline className="h-5 w-5 align-text-bottom" />{" "}
               (you'll need to be signed in).
             </li>
             <li>
@@ -253,7 +199,7 @@ function About() {
           <p>
             Every format is plain text you can write in any editor, and the
             moderator renders all of them with{" "}
-            <ExtLink href="https://quarto.org/">Quarto</ExtLink>, so headings,
+            <ExternalLink href="https://quarto.org/">Quarto</ExternalLink>, so headings,
             tables, links, and LaTeX equations work everywhere. The difference
             is whether your post runs code.
           </p>
@@ -286,17 +232,17 @@ function About() {
           <p>
             For a <code>.md</code> post you need nothing beyond a text editor;
             skim{" "}
-            <ExtLink href="https://www.markdownguide.org/basic-syntax/">
+            <ExternalLink href="https://www.markdownguide.org/basic-syntax/">
               Markdown basic syntax
-            </ExtLink>{" "}
+            </ExternalLink>{" "}
             or{" "}
-            <ExtLink href="https://quarto.org/docs/authoring/markdown-basics.html">
+            <ExternalLink href="https://quarto.org/docs/authoring/markdown-basics.html">
               Quarto's markdown basics
-            </ExtLink>{" "}
+            </ExternalLink>{" "}
             and you're set. For <code>.qmd</code>, install Quarto by following{" "}
-            <ExtLink href="https://quarto.org/docs/get-started/">
+            <ExternalLink href="https://quarto.org/docs/get-started/">
               Get Started with Quarto
-            </ExtLink>
+            </ExternalLink>
             —it has tabs for VS Code (with the Quarto extension), RStudio,
             Jupyter, and plain text editors—then pick your language:
           </p>
@@ -305,9 +251,9 @@ function About() {
               <strong>R</strong> — Quarto uses <code>knitr</code>, so an R
               install with <code>rmarkdown</code> and your plotting packages is
               all you need. See{" "}
-              <ExtLink href="https://quarto.org/docs/computations/r.html">
+              <ExternalLink href="https://quarto.org/docs/computations/r.html">
                 Using R
-              </ExtLink>
+              </ExternalLink>
               .
             </li>
             <li>
@@ -315,33 +261,33 @@ function About() {
               <code>pip install jupyter</code> (plus <code>pandas</code>,{" "}
               <code>plotly</code>, etc.) and set <code>jupyter: python3</code>{" "}
               in the YAML header. See{" "}
-              <ExtLink href="https://quarto.org/docs/computations/python.html">
+              <ExternalLink href="https://quarto.org/docs/computations/python.html">
                 Using Python
-              </ExtLink>
+              </ExternalLink>
               .
             </li>
             <li>
               <strong>Julia</strong> — install the <code>IJulia</code> package
               to register a Jupyter kernel, then reference it in the header. See{" "}
-              <ExtLink href="https://quarto.org/docs/computations/julia.html">
+              <ExternalLink href="https://quarto.org/docs/computations/julia.html">
                 Using Julia
-              </ExtLink>
+              </ExternalLink>
               .
             </li>
             <li>
               <strong>.Rmd</strong> — RStudio with the <code>rmarkdown</code>{" "}
               package; the{" "}
-              <ExtLink href="https://bookdown.org/yihui/rmarkdown/">
+              <ExternalLink href="https://bookdown.org/yihui/rmarkdown/">
                 R Markdown book
-              </ExtLink>{" "}
+              </ExternalLink>{" "}
               covers everything from the YAML header to chunk options.
             </li>
           </ul>
           <p>
             The full{" "}
-            <ExtLink href="https://quarto.org/docs/guide/">
+            <ExternalLink href="https://quarto.org/docs/guide/">
               Quarto Guide
-            </ExtLink>{" "}
+            </ExternalLink>{" "}
             is the reference for figures, cross-references, callouts, and
             citations. Whatever you write in, render it locally first (
             <code>quarto render my_post.qmd</code>, the Preview button in your
@@ -364,13 +310,13 @@ $$`}
           </pre>
           <p>
             See{" "}
-            <ExtLink href="https://quarto.org/docs/authoring/markdown-basics.html#equations">
+            <ExternalLink href="https://quarto.org/docs/authoring/markdown-basics.html#equations">
               Quarto's equation docs
-            </ExtLink>{" "}
+            </ExternalLink>{" "}
             for numbering and cross-references, and{" "}
-            <ExtLink href="https://www.overleaf.com/learn/latex/Mathematical_expressions">
+            <ExternalLink href="https://www.overleaf.com/learn/latex/Mathematical_expressions">
               Overleaf's math guide
-            </ExtLink>{" "}
+            </ExternalLink>{" "}
             for the LaTeX syntax itself.
           </p>
 
@@ -443,7 +389,7 @@ $$`}
             <p className="text-sm">
               Photos straight off a phone or camera can easily be several MB
               each and add up fast against the 50 MB limit.{" "}
-              <ExtLink href="https://ffmpeg.org/download.html">ffmpeg</ExtLink>{" "}
+              <ExternalLink href="https://ffmpeg.org/download.html">ffmpeg</ExternalLink>{" "}
               is a free command-line tool that can shrink an image in seconds by
               resizing it and re-encoding it at a lower (but still perfectly
               readable) quality:
@@ -468,12 +414,7 @@ $$`}
       </Section>
 
       {/* Rules of Contribution Section */}
-      <Section
-        title="Rules of Contribution"
-        as="h2"
-        open={open.rules}
-        onToggle={() => toggle("rules")}
-      >
+      <Section title="Rules of Contribution">
         <div className="mt-4 text-gray-700 space-y-4">
           <p>
             Breeders Blog welcomes posts, comments, and ideas from anyone — the
@@ -481,7 +422,7 @@ $$`}
           </p>
         </div>
       </Section>
-    </div>
+    </Page>
   );
 }
 
