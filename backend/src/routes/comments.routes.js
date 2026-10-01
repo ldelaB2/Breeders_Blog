@@ -1,16 +1,16 @@
 import { Router } from "express";
-import { prisma } from "../lib/prisma.js";
-import { requireRole } from "../middleware/requireAuth.js";
+import { prisma } from "../lib/db/prisma.js";
 import { serializeComment } from "../lib/serializeComment.js";
-import { asyncHandler } from "../lib/asyncHandler.js";
-import { HttpError, requireText } from "../lib/httpError.js";
-import { isModerator } from "../lib/roles.js";
+import { asyncHandler } from "../lib/http/asyncHandler.js";
+import { HttpError } from "../lib/http/httpError.js";
+import { requireText } from "../lib/http/validate.js";
+import { isModerator } from "../modules/users/roles.js";
 import { toggleVote } from "../lib/toggleVote.js";
 
 const COMMENT_MAX = 5000;
 
 export default function commentsRouter({ auth }) {
-  const { requireAuth } = auth;
+  const { requireAuth, requireModerator } = auth;
 
   const router = Router();
   const include = { votes: true };
@@ -60,7 +60,7 @@ export default function commentsRouter({ auth }) {
       }
 
       const comment = await prisma.comment.create({
-        data: { postId, parentId: parentId || null, authorId: req.userId, authorName: req.userName, text },
+        data: { postId, parentId: parentId || null, authorId: req.user?.id, authorName: req.user.name, text },
         include,
       });
       res.status(201).json(serializeComment(comment));
@@ -73,7 +73,7 @@ export default function commentsRouter({ auth }) {
     "/comments/:id",
     requireAuth,
     asyncHandler(async (req, res) => {
-      if (req.comment.authorId !== req.userId && !isModerator(req.userRole)) throw new HttpError(403, "Forbidden");
+      if (req.comment.authorId !== req.user?.id && !isModerator(req.user?.role)) throw new HttpError(403, "Forbidden");
       const updated = await prisma.comment.update({ where: { id: req.comment.id }, data: { deletedAt: new Date() }, include });
       res.json(serializeComment(updated));
     })
@@ -82,8 +82,7 @@ export default function commentsRouter({ auth }) {
   // Moderator/admin only - unlike deleting, restoring is never left to the author.
   router.post(
     "/comments/:id/restore",
-    requireAuth,
-    requireRole("MODERATOR", "ADMIN"),
+    requireModerator,
     asyncHandler(async (req, res) => {
       if (!req.comment.deletedAt) throw new HttpError(400, "Comment is not deleted");
       const updated = await prisma.comment.update({ where: { id: req.comment.id }, data: { deletedAt: null }, include });
@@ -92,7 +91,7 @@ export default function commentsRouter({ auth }) {
   );
 
   async function vote(req, res, value) {
-    const where = { commentId_userId: { commentId: req.comment.id, userId: req.userId } };
+    const where = { commentId_userId: { commentId: req.comment.id, userId: req.user?.id } };
     await toggleVote(prisma.commentVote, where, where.commentId_userId, value);
     res.json(serializeComment(await findComment(req.comment.id)));
   }

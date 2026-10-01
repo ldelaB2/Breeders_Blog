@@ -1,4 +1,4 @@
-import { isModerator } from "./roles.js";
+import { isModerator } from "../modules/users/roles.js";
 import { slugify } from "./postUrl.js";
 
 // Shapes a PostMetadata row (with postInclude relations loaded) into the

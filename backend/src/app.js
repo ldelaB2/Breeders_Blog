@@ -6,8 +6,9 @@ import commentsRouter from "./routes/comments.routes.js";
 import meRouter from "./routes/me.routes.js";
 import sitemapRouter from "./routes/sitemap.routes.js";
 import webhooksRouter from "./routes/webhooks.routes.js";
-import { HttpError } from "./lib/httpError.js";
-import { createAuthMiddleware } from "./middleware/requireAuth.js";
+import { createAuthMiddleware } from "./middleware/auth.js";
+import { errorHandler, notFound } from "./middleware/errors.js";
+import { env } from "./config/env.js";
 import { createNotifications } from "./lib/mail.js";
 import { defaultDeps } from "./deps.js";
 
@@ -23,8 +24,7 @@ export function createApp(deps = defaultDeps()) {
     notify: createNotifications(deps.mailer),
   };
 
-  const allowedOrigins = (process.env.CORS_ORIGIN || "").split(",").map((o) => o.trim()).filter(Boolean);
-  app.use(cors({ origin: allowedOrigins }));
+  app.use(cors({ origin: env.corsOrigins }));
 
   // Needs the raw request body to verify Clerk's signature, so it's mounted
   // with express.raw() ahead of the JSON parser and the rate limiter.
@@ -46,16 +46,8 @@ export function createApp(deps = defaultDeps()) {
   app.use("/api", meRouter(ctx));
   app.use(sitemapRouter);
 
-  app.use((req, res) => res.status(404).json({ error: "Not found" }));
-
-  // An HttpError carries a status and a client-safe message; anything else
-  // is a 500 and only ever logged.
-  // eslint-disable-next-line no-unused-vars
-  app.use((err, req, res, next) => {
-    if (err instanceof HttpError) return res.status(err.status).json({ error: err.message });
-    console.error(err);
-    res.status(500).json({ error: "Internal server error" });
-  });
+  app.use(notFound);
+  app.use(errorHandler);
 
   return app;
 }

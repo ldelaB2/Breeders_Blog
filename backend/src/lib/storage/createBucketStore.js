@@ -1,4 +1,5 @@
 import { StorageClient } from "@supabase/storage-js";
+import { env } from "../../config/env.js";
 
 // Storage-only Supabase client (not the full @supabase/supabase-js, which
 // drags in a Realtime websocket dependency the backend has no use for),
@@ -8,9 +9,9 @@ import { StorageClient } from "@supabase/storage-js";
 // touch them. Created on first use so importing this never needs env vars.
 let client;
 function storageClient() {
-  client ??= new StorageClient(`${process.env.SUPABASE_URL}/storage/v1`, {
-    apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+  client ??= new StorageClient(`${env.supabaseUrl}/storage/v1`, {
+    apikey: env.supabaseServiceRoleKey,
+    Authorization: `Bearer ${env.supabaseServiceRoleKey}`,
   });
   return client;
 }

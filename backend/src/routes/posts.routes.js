@@ -2,13 +2,13 @@ import { Router } from "express";
 import path from "node:path";
 import crypto from "node:crypto";
 import { ZipArchive } from "archiver";
-import { prisma } from "../lib/prisma.js";
-import { requireRole } from "../middleware/requireAuth.js";
+import { prisma } from "../lib/db/prisma.js";
 import { serializePost } from "../lib/serializePost.js";
-import { asyncHandler } from "../lib/asyncHandler.js";
-import { HttpError, requireText } from "../lib/httpError.js";
-import { isModerator } from "../lib/roles.js";
-import { TOPIC_SLUGS } from "../lib/topics.js";
+import { asyncHandler } from "../lib/http/asyncHandler.js";
+import { HttpError } from "../lib/http/httpError.js";
+import { requireText } from "../lib/http/validate.js";
+import { isModerator } from "../modules/users/roles.js";
+import { TOPIC_SLUGS } from "../config/topics.js";
 import { toggleVote } from "../lib/toggleVote.js";
 import { postInclude as include } from "../lib/postInclude.js";
 import { rankScore } from "../lib/rankScore.js";
@@ -39,7 +39,7 @@ function extensionOf(filename) {
 }
 
 const findPost = (id) => prisma.postMetadata.findUnique({ where: { id }, include });
-const viewer = (req) => ({ userId: req.userId, userRole: req.userRole });
+const viewer = (req) => ({ userId: req.user?.id, userRole: req.user?.role });
 
 // Caps submission volume per user across all statuses, so the moderation
 // queue can't be spammed with pending/rejected posts either.
@@ -53,7 +53,7 @@ async function assertUnderPostLimit(userId) {
 }
 
 export default function postsRouter({ auth, stores, notify }) {
-  const { requireAuth, optionalAuth } = auth;
+  const { requireAuth, optionalAuth, requireAdmin, requireModerator } = auth;
 
   // Drops an upload ticket and the object it points at - used whenever a
   // submission is abandoned or rejected before it becomes a post.
@@ -91,8 +91,8 @@ export default function postsRouter({ auth, stores, notify }) {
           ...(topicSlug && { topicSlug }),
           OR: [
             { status: "APPROVED" },
-            ...(req.userId ? [{ authorId: req.userId, status: "PENDING" }] : []),
-            ...(isModerator(req.userRole) ? [{ status: "PENDING" }] : []),
+            ...(req.user?.id ? [{ authorId: req.user?.id, status: "PENDING" }] : []),
+            ...(isModerator(req.user?.role) ? [{ status: "PENDING" }] : []),
           ],
         },
         include,
@@ -105,8 +105,7 @@ export default function postsRouter({ auth, stores, notify }) {
   // Moderation queue.
   router.get(
     "/pending",
-    requireAuth,
-    requireRole("ADMIN"),
+    requireAdmin,
     asyncHandler(async (req, res) => {
       const posts = await prisma.postMetadata.findMany({
         where: { status: "PENDING" },
@@ -171,16 +170,16 @@ export default function postsRouter({ auth, stores, notify }) {
       }
       // Early check so a user at their limit isn't asked to upload for
       // nothing - POST / re-checks this for real.
-      await assertUnderPostLimit(req.userId);
+      await assertUnderPostLimit(req.user?.id);
 
       // One outstanding ticket per user: an abandoned upload (never finalized
       // by POST /) is otherwise orphaned in storage forever.
-      const stale = await prisma.pendingPostUpload.findMany({ where: { authorId: req.userId } });
+      const stale = await prisma.pendingPostUpload.findMany({ where: { authorId: req.user?.id } });
       await Promise.all(stale.map(discardUpload));
 
       const postId = crypto.randomUUID();
       const rawSlug = `${postId}/upload.${ext}`;
-      await prisma.pendingPostUpload.create({ data: { id: postId, authorId: req.userId, rawSlug } });
+      await prisma.pendingPostUpload.create({ data: { id: postId, authorId: req.user?.id, rawSlug } });
       const signedUrl = await stores.upload.signedUploadUrl(rawSlug);
       res.json({ postId, rawSlug, signedUrl, contentType: ALLOWED_UPLOAD_EXTENSIONS[ext] });
     })
@@ -204,7 +203,7 @@ export default function postsRouter({ auth, stores, notify }) {
       // The ticket binds the rawSlug to the user who minted it, so a post can
       // only be created from an upload the same user actually initiated.
       const ticket = await prisma.pendingPostUpload.findUnique({ where: { id } });
-      if (!ticket || ticket.authorId !== req.userId || ticket.rawSlug !== rawSlug) {
+      if (!ticket || ticket.authorId !== req.user?.id || ticket.rawSlug !== rawSlug) {
         throw new HttpError(403, "Upload ticket not found or already used - try uploading again");
       }
       if (extensionOf(originalFilename) !== extensionOf(rawSlug)) {
@@ -212,7 +211,7 @@ export default function postsRouter({ auth, stores, notify }) {
       }
 
       try {
-        await assertUnderPostLimit(req.userId);
+        await assertUnderPostLimit(req.user?.id);
       } catch (err) {
         await discardUpload(ticket);
         throw err;
@@ -232,9 +231,9 @@ export default function postsRouter({ auth, stores, notify }) {
             topicSlug,
             title,
             abstract,
-            authorId: req.userId,
-            authorName: req.userName,
-            authorAvatarUrl: req.userAvatarUrl,
+            authorId: req.user?.id,
+            authorName: req.user.name,
+            authorAvatarUrl: req.user.avatarUrl,
             body: { create: { rawSlug, rawOriginalName: originalFilename } },
           },
           include,
@@ -251,7 +250,7 @@ export default function postsRouter({ auth, stores, notify }) {
     optionalAuth,
     asyncHandler(async (req, res) => {
       const { post } = req;
-      const canView = post.status === "APPROVED" || isModerator(req.userRole) || req.userId === post.authorId;
+      const canView = post.status === "APPROVED" || isModerator(req.user?.role) || req.user?.id === post.authorId;
       if (!canView) throw new HttpError(404, "Post not found");
       // Only this route pulls the HTML out of storage - list views never do.
       // ?html=0 skips it too: the frontend's api/post.js only needs the
@@ -265,8 +264,7 @@ export default function postsRouter({ auth, stores, notify }) {
   // votes, pins and comments; both storage objects are removed here.
   router.delete(
     "/:id",
-    requireAuth,
-    requireRole("ADMIN"),
+    requireAdmin,
     asyncHandler(async (req, res) => {
       await stores.html.remove(req.post.body?.htmlSlug);
       await stores.upload.remove(req.post.body?.rawSlug);
@@ -279,8 +277,7 @@ export default function postsRouter({ auth, stores, notify }) {
   // stitched HTML to directly (same reasoning as /upload-url above).
   router.post(
     "/:id/approve/upload-url",
-    requireAuth,
-    requireRole("ADMIN"),
+    requireAdmin,
     asyncHandler(async (req, res) => {
       if (req.post.status !== "PENDING") throw new HttpError(400, "Only pending posts can be approved");
       const htmlSlug = `${req.post.id}.html`;
@@ -291,8 +288,7 @@ export default function postsRouter({ auth, stores, notify }) {
   // Step 2: confirms the HTML actually landed, then flips the post to APPROVED.
   router.post(
     "/:id/approve",
-    requireAuth,
-    requireRole("ADMIN"),
+    requireAdmin,
     asyncHandler(async (req, res) => {
       if (req.post.status !== "PENDING") throw new HttpError(400, "Only pending posts can be approved");
       const htmlSlug = `${req.post.id}.html`;
@@ -301,7 +297,7 @@ export default function postsRouter({ auth, stores, notify }) {
       }
       const updated = await prisma.postMetadata.update({
         where: { id: req.post.id },
-        data: { status: "APPROVED", reviewedById: req.userId, reviewedAt: new Date(), body: { update: { htmlSlug } } },
+        data: { status: "APPROVED", reviewedById: req.user?.id, reviewedAt: new Date(), body: { update: { htmlSlug } } },
         include,
       });
       await notify.notifyAuthorOfApproval(updated);
@@ -311,14 +307,13 @@ export default function postsRouter({ auth, stores, notify }) {
 
   router.post(
     "/:id/reject",
-    requireAuth,
-    requireRole("ADMIN"),
+    requireAdmin,
     asyncHandler(async (req, res) => {
       const rejectionReason = requireText(req.body.rejectionReason, "rejectionReason", REJECTION_REASON_MAX);
       if (req.post.status !== "PENDING") throw new HttpError(400, "Only pending posts can be rejected");
       const updated = await prisma.postMetadata.update({
         where: { id: req.post.id },
-        data: { status: "REJECTED", reviewedById: req.userId, reviewedAt: new Date(), rejectionReason },
+        data: { status: "REJECTED", reviewedById: req.user?.id, reviewedAt: new Date(), rejectionReason },
         include,
       });
       await notify.notifyAuthorOfRejection(updated);
@@ -329,8 +324,7 @@ export default function postsRouter({ auth, stores, notify }) {
   // Bundles title/abstract/original upload into a zip for offline review.
   router.get(
     "/:id/download",
-    requireAuth,
-    requireRole("ADMIN"),
+    requireAdmin,
     asyncHandler(async (req, res) => {
       const { post } = req;
       let rawBuffer;
@@ -361,7 +355,7 @@ export default function postsRouter({ auth, stores, notify }) {
   }
 
   async function vote(req, res, value) {
-    const where = { postId_userId: { postId: req.post.id, userId: req.userId } };
+    const where = { postId_userId: { postId: req.post.id, userId: req.user?.id } };
     await toggleVote(prisma.vote, where, where.postId_userId, value);
     res.json(serializePost(await findPost(req.post.id), viewer(req)));
   }
@@ -374,7 +368,7 @@ export default function postsRouter({ auth, stores, notify }) {
     requireAuth,
     requireApproved,
     asyncHandler(async (req, res) => {
-      const where = { postId_userId: { postId: req.post.id, userId: req.userId } };
+      const where = { postId_userId: { postId: req.post.id, userId: req.user?.id } };
       try {
         if (await prisma.pin.findUnique({ where })) {
           await prisma.pin.delete({ where });
@@ -391,8 +385,7 @@ export default function postsRouter({ auth, stores, notify }) {
 
   router.post(
     "/:id/lock",
-    requireAuth,
-    requireRole("MODERATOR", "ADMIN"),
+    requireModerator,
     asyncHandler(async (req, res) => {
       if (req.post.status !== "APPROVED") throw new HttpError(400, "Only approved posts can be locked");
       const updated = await prisma.postMetadata.update({
@@ -408,8 +401,7 @@ export default function postsRouter({ auth, stores, notify }) {
   // moderator moves it back and unlocks it by hand.
   router.post(
     "/:id/archive",
-    requireAuth,
-    requireRole("MODERATOR", "ADMIN"),
+    requireModerator,
     asyncHandler(async (req, res) => {
       if (req.post.status !== "APPROVED") throw new HttpError(400, "Only approved posts can be archived");
       const updated = await prisma.postMetadata.update({
@@ -424,7 +416,7 @@ export default function postsRouter({ auth, stores, notify }) {
   // Only the post's own author or a moderator/admin may curate its linked
   // posts - same idiom used for review-detail visibility above.
   function canManageLinks(req) {
-    return req.userId === req.post.authorId || isModerator(req.userRole);
+    return req.user?.id === req.post.authorId || isModerator(req.user?.role);
   }
 
   // Linked posts are directional and shown on the source post only: linking

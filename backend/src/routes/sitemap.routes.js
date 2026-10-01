@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { prisma } from "../lib/prisma.js";
-import { asyncHandler } from "../lib/asyncHandler.js";
-import { TOPIC_SLUGS } from "../lib/topics.js";
+import { prisma } from "../lib/db/prisma.js";
+import { asyncHandler } from "../lib/http/asyncHandler.js";
+import { TOPIC_SLUGS } from "../config/topics.js";
 import { postUrl } from "../lib/postUrl.js";
+import { env } from "../config/env.js";
 
 const router = Router();
 
@@ -19,7 +20,7 @@ router.get(
       select: { id: true, title: true, updatedAt: true },
     });
     const urls = [
-      ...STATIC_PATHS.map((path) => `<url><loc>${process.env.SITE_URL}${path}</loc></url>`),
+      ...STATIC_PATHS.map((path) => `<url><loc>${env.siteUrl}${path}</loc></url>`),
       ...posts.map((p) => `<url><loc>${postUrl(p)}</loc><lastmod>${p.updatedAt.toISOString()}</lastmod></url>`),
     ].join("");
     res

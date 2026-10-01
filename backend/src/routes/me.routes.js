@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { prisma } from "../lib/prisma.js";
-import { asyncHandler } from "../lib/asyncHandler.js";
+import { prisma } from "../lib/db/prisma.js";
+import { asyncHandler } from "../lib/http/asyncHandler.js";
 import { serializePost } from "../lib/serializePost.js";
 import { postInclude as include } from "../lib/postInclude.js";
 import { getRecommendedPosts } from "../lib/recommendations.js";
@@ -14,7 +14,7 @@ export default function meRouter({ auth }) {
   // decide whether to show the Admin nav link) - role otherwise never
   // appears in any other API response.
   router.get("/me", requireAuth, (req, res) => {
-    res.json({ id: req.userId, name: req.userName, role: req.userRole });
+    res.json({ id: req.user?.id, name: req.user.name, role: req.user?.role });
   });
 
   // Home page "Your Pinned Posts": every post the caller has pinned, across
@@ -24,11 +24,11 @@ export default function meRouter({ auth }) {
     requireAuth,
     asyncHandler(async (req, res) => {
       const pins = await prisma.pin.findMany({
-        where: { userId: req.userId },
+        where: { userId: req.user?.id },
         include: { post: { include } },
         orderBy: { createdAt: "desc" },
       });
-      res.json(pins.map((pin) => serializePost(pin.post, { userId: req.userId, userRole: req.userRole })));
+      res.json(pins.map((pin) => serializePost(pin.post, { userId: req.user?.id, userRole: req.user?.role })));
     })
   );
 
@@ -38,7 +38,7 @@ export default function meRouter({ auth }) {
     requireAuth,
     asyncHandler(async (req, res) => {
       const limit = Math.min(Number(req.query.limit) || 6, 20);
-      const posts = await getRecommendedPosts({ userId: req.userId, userRole: req.userRole, limit });
+      const posts = await getRecommendedPosts({ userId: req.user?.id, userRole: req.user?.role, limit });
       res.json(posts);
     })
   );

@@ -1,6 +1,8 @@
 // A post's public URL on the frontend. The slug is derived from the title
 // on every read rather than stored: PostPage.jsx routes on the id alone, so
 // the slug is purely for readers and search engines and can change freely.
+import { env } from "../config/env.js";
+
 export function slugify(title) {
   return title
     .normalize("NFD")
@@ -11,4 +13,4 @@ export function slugify(title) {
     .replace(/^-+|-+$/g, "");
 }
 
-export const postUrl = (post) => `${process.env.SITE_URL}/posts/${post.id}/${slugify(post.title)}`;
+export const postUrl = (post) => `${env.siteUrl}/posts/${post.id}/${slugify(post.title)}`;

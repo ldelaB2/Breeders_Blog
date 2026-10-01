@@ -1,12 +1,13 @@
 // Post-workflow notification emails via Resend. A send failure must never
 // break the request that triggered it (the approval/rejection/submission
 // already succeeded in the DB), so every failure is logged rather than thrown.
-import { prisma } from "./prisma.js";
+import { prisma } from "./db/prisma.js";
 import { postUrl } from "./postUrl.js";
 import { escapeHtml } from "./mail/createMailer.js";
+import { env } from "../config/env.js";
 
 export function createNotifications({ send }) {
-  const SITE_URL = process.env.SITE_URL;
+  const SITE_URL = env.siteUrl;
 
   async function notifyAdminsOfPendingPost(post) {
     const admins = await prisma.user.findMany({

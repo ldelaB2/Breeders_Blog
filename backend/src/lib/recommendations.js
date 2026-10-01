@@ -6,7 +6,7 @@
 // on, or pinned), then recommend that user's highest-ranked unseen posts in
 // those topics. Backfills with global top posts when there isn't enough
 // topic-affinity signal (e.g. a brand-new account).
-import { prisma } from "./prisma.js";
+import { prisma } from "./db/prisma.js";
 import { postInclude as include } from "./postInclude.js";
 import { serializePost } from "./serializePost.js";
 import { rankScore } from "./rankScore.js";

@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { Webhook } from "svix";
-import { asyncHandler } from "../lib/asyncHandler.js";
-import { upsertUser } from "../lib/users.js";
+import { asyncHandler } from "../lib/http/asyncHandler.js";
+import { profileFromClerkWebhook, upsertUser } from "../modules/users/users.js";
+import { env } from "../config/env.js";
 
 const router = Router();
 
@@ -16,7 +17,7 @@ router.post(
   asyncHandler(async (req, res) => {
     let event;
     try {
-      event = new Webhook(process.env.CLERK_WEBHOOK_SIGNING_SECRET).verify(req.body, {
+      event = new Webhook(env.clerkWebhookSecret).verify(req.body, {
         "svix-id": req.headers["svix-id"],
         "svix-timestamp": req.headers["svix-timestamp"],
         "svix-signature": req.headers["svix-signature"],
@@ -26,14 +27,7 @@ router.post(
     }
 
     if (event.type === "user.created" || event.type === "user.updated") {
-      const u = event.data;
-      await upsertUser({
-        id: u.id,
-        name: [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username,
-        role: u.private_metadata?.role,
-        avatarUrl: u.image_url,
-        email: u.email_addresses?.find((e) => e.id === u.primary_email_address_id)?.email_address,
-      });
+      await upsertUser(profileFromClerkWebhook(event.data));
     }
 
     res.status(200).json({ received: true });

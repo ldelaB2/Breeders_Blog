@@ -5,7 +5,7 @@ import { createFakes } from "./fakes.js";
 assertLocalDatabase();
 
 const { createApp } = await import("../../src/app.js");
-const { prisma } = await import("../../src/lib/prisma.js");
+const { prisma } = await import("../../src/lib/db/prisma.js");
 
 export { prisma };
 
