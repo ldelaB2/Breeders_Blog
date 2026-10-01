@@ -1,8 +1,8 @@
-import { Link } from "react-router-dom";
 import Collapsible from "@/components/ui/Collapsible";
 import ExternalLink from "@/components/ui/ExternalLink";
 import Icon from "@/components/ui/Icon";
 import Page from "@/components/ui/Page";
+import { cn } from "@/lib/utils/cn";
 import { useSeo } from "@/lib/seo/useSeo";
 import sampleMarkdown from "../../sample_post/example_markdown.md?url";
 import samplePythonQmd from "../../sample_post/example_python.qmd?url";
@@ -58,11 +58,17 @@ function Section({ title, as: Tag = "h2", children }) {
   );
 }
 
+// A site icon sitting in a sentence, so the instructions show exactly what
+// to look for. `className` tints it to match the real button.
+function InlineIcon({ name, size = "h-5 w-5", className }) {
+  return <Icon name={name} inline className={cn(size, "align-text-bottom", className)} />;
+}
+
 function About() {
   useSeo({
     title: "About",
     description:
-      "Why Breeders Blog exists, what plant breeding is, and how to write and submit a post in Markdown, Quarto or R Markdown.",
+      "Why Breeders Blog exists, how to write and submit a post in Markdown, Quarto or R Markdown, and how voting, comments, linked posts and sharing work.",
     path: "/about",
   });
 
@@ -126,52 +132,6 @@ function About() {
         </div>
       </Section>
 
-      {/* What is Plant Breeding Section */}
-      <Section title="What is Plant Breeding?">
-        <div className="mt-4 text-gray-700 space-y-4">
-          <p>
-            <strong>
-              Plant breeding is the science and art of making better crops
-            </strong>
-            —higher yield, better disease resistance, improved nutrition, or the
-            ability to handle heat, drought, and other stresses.
-          </p>
-          <p>
-            The classic recipe is simple: cross two plants with traits you like,
-            grow their offspring, keep the few that combine the best of both,
-            and repeat—often for <strong>7–10 years</strong> before a new
-            variety is ready. Every cross produces thousands of unique plants,
-            so breeding is really a giant search problem: build a haystack, then
-            spend years looking for the needle.
-          </p>
-          <p>
-            What's changing is how we search. Cheap{" "}
-            <strong>DNA sequencing</strong> lets us predict how a plant will
-            perform before it's ever grown; drones, cameras, and sensors measure
-            whole fields in minutes; <strong>machine learning</strong> finds
-            patterns in the resulting mountains of data; and gene editing tools
-            like <strong>CRISPR</strong> let us create traits rather than only
-            hunt for them. Along the way the field borrows freely from
-            statistics, computer science, engineering, and molecular
-            biology—which is exactly what makes it so much fun.
-          </p>
-          <p>
-            All of it serves one simple question:{" "}
-            <span className="font-semibold">
-              How do we make a better plant?
-            </span>{" "}
-            The question is simple. The answer is anything but.
-          </p>
-          <p>
-            Want the long version? Head over to the{" "}
-            <Link to="/topics/history" className="underline">
-              History of Breeding
-            </Link>{" "}
-            topic.
-          </p>
-        </div>
-      </Section>
-
       {/* How to Create a Post Section */}
       <Section title="How to Create a Post">
         <div className="mt-4 text-gray-700 space-y-4">
@@ -179,15 +139,18 @@ function About() {
           <ol className="list-decimal space-y-1 pl-6">
             <li>Pick the topic your post belongs in and open it.</li>
             <li>
-              Click the create-post icon{" "}
-              <Icon name="add-post" inline className="h-5 w-5 align-text-bottom" />{" "}
-              (you'll need to be signed in).
+              Click the create-post icon <InlineIcon name="add-post" /> (you'll
+              need to be signed in).
             </li>
             <li>
               Enter a <strong>title</strong> (up to 100 characters), an{" "}
               <strong>abstract</strong> (up to about 600 words), and upload a
               single <strong>.md, .qmd, .Rmd, or .zip</strong> file under{" "}
               <strong>50 MB</strong>.
+            </li>
+            <li>
+              Optionally, add a <strong>share image</strong>: the cover photo
+              shown when your post's link is shared.
             </li>
             <li>
               Submit. A moderator renders and reviews it, and you'll get an
@@ -382,13 +345,46 @@ $$`}
             </li>
           </ul>
 
+          <h3 className="font-semibold text-gray-900">Adding a share image</h3>
+          <p>
+            When someone shares your post on LinkedIn, Facebook, X, or anywhere
+            else that shows link previews, the preview card is built from your{" "}
+            <strong>title</strong>, the start of your <strong>abstract</strong>,
+            and your <strong>share image</strong>. The image is optional but
+            makes a shared post far more eye-catching; without one, the preview
+            uses a small Breeders Blog logo instead.
+          </p>
+          <ul className="list-disc space-y-2 pl-6">
+            <li>
+              <strong>Format:</strong> a <code>.png</code>, <code>.jpg</code>,
+              or <code>.webp</code> file up to <strong>5 MB</strong>, uploaded
+              in the create-post form next to your post file. It's separate
+              from your post, so it doesn't count toward the 50 MB limit.
+            </li>
+            <li>
+              <strong>Shape:</strong> landscape, ideally{" "}
+              <strong>1200×630</strong> pixels. Preview cards crop to roughly
+              that shape, so keep anything important away from the edges.
+            </li>
+            <li>
+              <strong>Content:</strong> your most striking figure, a field
+              photo, or a diagram that sums up the post. Large text in the
+              image is hard to read at preview size.
+            </li>
+          </ul>
+          <p>
+            Only the first 160 or so characters of your abstract fit in the
+            card, so make its opening sentence count.
+          </p>
+
           <div className="rounded-md bg-canvas p-3">
             <h4 className="mb-1 font-semibold text-gray-900">
               Tip: compressing images
             </h4>
             <p className="text-sm">
               Photos straight off a phone or camera can easily be several MB
-              each and add up fast against the 50 MB limit.{" "}
+              each and add up fast against the 50 MB limit (or the 5 MB share
+              image limit).{" "}
               <ExternalLink href="https://ffmpeg.org/download.html">ffmpeg</ExternalLink>{" "}
               is a free command-line tool that can shrink an image in seconds by
               resizing it and re-encoding it at a lower (but still perfectly
@@ -406,10 +402,118 @@ $$`}
             Your post is marked <strong>pending</strong> and only you and the
             moderators can see it. A moderator renders your file, checks that it
             displays correctly, and approves it—or emails you with what needs
-            fixing. Either way you'll hear back within about 24 hours. To keep
-            things sane for the moderators, each user can submit up to{" "}
-            <strong>5 posts every 24 hours</strong>.
+            fixing. Either way you'll hear back within about 24 hours. A
+            moderator may also add or swap in a share image while approving.
+            To keep things sane for the moderators, each user can submit up
+            to <strong>5 posts every 24 hours</strong>.
           </p>
+          <p>
+            Once it's live, your post can be voted on, commented on, shared,
+            and linked to related posts, covered in the next section.
+          </p>
+        </div>
+      </Section>
+
+      {/* How to Interact with the Site Section */}
+      <Section title="How to Interact with the Site">
+        <div className="mt-4 text-gray-700 space-y-4">
+          <p>
+            Anyone can read every post. Voting, commenting, and pinning need
+            you to be signed in; you'll be prompted to sign in when you try.
+          </p>
+
+          <h3 className="font-semibold text-gray-900">Voting</h3>
+          <p>
+            Every post and every comment has an upvote{" "}
+            <InlineIcon name="upvote" className="text-accent" /> and a downvote{" "}
+            <InlineIcon name="downvote" className="text-red-600" /> arrow with
+            its score (upvotes minus downvotes) in between. Click an arrow to
+            vote, and click it again to take your vote back. Votes decide where
+            posts sit within a topic: posts are ranked by their score plus a
+            bonus for comment activity, so the most useful and most discussed
+            work rises to the top. They also shape the posts recommended to you
+            on the home page.
+          </p>
+
+          <h3 className="font-semibold text-gray-900">Commenting</h3>
+          <p>
+            Open a post and scroll past it to the <strong>Comments</strong>{" "}
+            section. Click the add-comment icon{" "}
+            <InlineIcon name="add-comment" /> next to the heading to start a
+            new thread, or the same icon on any comment to reply to it.
+            Replies nest underneath the comment they answer, and the arrow{" "}
+            <InlineIcon name="chevron" size="h-4 w-4" /> beside a comment
+            hides or shows its replies. Moderators can lock comments on a
+            post and remove comments that break the one rule below.
+          </p>
+
+          <h3 className="font-semibold text-gray-900">Pinning</h3>
+          <p>
+            The pin icon <InlineIcon name="pin" /> on a post saves it for
+            later. Pinned posts appear in <strong>Your Pinned Posts</strong> on
+            the home page and always sort to the top of their topic for you.
+            Pins are just for you; they don't change how anyone else sees
+            the post.
+          </p>
+
+          <h3 className="font-semibold text-gray-900">Linking posts</h3>
+          <p>
+            Linked posts connect related work: a follow-up to an earlier
+            analysis, a method applied in another post, or the background a
+            reader should see next. They appear in a{" "}
+            <strong>Linked Posts</strong> carousel between the end of a post
+            and its comments.
+          </p>
+          <ul className="list-disc space-y-2 pl-6">
+            <li>
+              <strong>Who can link:</strong> a post's author and the
+              moderators. On your own published post you'll see the link icon{" "}
+              <InlineIcon name="link" /> on its tile in the topic list.
+            </li>
+            <li>
+              <strong>How:</strong> click the link icon, search for the post you
+              want by title, and click it to add it. The same window lists
+              everything already linked, with a delete button to remove a link.
+              Changes take effect immediately.
+            </li>
+            <li>
+              <strong>One direction:</strong> linking your post to another
+              shows that post under yours only. It doesn't add yours to theirs.
+              Only published posts can be linked.
+            </li>
+          </ul>
+
+          <h3 className="font-semibold text-gray-900">Sharing</h3>
+          <p>
+            Every published post has a share icon <InlineIcon name="share" />{" "}
+            in its header, on the right across from the Back arrow. Clicking
+            it opens a share window that shows a preview of exactly how the
+            link will look when shared: the post's share image (or the
+            Breeders Blog logo if it has none), the site address, the title,
+            and the start of the abstract. Below the preview are the ways to
+            share:
+          </p>
+          <ul className="list-disc space-y-2 pl-6">
+            <li>
+              <InlineIcon name="copy-link" /> <strong>Copy link</strong>: copies
+              the post's address to paste anywhere.
+            </li>
+            <li>
+              <InlineIcon name="facebook" /> <strong>Facebook</strong>,{" "}
+              <InlineIcon name="reddit" /> <strong>Reddit</strong>, and, under{" "}
+              <InlineIcon name="more" /> <strong>More</strong>,{" "}
+              <InlineIcon name="x-logo" /> <strong>X</strong> and{" "}
+              <InlineIcon name="linkedin" /> <strong>LinkedIn</strong>: open
+              that site's share window in a popup with the link already filled
+              in. You still press that site's own Post or Share button, so
+              nothing is posted on your behalf.
+            </li>
+            <li>
+              <InlineIcon name="email" /> <strong>Email</strong>: opens your
+              email app with the title as the subject and the link in the
+              body.
+            </li>
+          </ul>
         </div>
       </Section>
 
