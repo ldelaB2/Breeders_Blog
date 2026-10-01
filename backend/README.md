@@ -113,7 +113,7 @@ Mounted under `/api` unless noted. Auth column: **opt** = `optionalAuth`, **auth
 | --- | --- | --- |
 | `GET /health` | | `{ status: "ok" }` |
 | `GET /posts?topicSlug=` | opt | Feed: approved posts, plus your own pending (all pending for mods), newest first |
-| `GET /posts/top?limit=` | opt | Top approved posts by rank (default 5, max 20) |
+| `GET /posts/top?limit=` | opt | Top approved posts by rank: votes, comments and log-scaled views (default 5, max 20) |
 | `GET /posts/search?q=` | opt | Approved posts whose title or abstract contains every word |
 | `GET /posts/:id[?html=0]` | opt | One post plus its stitched HTML (unapproved: author/mods only) |
 | `POST /posts/upload-url` | auth | Submit step 1: upload ticket + signed URL (plus one for an optional `imageFilename`) |
@@ -127,6 +127,7 @@ Mounted under `/api` unless noted. Auth column: **opt** = `optionalAuth`, **auth
 | `POST /posts/:id/lock` | mod | Toggle locked (closes comments) |
 | `POST /posts/:id/archive` | mod | Move to the Archive topic and lock |
 | `POST /posts/:id/upvote`, `/downvote`, `/pin` | auth | Toggle (approved posts only) |
+| `POST /posts/:id/view` | opt | Count a page view (approved posts only; client sends once per session) |
 | `GET /posts/:id/links` | opt | Approved linked posts, in link order |
 | `POST /posts/:id/links`, `DELETE /posts/:id/links/:targetId` | auth | Author or mod manages links |
 | `GET /posts/:postId/comments` | | Flat list, oldest first; the frontend threads by `parentId` |
@@ -136,7 +137,7 @@ Mounted under `/api` unless noted. Auth column: **opt** = `optionalAuth`, **auth
 | `POST /comments/:id/upvote`, `/downvote` | auth | Toggle |
 | `GET /me` | auth | `{ id, name, role }`, the only place a role is exposed |
 | `GET /me/pins` | auth | Your pinned posts, most recent first |
-| `GET /me/recommendations?limit=` | auth | Unseen top posts in topics you engaged with, plus global backfill |
+| `GET /me/recommendations?limit=` | auth | Posts linked from ones you pinned, upvoted or commented on; then top posts in those topics; then global backfill |
 | `POST /webhooks/clerk` | svix | `user.created` / `user.updated` → upsert the user |
 | `GET /sitemap.xml` (no `/api`) | | Static pages plus every approved post |
 

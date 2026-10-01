@@ -46,6 +46,18 @@ test("pinning a post toggles", async () => {
   assert.deepEqual((await call("/api/posts/post/pin")).body.pinnedBy, []);
 });
 
+test("a post view counts anonymously, only on approved posts", async () => {
+  await seed();
+  const viewCount = async () => (await request(ctx.app).get("/api/posts/post?html=0")).body.viewCount;
+
+  assert.equal((await request(ctx.app).post("/api/posts/post/view")).status, 204);
+  assert.equal((await call("/api/posts/post/view")).status, 204);
+  assert.equal(await viewCount(), 2);
+
+  assert.equal((await request(ctx.app).post("/api/posts/pending/view")).status, 404);
+  assert.equal((await request(ctx.app).post("/api/posts/nope/view")).status, 404);
+});
+
 test("voting on a comment toggles and switches", async () => {
   const { comment } = await seed();
   let res = await call(`/api/comments/${comment.id}/upvote`);

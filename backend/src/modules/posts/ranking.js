@@ -8,13 +8,17 @@ const WEIGHTS = {
   upvote: 1,
   downvote: 1,
   comment: 2, // a comment reflects more engagement than a vote, so it counts for more
+  // Applied to log2(1 + views): 1 view = 2 pts, 15 = 8, 1000 ~ 20. The log
+  // keeps a widely read post from drowning out votes and comments.
+  view: 2,
 };
 
 export function rankScore(post) {
   return (
     post.upvotes.length * WEIGHTS.upvote -
     post.downvotes.length * WEIGHTS.downvote +
-    (post.commentCount ?? 0) * WEIGHTS.comment
+    (post.commentCount ?? 0) * WEIGHTS.comment +
+    Math.log2(1 + (post.viewCount ?? 0)) * WEIGHTS.view
   );
 }
 

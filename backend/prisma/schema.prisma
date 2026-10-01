@@ -55,6 +55,9 @@ model PostMetadata {
   // Blocks new comments (including replies). Set directly by a lock
   // toggle, or implicitly by archiving (see POST /:id/archive).
   locked    Boolean    @default(false)
+  // Post page views, bumped by POST /:id/view (at most once per browser
+  // session, see app PostReader.jsx). Feeds the rank score in ranking.js.
+  viewCount Int        @default(0)
 
   authorId   String
   // Snapshot of the author's display name at post time, so a later

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import request from "supertest";
 import { as, useTestApp } from "./setup/harness.js";
-import { createComment, createPost, createUser, minutesAgo, pin, vote } from "./setup/factories.js";
+import { createComment, createPost, createUser, link, minutesAgo, pin, vote } from "./setup/factories.js";
 
 const ctx = useTestApp();
 const ids = (res) => res.body.map((p) => p.id);
@@ -50,6 +50,41 @@ test("recommendations favor unseen posts in topics you engaged with, then backfi
   // Topic matches first (ranked), then global backfill (ranked); nothing already engaged with.
   assert.deepEqual(ids(res), ["qg-top", "qg-plain", "ml-top", "ml-plain"]);
   assert.deepEqual(ids(await request(ctx.app).get("/api/me/recommendations?limit=1").set(as("u"))), ["qg-top"]);
+});
+
+test("recommendations lead with posts linked from ones you pinned, upvoted or commented on", async () => {
+  const user = await createUser({ id: "u" });
+  const author = await createUser({ id: "author" });
+  const fan = await createUser({ id: "fan" });
+
+  const pinned = await createPost({ author, id: "pinned", topicSlug: "qg" });
+  const upvoted = await createPost({ author, id: "upvoted", topicSlug: "qg" });
+  const commented = await createPost({ author, id: "commented", topicSlug: "qg" });
+  const downvoted = await createPost({ author, id: "downvoted", topicSlug: "qg" });
+  const twice = await createPost({ author, id: "linked-twice", topicSlug: "ml" });
+  const once = await createPost({ author, id: "linked-once", topicSlug: "gs" });
+  const fromDownvoted = await createPost({ author, id: "from-downvoted", topicSlug: "gs" });
+  const pendingTarget = await createPost({ author, id: "pending-target", topicSlug: "gs", status: "PENDING" });
+  const qgTop = await createPost({ author, id: "qg-top", topicSlug: "qg" });
+  await vote(qgTop, fan, 1);
+  await vote(fromDownvoted, fan, 1);
+
+  await pin(pinned, user);
+  await vote(upvoted, user, 1);
+  await createComment({ post: commented, author: user });
+  await vote(downvoted, user, -1);
+
+  await link(pinned, twice);
+  await link(upvoted, twice);
+  await link(commented, once);
+  await link(downvoted, fromDownvoted); // a downvote isn't a positive signal
+  await link(pinned, upvoted); // already engaged with: never recommended
+  await link(pinned, pendingTarget); // not approved: never recommended
+
+  const res = await request(ctx.app).get("/api/me/recommendations").set(as("u"));
+  // Linked posts by link count, then the engaged topic (qg), then global backfill.
+  assert.deepEqual(ids(res), ["linked-twice", "linked-once", "qg-top", "from-downvoted"]);
+  assert.deepEqual(ids(await request(ctx.app).get("/api/me/recommendations?limit=1").set(as("u"))), ["linked-twice"]);
 });
 
 test("a brand-new account gets the global top posts", async () => {

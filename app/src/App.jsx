@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
 import { ROUTES } from "@/config/routes";
 import Header from "@/components/layout/Header/Header";
 import Footer from "@/components/layout/Footer";
@@ -18,6 +19,8 @@ export default function App() {
         </main>
         <Footer />
       </div>
+      {/* Vercel Web Analytics (dashboard only - post ranking counts views itself, see PostReader) */}
+      <Analytics />
     </BrowserRouter>
   );
 }

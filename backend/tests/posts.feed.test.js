@@ -55,6 +55,7 @@ test("a post serializes to the shape the frontend expects", async () => {
   assert.deepEqual(Object.keys(anon).sort(), [
     "abstract", "authorAvatarUrl", "authorId", "authorName", "commentCount", "createdAt", "downvotes", "htmlSlug",
     "id", "imageUrl", "linkedPostCount", "locked", "pinnedBy", "slug", "status", "title", "topicSlug", "updatedAt", "upvotes",
+    "viewCount",
   ]);
   assert.equal(anon.slug, "resume-of-genomic-selection");
   assert.deepEqual(anon.upvotes, ["voter"]);
@@ -83,6 +84,18 @@ test("top posts rank by votes and comments, capped by limit", async () => {
 
   assert.deepEqual(ids(await request(ctx.app).get("/api/posts/top")), ["discussed", "voted", "quiet", "disliked"]);
   assert.deepEqual(ids(await request(ctx.app).get("/api/posts/top?limit=2")), ["discussed", "voted"]);
+});
+
+test("top posts count page views on a log scale", async () => {
+  const author = await createUser({ id: "author" });
+  const [a, b, c] = await Promise.all(["voter1", "voter2", "voter3"].map((id) => createUser({ id })));
+  await createPost({ author, id: "quiet" });
+  await createPost({ author, id: "read", viewCount: 15 }); // log2(16) * 2 = 8
+  await createPost({ author, id: "glanced", viewCount: 1 }); // log2(2) * 2 = 2
+  const voted = await createPost({ author, id: "voted", viewCount: 1 }); // 3 + 2 = 5
+  await Promise.all([a, b, c].map((voter) => vote(voted, voter, 1)));
+
+  assert.deepEqual(ids(await request(ctx.app).get("/api/posts/top")), ["read", "voted", "glanced", "quiet"]);
 });
 
 test("search matches every word in the title or abstract, case-insensitively", async () => {

@@ -26,6 +26,7 @@ export function serializePost(post, viewer, opts = {}) {
     imageUrl: imageUrlFor(post.body?.imageSlug),
     commentCount: post._count?.comments ?? undefined,
     linkedPostCount: post._count?.linksFrom ?? undefined,
+    viewCount: post.viewCount,
     ...serializeVotes(post.votes),
     pinnedBy: post.pins.map((p) => p.userId),
     ...(opts.html !== undefined && { html: opts.html }),

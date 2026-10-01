@@ -22,6 +22,7 @@ export function createPost({
   rawSlug = `${id}/upload.md`,
   rawOriginalName = "post.md",
   imageSlug = null,
+  viewCount = 0,
   createdAt,
 } = {}) {
   return prisma.postMetadata.create({
@@ -32,6 +33,7 @@ export function createPost({
       title,
       abstract,
       locked,
+      viewCount,
       authorId: author.id,
       authorName: author.name,
       ...(createdAt && { createdAt }),

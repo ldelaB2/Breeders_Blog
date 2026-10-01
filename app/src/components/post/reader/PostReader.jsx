@@ -4,7 +4,7 @@ import Message from "@/components/ui/Message";
 import Page from "@/components/ui/Page";
 import SharePostButton from "@/components/share/SharePostButton";
 import PostArticle from "./PostArticle";
-import { fetchPost } from "@/lib/api/client";
+import { fetchPost, recordPostView } from "@/lib/api/client";
 import { useAsync } from "@/lib/hooks/useAsync";
 import { setCitation } from "@/lib/post/citation";
 import { postSeo } from "@/lib/seo/seo";
@@ -23,6 +23,22 @@ function PostReader({ postId, onBack }) {
     setCitation({ title: post.title, author: post.authorName, date: post.createdAt });
     return () => setCitation(null);
   }, [post]);
+
+  // Counts a view toward the post's rank, once per post per browser session
+  // (the flag is set before sending, so StrictMode's double effect and
+  // reloads don't recount). Best-effort: storage or network failures are ignored.
+  const viewableId = post?.status === "APPROVED" ? post.id : null;
+  useEffect(() => {
+    if (!viewableId) return;
+    const key = `viewed:${viewableId}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch {
+      // Storage blocked: count it anyway.
+    }
+    recordPostView(viewableId).catch(() => {});
+  }, [viewableId]);
 
   return (
     <Page>

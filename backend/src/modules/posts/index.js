@@ -14,7 +14,7 @@ export function postsRouter(ctx) {
   router.use(feedRoutes(ctx)); //            GET  /  /top  /search
   router.use(submitRoutes(ctx)); //          POST /upload-url  /
   router.use(moderationRoutes(ctx)); //      GET /pending, /:id/approve|reject|download|lock|archive, DELETE /:id
-  router.use(postEngagementRoutes(ctx)); //  POST /:id/upvote|downvote|pin
+  router.use(postEngagementRoutes(ctx)); //  POST /:id/upvote|downvote|pin|view
   router.use(linksRoutes(ctx)); //           /:id/links
   router.use(readRoutes(ctx)); //            GET  /:id
   return router;

@@ -22,6 +22,7 @@ async function request(path, { token, method = "GET", body } = {}) {
 // Public reads - usable without a session token.
 export const fetchPost = (id) => request(`/posts/${id}`);
 export const fetchComments = (postId) => request(`/posts/${postId}/comments`);
+export const recordPostView = (id) => request(`/posts/${id}/view`, { method: "POST" });
 
 // Streams the zip directly rather than going through the JSON `request()`
 // helper, then triggers a browser save via a temporary object-URL anchor.
