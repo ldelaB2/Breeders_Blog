@@ -24,6 +24,7 @@ export function serializePost(post, viewer = {}, opts = {}) {
     updatedAt: post.updatedAt,
     htmlSlug: post.body?.htmlSlug ?? null,
     commentCount: post._count?.comments ?? undefined,
+    linkedPostCount: post._count?.linksFrom ?? undefined,
     upvotes: post.votes.filter((v) => v.value === 1).map((v) => v.userId),
     downvotes: post.votes.filter((v) => v.value === -1).map((v) => v.userId),
     pinnedBy: post.pins.map((p) => p.userId),

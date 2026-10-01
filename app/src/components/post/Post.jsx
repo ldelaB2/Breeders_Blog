@@ -4,6 +4,7 @@ import { useUser } from "@clerk/react";
 import Icon from "../Icon";
 import VoteControls from "../VoteControls";
 import DeletePostModal from "./DeletePostModal";
+import LinkPostModal from "./LinkPostModal";
 import { voteState } from "../../lib/voting";
 import { useRequireSignIn } from "../../lib/useRequireSignIn";
 import { useCurrentUser } from "../../lib/useCurrentUser";
@@ -14,6 +15,7 @@ import commentIcon from "../../assets/comment.svg?raw";
 import lockIcon from "../../assets/lock.svg?raw";
 import archiveIcon from "../../assets/archive.svg?raw";
 import deleteIcon from "../../assets/delete_icon.svg?raw";
+import linkIcon from "../../assets/link.svg?raw";
 
 // `showTopic` is only turned on from pages that mix posts across topics
 // (currently just the Home page) - Topic.jsx already makes the topic
@@ -33,11 +35,13 @@ function Post({
   const requireSignIn = useRequireSignIn();
   const navigate = useNavigate();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const isPinned = user ? post.pinnedBy.includes(user.id) : false;
   const { score, myVote } = voteState(post.upvotes, post.downvotes, user?.id);
   const isPending = post.status === "PENDING";
   const canModerate = isModerator && post.status === "APPROVED";
+  const canLinkPosts = (user?.id === post.authorId || isModerator) && post.status === "APPROVED";
 
   const tile = (
     <div
@@ -124,6 +128,20 @@ function Post({
             </>
           )}
 
+          {canLinkPosts && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowLinkModal(true);
+              }}
+              aria-label="Manage linked posts"
+              className="rounded-md p-1.5 text-gray-300 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            >
+              <Icon svg={linkIcon} className="h-5 w-5" />
+            </button>
+          )}
+
           <button
             type="button"
             onClick={(e) => {
@@ -197,6 +215,7 @@ function Post({
           onDeleted={(id) => onDeleted?.(id)}
         />
       )}
+      {showLinkModal && <LinkPostModal postId={post.id} onClose={() => setShowLinkModal(false)} />}
     </>
   );
 }

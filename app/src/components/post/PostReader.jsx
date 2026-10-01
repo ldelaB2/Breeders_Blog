@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import Icon from "../Icon";
 import CommentSection from "../comment/CommentSection";
+import LinkedPosts from "./LinkedPosts";
 import { fetchPost } from "../../lib/api";
 import { extractPostHtml } from "../../lib/postHtml";
 import { setCitation } from "../../lib/citation";
@@ -195,6 +196,8 @@ function PostReader({ postId, onBack }) {
               )}
             </div>
           </div>
+
+          <LinkedPosts postId={post.id} count={post.linkedPostCount} />
 
           <CommentSection postId={post.id} locked={post.locked} />
         </>

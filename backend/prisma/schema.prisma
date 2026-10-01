@@ -80,6 +80,9 @@ model PostMetadata {
   pins     Pin[]
   comments Comment[]
 
+  linksFrom PostLink[] @relation("LinksFrom")
+  linksTo   PostLink[] @relation("LinksTo")
+
   @@index([topicSlug])
   @@index([status])
 }
@@ -131,6 +134,21 @@ model Vote {
   user   User   @relation(fields: [userId], references: [id])
 
   @@unique([postId, userId])
+}
+
+// Directional "see also" link: sourcePost -> targetPost. Set by the source
+// post's author or a moderator/admin. Linking A -> B does not surface A
+// under B - each post only shows the links it explicitly stores.
+model PostLink {
+  sourcePostId String
+  targetPostId String
+  createdAt    DateTime @default(now())
+
+  sourcePost PostMetadata @relation("LinksFrom", fields: [sourcePostId], references: [id], onDelete: Cascade)
+  targetPost PostMetadata @relation("LinksTo", fields: [targetPostId], references: [id], onDelete: Cascade)
+
+  @@id([sourcePostId, targetPostId])
+  @@index([targetPostId])
 }
 
 // One row per user per pinned post (a personal bookmark, not a

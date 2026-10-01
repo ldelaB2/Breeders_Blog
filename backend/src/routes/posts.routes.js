@@ -426,4 +426,63 @@ router.post(
   })
 );
 
+// Only the post's own author or a moderator/admin may curate its linked
+// posts - same idiom used for review-detail visibility above.
+function canManageLinks(req) {
+  return req.userId === req.post.authorId || isModerator(req.userRole);
+}
+
+// Linked posts are directional and shown on the source post only: linking
+// A -> B never surfaces A under B.
+router.get(
+  "/:id/links",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const links = await prisma.postLink.findMany({
+      where: { sourcePostId: req.post.id, targetPost: { status: "APPROVED" } },
+      include: { targetPost: { include } },
+      orderBy: { createdAt: "asc" },
+    });
+    res.json(links.map((l) => serializePost(l.targetPost, viewer(req))));
+  })
+);
+
+router.post(
+  "/:id/links",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    if (!canManageLinks(req)) throw new HttpError(403, "Forbidden");
+    const targetPostId = requireText(req.body.targetPostId, "targetPostId", 64);
+    if (targetPostId === req.post.id) throw new HttpError(400, "A post can't be linked to itself");
+
+    const target = await prisma.postMetadata.findUnique({
+      where: { id: targetPostId },
+      select: { id: true, status: true },
+    });
+    if (!target || target.status !== "APPROVED") throw new HttpError(400, "Target post not found");
+
+    try {
+      await prisma.postLink.create({ data: { sourcePostId: req.post.id, targetPostId } });
+    } catch (err) {
+      // Already linked - same overlapping-toggle race as toggleVote/pin.
+      if (err.code !== "P2002") throw err;
+    }
+    res.status(204).end();
+  })
+);
+
+router.delete(
+  "/:id/links/:targetId",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    if (!canManageLinks(req)) throw new HttpError(403, "Forbidden");
+    await prisma.postLink
+      .delete({ where: { sourcePostId_targetPostId: { sourcePostId: req.post.id, targetPostId: req.params.targetId } } })
+      .catch((err) => {
+        if (err.code !== "P2025") throw err;
+      });
+    res.status(204).end();
+  })
+);
+
 export default router;

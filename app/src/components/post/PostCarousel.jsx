@@ -51,7 +51,7 @@ function PostCarousel({ title, fetchPosts, emptyMessage }) {
 
   return (
     <section>
-      <h2 className="mb-3 text-xl font-bold text-gray-900">{title}</h2>
+      {title && <h2 className="mb-3 text-xl font-bold text-gray-900">{title}</h2>}
 
       {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 

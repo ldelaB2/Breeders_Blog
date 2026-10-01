@@ -5,5 +5,5 @@ export const postInclude = {
   votes: true,
   pins: true,
   body: true,
-  _count: { select: { comments: { where: { deletedAt: null } } } },
+  _count: { select: { comments: { where: { deletedAt: null } }, linksFrom: true } },
 };
