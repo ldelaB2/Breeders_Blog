@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "node --watch src/server.js",
+    "test": "node --env-file=.env.test tests/setup/migrateDb.js && node --env-file=.env.test --test --test-concurrency=1",
     "postinstall": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },
@@ -24,6 +25,7 @@
     "svix": "^1.99.1"
   },
   "devDependencies": {
-    "prisma": "^6.2.1"
+    "prisma": "^6.2.1",
+    "supertest": "^7.3.0"
   }
 }

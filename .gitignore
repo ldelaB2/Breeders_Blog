@@ -24,7 +24,6 @@ dist-ssr
 *.sw?
 .env
 
-reset-for-launch.js
 
 .claude/
 .devcontainer/

@@ -1,2 +1,5 @@
 .vercel
 .env*
+
+# Committed templates; the real .env files above stay ignored.
+!.env*.example
