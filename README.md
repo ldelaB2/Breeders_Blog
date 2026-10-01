@@ -1,116 +1,26 @@
 # Breeders Blog
 
-A personal blog with a React frontend and an Express/Prisma backend. Authors submit posts (.md/.qmd/.rmd/.zip) which an admin reviews, renders and approves; readers vote, pin and comment.
+A blog for plant breeding research at [www.breedersblog.net](https://www.breedersblog.net). Authors submit posts as Markdown, Quarto or R Markdown files; an admin reviews and renders them before they go live. Readers vote, pin, comment and share.
 
-## Tech Stack
+| Folder | What it is | Details |
+| --- | --- | --- |
+| [`app/`](app/) | React + Vite frontend, plus one Vercel Function for SEO | [app/README.md](app/README.md) |
+| [`backend/`](backend/) | Express + Prisma API, with a test suite | [backend/README.md](backend/README.md) |
 
-| Layer        | Tech                                                                              |
-| ------------ | ---------------------------------------------------------------------------------- |
-| Frontend     | React 19 + Vite, Tailwind CSS, React Router                                       |
-| Backend      | Node.js + Express, Prisma ORM                                                     |
-| Database     | PostgreSQL ([Supabase](https://supabase.com))                                     |
-| File storage | Supabase Storage                                                                   |
-| Auth         | [Clerk](https://clerk.com)                                                         |
-| Email        | [Resend](https://resend.com)                                                       |
-| Hosting      | [Vercel](https://vercel.com) (frontend + backend, deployed as separate projects)   |
+**Stack:** React 19, Tailwind, Express, Prisma, PostgreSQL and Storage on [Supabase](https://supabase.com), auth by [Clerk](https://clerk.com), email by [Resend](https://resend.com), hosting on [Vercel](https://vercel.com) as two separate projects.
 
-## Project Structure
-
-```
-app/       React + Vite frontend (plus one Vercel Function, api/post.js - see SEO below)
-backend/   Express + Prisma API (Vercel entrypoint: api/index.js; local: src/server.js)
-```
-
-### Frontend layout (`app/src`)
-
-Imports use the `@/` alias for `src/`. Every file is `.jsx` except `lib/seo/seo.js`, which `api/post.js` loads in plain Node.
-
-```
-config/       routes.jsx (one table drives the router, nav and footer titles), topics.jsx, site.jsx
-pages/        one thin component per route
-components/
-  ui/         shared primitives: Button, IconButton, Icon, Modal, ConfirmModal, Dropdown, Collapsible, ...
-  layout/     Header/, Footer, ErrorBoundary, RequireRole
-  post/ admin/ comment/ search/ share/ vote/   feature components
-lib/
-  hooks/      useAsync (load data), useAsyncAction (submit/delete), useDebouncedValue, ...
-  api/ auth/ toast/ post/ comment/ vote/ seo/ share/ utils/   feature logic and state hooks
-assets/icons/ SVGs, rendered as components via vite-plugin-svgr: <Icon name="pin" />
-```
-
-Components stay presentational; data and actions come from feature hooks (`usePostFeed`, `useComments`, `usePostSearch`). To add an icon, drop an `.svg` into `assets/icons/`. To add a page, add a row to `config/routes.jsx`. To add a share target, add an entry to `lib/share/providers.jsx`.
-
-### Backend layout (`backend/src`)
-
-```
-app.js        createApp(deps): middleware, route mounts, error handler
-deps.js       the real external services - Clerk, Supabase Storage buckets, Resend mailer
-config/       env.js (every env var read), limits.js, topics.js
-middleware/   auth.js (requireAuth/optionalAuth/requireModerator/requireAdmin -> req.user), loadResource.js, errors.js
-lib/          shared infrastructure: db/ (prisma, ignoreConflicts), http/ (HttpError, validation), storage/, mail/
-modules/      one folder per feature, each with its routes and helpers:
-              posts/ (feed, read, submit; posts/index.js sets mount order), moderation/, engagement/ (votes + pins),
-              links/, comments/, me/ (pins, recommendations), users/ (roles, Clerk sync), sitemap/, webhooks/
-```
-
-Routes are factories that receive what they need from `createApp` (`auth`, `stores`, `notify`). Shared patterns:
-- `posts.repo.js` for post queries.
-- `assertStatus`/`requireApproved` for post status rules.
-- `ownsOrModerates` for author-or-staff checks.
-- `voteRoutes` for upvote/downvote on any record.
-- `HttpError` for every error response.
-
-## SEO
-
-The frontend is a client-rendered SPA, so a few pieces exist purely so search engines and link previews see real content:
-
-- `app/index.html` holds exactly one of each metadata tag (title, description, canonical, Open Graph, robots). `app/src/lib/seo/useSeo.jsx` rewrites their values per route in the browser; `app/api/post.js` does the same on the server for `/posts/:id` (rewritten to it in `app/vercel.json`), since social scrapers don't run JavaScript. It also returns a real 404 for unknown posts.
-- Post URLs are `/posts/<id>/<slug>`; the slug is computed from the title by the API (`backend/src/modules/posts/postUrl.js`) and ignored when routing, so old `/posts/<id>` links keep working.
-- `/sitemap.xml` is generated by the backend (`backend/src/modules/sitemap/sitemap.routes.js`) from `SITE_URL` and proxied onto the frontend domain by a rewrite; `app/public/robots.txt` points at it.
-- Production URLs (`www.breedersblog.net`, `api.breedersblog.net`) are hardcoded in `index.html`, `robots.txt` and `vercel.json`; update all three if the domain changes.
-
-## Local Development
+## Quick start
 
 ```bash
-cd backend
-npm install             # also runs `prisma generate`
-cp .env.example .env    # fill in DATABASE_URL, DIRECT_URL, CLERK_*, SUPABASE_*, RESEND_API_KEY
-npm run prisma:migrate  # applies migrations to the database in .env
-npm run dev             # http://localhost:4000
-npm test                # backend test suite - see "Backend tests" below
+cd backend && npm install && cp .env.example .env   # fill in, then:
+npm run dev                                          # API on http://localhost:4000
 
-cd app
-npm install
-cp .env.example .env    # fill in VITE_CLERK_PUBLISHABLE_KEY (VITE_API_BASE_URL already points at the backend above)
-npm run dev             # http://localhost:5173
+cd app && npm install && cp .env.example .env        # fill in, then:
+npm run dev                                          # site on http://localhost:5173
 ```
 
-### Backend tests
-
-`npm test` (in `backend/`) runs a `node:test` + `supertest` suite against the real Express app and Prisma. Clerk, Supabase Storage and Resend are swapped for in-memory fakes (`tests/setup/fakes.js`).
-
-It uses a **local** Postgres database, never the one in `.env`. `tests/setup/guard.js` refuses to run against any non-localhost `DATABASE_URL`, and every test empties the tables first. One-time setup in the dev container:
-
-```bash
-sudo service postgresql start
-sudo su postgres -c "psql -c \"CREATE ROLE breeders_test LOGIN PASSWORD 'breeders_test' CREATEDB;\""
-sudo su postgres -c "psql -c 'CREATE DATABASE breeders_test OWNER breeders_test;'"
-cp .env.test.example .env.test
-```
-
-Migrations are applied to the test database automatically before each run. If it ever gets out of sync with the migrations, drop and recreate `breeders_test`.
-
-## One-time Infrastructure Setup
-
-Things configured in dashboards rather than code:
-
-- **Supabase Storage** — two private buckets (no anon/authenticated policies; the backend uses the service role key and mints short-lived signed URLs):
-  - `post-html` (stitched HTML for approved posts): *Allowed MIME types* = `text/html`.
-  - `post-upload` (authors' raw uploads): *File size limit* = 50 MB.
-- **Supabase Data API** — turned off (*Project Settings -> Data API*, *Exposed schemas* emptied). Nothing here speaks PostgREST: Prisma connects straight to Postgres and Storage goes through `/storage/v1` with the service role key, so an open REST gateway only ever exposed the tables. Every table in `public` also has RLS enabled with no policies as a second layer (migration `enable_rls`) — authorization lives in Express, not in SQL policies. Safe because the app connects as Supabase's `postgres` role, which has `BYPASSRLS`; do not add `FORCE ROW LEVEL SECURITY`, it would lock Prisma out.
-- **Clerk** — a webhook for `user.created` and `user.updated` pointing at `<backend>/api/webhooks/clerk`, with its signing secret in `CLERK_WEBHOOK_SIGNING_SECRET`. Roles are assigned per user under *Private metadata* as `{ "role": "ADMIN" }` (or `MODERATOR`).
-- **Vercel** — every variable in `backend/.env.example` and `app/.env.example` set on the respective project, with `SITE_URL`/`CORS_ORIGIN` pointing at the frontend's production URL.
+Each folder's README covers its environment variables, structure, tests and deployment.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+[MIT](LICENSE)
