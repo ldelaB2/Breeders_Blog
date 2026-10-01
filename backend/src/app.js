@@ -7,42 +7,55 @@ import meRouter from "./routes/me.routes.js";
 import sitemapRouter from "./routes/sitemap.routes.js";
 import webhooksRouter from "./routes/webhooks.routes.js";
 import { HttpError } from "./lib/httpError.js";
+import { createAuthMiddleware } from "./middleware/requireAuth.js";
+import { createNotifications } from "./lib/mail.js";
+import { defaultDeps } from "./deps.js";
 
-const app = express();
-app.set("trust proxy", 1);
+// Builds the Express app around its external services (see deps.js). The
+// deployed app uses the real ones; the test suite passes in fakes.
+export function createApp(deps = defaultDeps()) {
+  const app = express();
+  app.set("trust proxy", 1);
 
-const allowedOrigins = (process.env.CORS_ORIGIN || "").split(",").map((o) => o.trim()).filter(Boolean);
-app.use(cors({ origin: allowedOrigins }));
+  const ctx = {
+    auth: createAuthMiddleware(deps.clerk),
+    stores: deps.stores,
+    notify: createNotifications(deps.mailer),
+  };
 
-// Needs the raw request body to verify Clerk's signature, so it's mounted
-// with express.raw() ahead of the JSON parser and the rate limiter.
-app.use("/api/webhooks/clerk", express.raw({ type: "application/json" }), webhooksRouter);
+  const allowedOrigins = (process.env.CORS_ORIGIN || "").split(",").map((o) => o.trim()).filter(Boolean);
+  app.use(cors({ origin: allowedOrigins }));
 
-// Bumped from Express's 100kb default for metadata payloads only - post
-// uploads and stitched HTML go straight to Supabase Storage via signed URLs
-// and never pass through here. Kept under Vercel's ~4.5mb request limit.
-app.use(express.json({ limit: "4mb" }));
+  // Needs the raw request body to verify Clerk's signature, so it's mounted
+  // with express.raw() ahead of the JSON parser and the rate limiter.
+  app.use("/api/webhooks/clerk", express.raw({ type: "application/json" }), webhooksRouter);
 
-// Caps abuse per client IP and bounds the Clerk API calls requireAuth can
-// make. The counter is in-memory, so on Vercel it's per function instance -
-// a coarse backstop; Vercel's firewall is the real DDoS layer.
-app.use("/api", rateLimit({ windowMs: 15 * 60 * 1000, max: 300 }));
+  // Bumped from Express's 100kb default for metadata payloads only - post
+  // uploads and stitched HTML go straight to Supabase Storage via signed URLs
+  // and never pass through here. Kept under Vercel's ~4.5mb request limit.
+  app.use(express.json({ limit: "4mb" }));
 
-app.get("/api/health", (req, res) => res.json({ status: "ok" }));
-app.use("/api/posts", postsRouter);
-app.use("/api", commentsRouter);
-app.use("/api", meRouter);
-app.use(sitemapRouter);
+  // Caps abuse per client IP and bounds the Clerk API calls requireAuth can
+  // make. The counter is in-memory, so on Vercel it's per function instance -
+  // a coarse backstop; Vercel's firewall is the real DDoS layer.
+  app.use("/api", rateLimit({ windowMs: 15 * 60 * 1000, max: 300 }));
 
-app.use((req, res) => res.status(404).json({ error: "Not found" }));
+  app.get("/api/health", (req, res) => res.json({ status: "ok" }));
+  app.use("/api/posts", postsRouter(ctx));
+  app.use("/api", commentsRouter(ctx));
+  app.use("/api", meRouter(ctx));
+  app.use(sitemapRouter);
 
-// An HttpError carries a status and a client-safe message; anything else
-// is a 500 and only ever logged.
-// eslint-disable-next-line no-unused-vars
-app.use((err, req, res, next) => {
-  if (err instanceof HttpError) return res.status(err.status).json({ error: err.message });
-  console.error(err);
-  res.status(500).json({ error: "Internal server error" });
-});
+  app.use((req, res) => res.status(404).json({ error: "Not found" }));
 
-export default app;
+  // An HttpError carries a status and a client-safe message; anything else
+  // is a 500 and only ever logged.
+  // eslint-disable-next-line no-unused-vars
+  app.use((err, req, res, next) => {
+    if (err instanceof HttpError) return res.status(err.status).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  });
+
+  return app;
+}
