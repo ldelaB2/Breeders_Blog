@@ -1,6 +1,8 @@
 // Pure helpers behind the page metadata - shared by the useSeo hook in the
 // browser and api/post.js on the server, so it must stay free of React and
-// DOM references.
+// DOM references. It's also the one .js file in src/, and must not import
+// anything: Node loads it directly (no Vite), and can't read .jsx or
+// resolve the "@/" alias.
 export const SITE_NAME = "Breeders Blog";
 export const SITE_DESCRIPTION =
   "Research and notes on genomic selection, quantitative genetics, and modern breeding methods.";
@@ -18,6 +20,9 @@ export function truncate(text, max = DESCRIPTION_MAX) {
 // title (backend/src/lib/postUrl.js); PostPage routes on the id alone.
 export const postPath = (post) => `/posts/${post.id}/${post.slug}`;
 
+// The absolute, shareable link for a post (share buttons, canonical URL).
+export const postUrl = (post, origin) => `${origin}${postPath(post)}`;
+
 // Everything useSeo/api/post.js need to describe a post page.
 export function postSeo(post, origin) {
   const path = postPath(post);
@@ -34,7 +39,7 @@ export function postSeo(post, origin) {
       author: { "@type": "Person", name: post.authorName },
       datePublished: post.createdAt,
       dateModified: post.updatedAt,
-      mainEntityOfPage: `${origin}${path}`,
+      mainEntityOfPage: postUrl(post, origin),
     },
   };
 }
