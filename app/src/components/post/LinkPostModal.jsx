@@ -75,9 +75,13 @@ function LinkPostModal({ postId, onClose }) {
 
       <div className="mt-4 max-h-[50vh] overflow-y-auto">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-          Linked posts ({linkedPosts.length})
+          Linked posts{!linked.loading && ` (${linkedPosts.length})`}
         </p>
-        {linkedPosts.length === 0 ? (
+        {/* Until the fetch lands, the list is just the empty initialData -
+            say so rather than claiming there are no links. */}
+        {linked.loading ? (
+          <Message className="text-sm">Loading linked posts…</Message>
+        ) : linkedPosts.length === 0 ? (
           <Message className="text-sm">No posts linked yet.</Message>
         ) : (
           <ul className="flex flex-col gap-2">
