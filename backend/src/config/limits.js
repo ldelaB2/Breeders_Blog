@@ -13,6 +13,7 @@ export const POST_LIMIT = 5;
 export const POST_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 // The only file types a raw upload may be, keyed by lowercased extension
 // (parsed from the filename - browsers report inconsistent MIME types for
@@ -22,6 +23,15 @@ export const UPLOAD_TYPES = {
   qmd: "text/markdown",
   rmd: "text/markdown",
   zip: "application/zip",
+};
+
+// The only types a share image may be, same keying as UPLOAD_TYPES. No SVG:
+// the post-image bucket is public, and an SVG can carry script.
+export const IMAGE_TYPES = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
 };
 
 // Default and maximum `?limit=` for the list endpoints that take one.

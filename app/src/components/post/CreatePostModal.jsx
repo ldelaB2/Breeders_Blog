@@ -6,7 +6,13 @@ import Message from "@/components/ui/Message";
 import TextField from "@/components/ui/TextField";
 import { useApi } from "@/lib/api/useApi";
 import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
-import { formatMB, uploadToSignedUrl } from "@/lib/post/upload";
+import {
+  formatMB,
+  SHARE_IMAGE_ACCEPT,
+  SHARE_IMAGE_HINT,
+  SHARE_IMAGE_RULES,
+  uploadToSignedUrl,
+} from "@/lib/post/upload";
 
 // These mirror the limits in backend/src/config/limits.js so a bad
 // input fails fast with a clear message; the backend is the enforcement.
@@ -19,9 +25,10 @@ const FILE_RULES = {
 };
 const POST_LIMIT = 5; // per 24 hours; only used for the message text
 
-// Popup for submitting a new post: title, abstract, and a single raw file
-// (.md/.qmd/.rmd/.zip). The file goes straight to storage via a signed URL
-// (POST /posts/upload-url), then POST /posts finalizes. The post is created
+// Popup for submitting a new post: title, abstract, a single raw file
+// (.md/.qmd/.rmd/.zip) and an optional share image. The files go straight
+// to storage via signed URLs (POST /posts/upload-url), then POST /posts
+// finalizes. The post is created
 // PENDING - invisible to everyone but its author and a moderator/admin
 // until reviewed.
 function CreatePostModal({ topicSlug, onClose, onCreated }) {
@@ -30,6 +37,7 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
   const [title, setTitle] = useState("");
   const [abstract, setAbstract] = useState("");
   const [file, setFile] = useState(null);
+  const [image, setImage] = useState(null);
   const [limitReached, setLimitReached] = useState(false);
 
   const canSubmit = Boolean(title.trim() && abstract.trim() && file);
@@ -43,15 +51,19 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
 
     run(
       async () => {
-        const { postId, rawSlug, signedUrl, contentType } = await api.getPostUploadUrl(file.name);
-        await uploadToSignedUrl(signedUrl, file, contentType);
+        const ticket = await api.getPostUploadUrl(file.name, image?.name);
+        await Promise.all([
+          uploadToSignedUrl(ticket.signedUrl, file, ticket.contentType),
+          ticket.image && uploadToSignedUrl(ticket.image.signedUrl, image, ticket.image.contentType),
+        ]);
 
         const created = await api.createPost({
-          id: postId,
+          id: ticket.postId,
           topicSlug,
           title: title.trim(),
           abstract: abstract.trim(),
-          rawSlug,
+          rawSlug: ticket.rawSlug,
+          imageSlug: ticket.image?.slug,
           originalFilename: file.name,
         });
         onCreated(created);
@@ -92,6 +104,20 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
           onSelect={(selected) => {
             setError(null);
             setFile(selected);
+          }}
+          onError={setError}
+        />
+
+        <FilePicker
+          label="Share image (optional)"
+          file={image}
+          accept={SHARE_IMAGE_ACCEPT}
+          rules={SHARE_IMAGE_RULES}
+          placeholder="Upload a figure from your post…"
+          hint={SHARE_IMAGE_HINT}
+          onSelect={(selected) => {
+            setError(null);
+            setImage(selected);
           }}
           onError={setError}
         />

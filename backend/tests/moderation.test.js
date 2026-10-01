@@ -73,6 +73,40 @@ test("approving publishes the post and emails the author", async () => {
   assert.equal(again.status, 400);
 });
 
+test("approving can replace the author's share image", async () => {
+  const author = await createUser({ id: "author" });
+  await createUser({ id: "admin", role: "ADMIN" });
+  await createPost({ author, id: "pending", status: "PENDING", imageSlug: "pending/share.png" });
+  ctx.stores.image.put("pending/share.png", "author's");
+
+  const urls = await request(ctx.app).post("/api/posts/pending/approve/upload-url").set(as("admin")).send({ imageFilename: "better.webp" });
+  assert.equal(urls.body.image.slug, "pending/share.webp");
+  assert.equal(urls.body.image.contentType, "image/webp");
+
+  ctx.stores.html.put("pending.html", "<p/>");
+  const bad = await request(ctx.app).post("/api/posts/pending/approve").set(as("admin")).send({ imageSlug: "other/share.webp" });
+  assert.equal(bad.status, 400);
+  assert.deepEqual(bad.body, { error: "Invalid imageSlug" });
+
+  const notLanded = await request(ctx.app).post("/api/posts/pending/approve").set(as("admin")).send({ imageSlug: "pending/share.webp" });
+  assert.deepEqual(notLanded.body, { error: "Share image not found - try uploading again" });
+
+  ctx.stores.image.put("pending/share.webp", "admin's");
+  const res = await request(ctx.app).post("/api/posts/pending/approve").set(as("admin")).send({ imageSlug: "pending/share.webp" });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.imageUrl, "https://storage.test/storage/v1/object/public/post-image/pending/share.webp");
+  assert.deepEqual([...ctx.stores.image.objects.keys()], ["pending/share.webp"]);
+});
+
+test("approving without a new image keeps the author's", async () => {
+  const author = await createUser({ id: "author" });
+  await createUser({ id: "admin", role: "ADMIN" });
+  await createPost({ author, id: "pending", status: "PENDING", imageSlug: "pending/share.png" });
+  ctx.stores.html.put("pending.html", "<p/>");
+  const res = await request(ctx.app).post("/api/posts/pending/approve").set(as("admin"));
+  assert.equal(res.body.imageUrl, "https://storage.test/storage/v1/object/public/post-image/pending/share.png");
+});
+
 test("rejecting needs a reason, records it and emails the author", async () => {
   await seed();
   const missing = await request(ctx.app).post("/api/posts/pending/reject").set(as("admin")).send({});
@@ -103,6 +137,17 @@ test("download bundles the title, abstract and original upload into a zip", asyn
   for (const name of ["title.txt", "abstract.txt", "post.md"]) assert.ok(zip.includes(name), name);
 });
 
+test("download includes the share image when there is one", async () => {
+  const author = await createUser({ id: "author" });
+  await createUser({ id: "admin", role: "ADMIN" });
+  await createPost({ author, id: "pending", status: "PENDING", imageSlug: "pending/share.jpg" });
+  ctx.stores.upload.put("pending/upload.md", "#");
+  ctx.stores.image.put("pending/share.jpg", "jpg");
+  const res = await request(ctx.app).get("/api/posts/pending/download").set(as("admin")).buffer(true).parse(binary);
+  assert.equal(res.status, 200);
+  assert.ok(res.body.toString("latin1").includes("share-image.jpg"));
+});
+
 test("download is a 502 when the original upload can't be fetched", async (t) => {
   t.mock.method(console, "error", () => {});
   await seed();
@@ -111,11 +156,13 @@ test("download is a 502 when the original upload can't be fetched", async (t) =>
   assert.deepEqual(res.body, { error: "Could not fetch the original upload from storage" });
 });
 
-test("deleting a post removes it, its comments and both stored files", async () => {
+test("deleting a post removes it, its comments and its stored files", async () => {
   const { approved, author } = await seed();
   await createComment({ post: approved, author });
+  await prisma.postBody.update({ where: { postId: "approved" }, data: { imageSlug: "approved/share.png" } });
   ctx.stores.html.put("approved.html", "<p/>");
   ctx.stores.upload.put("approved/upload.md", "#");
+  ctx.stores.image.put("approved/share.png", "png");
 
   assert.equal((await request(ctx.app).delete("/api/posts/approved").set(as("mod"))).status, 403);
   const res = await request(ctx.app).delete("/api/posts/approved").set(as("admin"));
@@ -124,6 +171,7 @@ test("deleting a post removes it, its comments and both stored files", async () 
   assert.equal(await prisma.comment.count(), 0);
   assert.equal(ctx.stores.html.objects.size, 0);
   assert.equal(ctx.stores.upload.objects.size, 0);
+  assert.equal(ctx.stores.image.objects.size, 0);
 });
 
 test("moderators can lock and unlock approved posts", async () => {

@@ -11,6 +11,7 @@ import { env } from "./config/env.js";
 //           fetchUser(userId)    -> the Clerk user object
 //   stores  html   - moderator-stitched HTML, one "<postId>.html" per post
 //           upload - authors' raw uploads, "<postId>/upload.<ext>"
+//           image  - optional share images, "<postId>/share.<ext>" (public bucket)
 //   mailer  send(to, subject, html)
 export function defaultDeps() {
   const secretKey = env.clerkSecretKey;
@@ -24,6 +25,7 @@ export function defaultDeps() {
     stores: {
       html: createBucketStore(env.htmlBucket),
       upload: createBucketStore(env.uploadBucket),
+      image: createBucketStore(env.imageBucket),
     },
     mailer: createMailer({ apiKey: env.resendApiKey, from: env.emailFrom }),
   };

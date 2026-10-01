@@ -3,11 +3,12 @@ import { ZipArchive } from "archiver";
 import { prisma } from "../../lib/db/prisma.js";
 import { asyncHandler } from "../../lib/http/asyncHandler.js";
 import { HttpError } from "../../lib/http/httpError.js";
-import { requireText } from "../../lib/http/validate.js";
+import { optionalString, requireText } from "../../lib/http/validate.js";
 import { REJECTION_REASON_MAX } from "../../config/limits.js";
-import { htmlSlugFor, listPosts, loadPostParam, updatePost } from "../posts/posts.repo.js";
+import { extensionOf, htmlSlugFor, isImageSlugFor, listPosts, loadPostParam, updatePost } from "../posts/posts.repo.js";
 import { assertStatus } from "../posts/postStatus.js";
 import { serializePost, serializePosts } from "../posts/serializePost.js";
+import { assertImageUploaded, mintImageUpload } from "../posts/shareImage.js";
 
 // The admin review queue (approve/reject/download/delete) and moderator
 // curation (lock/archive). Every route answers with the updated post.
@@ -29,32 +30,42 @@ export function moderationRoutes({ auth, stores, notify }) {
   // Step 1 of approving: a signed URL for the admin's browser to upload the
   // stitched HTML to directly, bypassing Vercel's request-body cap (a
   // self-contained Quarto export with bundled Plotly.js can exceed it).
+  // With an `imageFilename`, also a signed URL for a replacement share image.
   router.post(
     "/:id/approve/upload-url",
     requireAdmin,
     asyncHandler(async (req, res) => {
       assertStatus(req.post, "PENDING", "approved");
+      const imageFilename = optionalString(req.body?.imageFilename, "imageFilename");
       const htmlSlug = htmlSlugFor(req.post.id);
-      res.json({ signedUrl: await stores.html.signedUploadUrl(htmlSlug), htmlSlug });
+      const image = imageFilename ? await mintImageUpload(stores.image, req.post.id, imageFilename) : null;
+      res.json({ signedUrl: await stores.html.signedUploadUrl(htmlSlug), htmlSlug, image });
     }),
   );
 
-  // Step 2: confirms the HTML actually landed, then flips the post to APPROVED.
+  // Step 2: confirms the HTML (and any replacement image) actually landed,
+  // then flips the post to APPROVED.
   router.post(
     "/:id/approve",
     requireAdmin,
     asyncHandler(async (req, res) => {
       assertStatus(req.post, "PENDING", "approved");
+      const imageSlug = optionalString(req.body?.imageSlug, "imageSlug") || null;
+      if (imageSlug && !isImageSlugFor(req.post.id, imageSlug)) throw new HttpError(400, "Invalid imageSlug");
       const htmlSlug = htmlSlugFor(req.post.id);
       if (!(await stores.html.exists(htmlSlug))) {
         throw new HttpError(400, "Stitched HTML upload not found - try uploading again");
       }
+      if (imageSlug) await assertImageUploaded(stores.image, imageSlug);
+      const oldImageSlug = req.post.body?.imageSlug;
       const updated = await updatePost(req.post.id, {
         status: "APPROVED",
         reviewedById: req.user.id,
         reviewedAt: new Date(),
-        body: { update: { htmlSlug } },
+        body: { update: { htmlSlug, ...(imageSlug && { imageSlug }) } },
       });
+      // A replacement with a different extension leaves the author's original behind.
+      if (imageSlug && oldImageSlug !== imageSlug) await stores.image.remove(oldImageSlug);
       await notify.notifyAuthorOfApproval(updated);
       res.json(serializePost(updated, req.user));
     }),
@@ -77,7 +88,8 @@ export function moderationRoutes({ auth, stores, notify }) {
     }),
   );
 
-  // Bundles title/abstract/original upload into a zip for offline review.
+  // Bundles title/abstract/original upload (and share image, if any) into a
+  // zip for offline review.
   router.get(
     "/:id/download",
     requireAdmin,
@@ -90,6 +102,8 @@ export function moderationRoutes({ auth, stores, notify }) {
         console.error(`Failed to download raw upload for post ${post.id}:`, err);
         throw new HttpError(502, "Could not fetch the original upload from storage");
       }
+      // Optional, so a missing image doesn't fail the review download.
+      const image = post.body.imageSlug ? await stores.image.download(post.body.imageSlug).catch(() => null) : null;
 
       res.setHeader("Content-Type", "application/zip");
       res.setHeader("Content-Disposition", `attachment; filename="${post.id}.zip"`);
@@ -99,18 +113,20 @@ export function moderationRoutes({ auth, stores, notify }) {
       archive.append(post.title, { name: "title.txt" });
       archive.append(post.abstract, { name: "abstract.txt" });
       archive.append(raw, { name: post.body.rawOriginalName });
+      if (image) archive.append(image, { name: `share-image.${extensionOf(post.body.imageSlug)}` });
       await archive.finalize();
     }),
   );
 
   // Permanent and irreversible (unlike archive): the DB cascades away body,
-  // votes, pins and comments; both storage objects are removed here.
+  // votes, pins and comments; the storage objects are removed here.
   router.delete(
     "/:id",
     requireAdmin,
     asyncHandler(async (req, res) => {
       await stores.html.remove(req.post.body?.htmlSlug);
       await stores.upload.remove(req.post.body?.rawSlug);
+      await stores.image.remove(req.post.body?.imageSlug);
       await prisma.postMetadata.delete({ where: { id: req.post.id } });
       res.status(204).end();
     }),

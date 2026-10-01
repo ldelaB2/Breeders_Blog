@@ -6,6 +6,8 @@
 export const SITE_NAME = "Breeders Blog";
 export const SITE_DESCRIPTION =
   "Research and notes on genomic selection, quantitative genetics, and modern breeding methods.";
+// The default og:image (index.html) for pages and posts without a share image.
+export const SITE_IMAGE_PATH = "/logo.png";
 
 // Search engines and social cards cut descriptions off around this length;
 // abstracts can run to thousands of characters.
@@ -31,6 +33,9 @@ export function postSeo(post, origin) {
     description: truncate(post.abstract),
     path,
     type: "article",
+    // The post's own share image (backend serializes it as a public URL),
+    // shown large in link previews; null falls back to the logo.
+    image: post.imageUrl ?? null,
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "BlogPosting",
@@ -40,6 +45,7 @@ export function postSeo(post, origin) {
       datePublished: post.createdAt,
       dateModified: post.updatedAt,
       mainEntityOfPage: postUrl(post, origin),
+      ...(post.imageUrl && { image: post.imageUrl }),
     },
   };
 }

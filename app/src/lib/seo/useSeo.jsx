@@ -1,15 +1,16 @@
 import { useEffect } from "react";
-import { SITE_NAME, SITE_DESCRIPTION } from "./seo";
+import { SITE_NAME, SITE_DESCRIPTION, SITE_IMAGE_PATH } from "./seo";
 
 // Fills in the page's <title>, description, canonical, Open Graph and
 // robots tags for the current route. index.html always holds exactly one
 // of each with the site defaults, and api/post.js pre-fills the same ones
 // server-side for post pages, so this only ever rewrites their values
 // rather than adding tags. Pass null while the page's data is still
-// loading to leave whatever is there untouched.
+// loading to leave whatever is there untouched. `image` is an absolute URL
+// for a large link-preview card; without one the logo card is restored.
 export function useSeo(opts) {
   const ready = Boolean(opts);
-  const { title, description = SITE_DESCRIPTION, path, type = "website", noindex = false, jsonLd } = opts ?? {};
+  const { title, description = SITE_DESCRIPTION, path, type = "website", image, noindex = false, jsonLd } = opts ?? {};
   const jsonLdText = jsonLd ? JSON.stringify(jsonLd) : null;
 
   useEffect(() => {
@@ -22,10 +23,13 @@ export function useSeo(opts) {
     set('meta[name="description"]', "content", description);
     set('meta[name="robots"]', "content", noindex ? "noindex" : "index,follow");
     set('link[rel="canonical"]', "href", url);
-    set('meta[property="og:title"]', "content", fullTitle);
+    set('meta[property="og:title"]', "content", title ?? SITE_NAME);
     set('meta[property="og:description"]', "content", description);
     set('meta[property="og:url"]', "content", url);
     set('meta[property="og:type"]', "content", type);
+    set('meta[property="og:image"]', "content", image ?? `${window.location.origin}${SITE_IMAGE_PATH}`);
+    set('meta[property="og:image:alt"]', "content", image ? title : `${SITE_NAME} logo`);
+    set('meta[name="twitter:card"]', "content", image ? "summary_large_image" : "summary");
 
     let script = document.head.querySelector('script[type="application/ld+json"]');
     if (jsonLdText) {
@@ -35,5 +39,5 @@ export function useSeo(opts) {
     } else {
       script?.remove();
     }
-  }, [ready, title, description, path, type, noindex, jsonLdText]);
+  }, [ready, title, description, path, type, image, noindex, jsonLdText]);
 }
