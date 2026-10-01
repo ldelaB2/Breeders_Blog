@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import IconButton from "@/components/ui/IconButton";
 import Message from "@/components/ui/Message";
@@ -8,6 +8,9 @@ import { useApi } from "@/lib/api/useApi";
 import { useAsync } from "@/lib/hooks/useAsync";
 import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { usePostSearch } from "@/lib/post/usePostSearch";
+
+// How long after one link is added before another can be.
+const LINK_COOLDOWN_MS = 750;
 
 // Opened from a post tile's chain-link icon (author/moderator/admin only,
 // see PostTile.jsx). Reuses the header search to find posts to add; each
@@ -25,12 +28,26 @@ function LinkPostModal({ postId, onClose }) {
   const addableResults = search.results.filter((p) => p.id !== postId && !linkedIds.has(p.id));
   const error = actionError || linked.error || search.error;
 
-  const addLink = (post) =>
-    run(async () => {
+  // One add at a time, plus a short cooldown after each. The ref blocks a
+  // double click synchronously (state wouldn't update between two clicks
+  // in the same tick); `adding` drives the disabled look.
+  const addLockRef = useRef(false);
+  const [adding, setAdding] = useState(false);
+
+  const addLink = async (post) => {
+    if (addLockRef.current) return;
+    addLockRef.current = true;
+    setAdding(true);
+    await run(async () => {
       await api.linkPost(postId, post.id);
-      linked.setData((prev) => [...prev, post]);
+      linked.setData((prev) => (prev.some((p) => p.id === post.id) ? prev : [...prev, post]));
       setQuery("");
     });
+    setTimeout(() => {
+      addLockRef.current = false;
+      setAdding(false);
+    }, LINK_COOLDOWN_MS);
+  };
 
   const removeLink = (targetId) =>
     run(async () => {
@@ -46,7 +63,13 @@ function LinkPostModal({ postId, onClose }) {
 
       {query.trim() && (
         <div className="mt-2 max-h-48 overflow-y-auto rounded-md border border-gray-100">
-          <PostSearchResults query={query} results={addableResults} loading={search.loading} onSelect={addLink} />
+          <PostSearchResults
+            query={query}
+            results={addableResults}
+            loading={search.loading}
+            onSelect={addLink}
+            disabled={adding}
+          />
         </div>
       )}
 
