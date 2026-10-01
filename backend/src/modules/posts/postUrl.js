@@ -1,8 +1,9 @@
-// A post's public URL on the frontend. The slug is derived from the title
-// on every read rather than stored: PostPage.jsx routes on the id alone, so
-// the slug is purely for readers and search engines and can change freely.
-import { env } from "../config/env.js";
+import { env } from "../../config/env.js";
 
+// A post's public URL on the frontend. The slug is derived from the title
+// on every read rather than stored: the frontend's PostPage routes on the id
+// alone, so the slug is purely for readers and search engines and can change
+// freely.
 export function slugify(title) {
   return title
     .normalize("NFD")

@@ -5,7 +5,7 @@ import { asyncHandler } from "../lib/http/asyncHandler.js";
 import { HttpError } from "../lib/http/httpError.js";
 import { requireText } from "../lib/http/validate.js";
 import { isModerator } from "../modules/users/roles.js";
-import { toggleVote } from "../lib/toggleVote.js";
+import { toggleVote } from "../modules/engagement/toggles.js";
 
 const COMMENT_MAX = 5000;
 
@@ -92,7 +92,7 @@ export default function commentsRouter({ auth }) {
 
   async function vote(req, res, value) {
     const where = { commentId_userId: { commentId: req.comment.id, userId: req.user?.id } };
-    await toggleVote(prisma.commentVote, where, where.commentId_userId, value);
+    await toggleVote(prisma.commentVote, where, value);
     res.json(serializeComment(await findComment(req.comment.id)));
   }
 

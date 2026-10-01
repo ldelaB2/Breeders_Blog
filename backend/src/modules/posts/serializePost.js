@@ -1,14 +1,13 @@
-import { isModerator } from "../modules/users/roles.js";
+import { ownsOrModerates } from "../users/roles.js";
+import { serializeVotes } from "../engagement/serializeVotes.js";
 import { slugify } from "./postUrl.js";
 
-// Shapes a PostMetadata row (with postInclude relations loaded) into the
-// flat object the frontend expects. Moderation detail is only included for
-// the post's author or a moderator/admin. The raw upload is never
-// serialized - an admin gets it via GET /posts/:id/download.
-export function serializePost(post, viewer = {}, opts = {}) {
-  const { userId, userRole } = viewer;
-  const canSeeReviewDetail = isModerator(userRole) || userId === post.authorId;
-
+// Shapes a post row (loaded with postInclude) into the flat object the
+// frontend expects. `viewer` is req.user (undefined when anonymous).
+// Moderation detail is only included for the post's author or a
+// moderator/admin. The raw upload is never serialized - an admin gets it via
+// GET /posts/:id/download.
+export function serializePost(post, viewer, opts = {}) {
   return {
     id: post.id,
     topicSlug: post.topicSlug,
@@ -25,14 +24,15 @@ export function serializePost(post, viewer = {}, opts = {}) {
     htmlSlug: post.body?.htmlSlug ?? null,
     commentCount: post._count?.comments ?? undefined,
     linkedPostCount: post._count?.linksFrom ?? undefined,
-    upvotes: post.votes.filter((v) => v.value === 1).map((v) => v.userId),
-    downvotes: post.votes.filter((v) => v.value === -1).map((v) => v.userId),
+    ...serializeVotes(post.votes),
     pinnedBy: post.pins.map((p) => p.userId),
     ...(opts.html !== undefined && { html: opts.html }),
-    ...(canSeeReviewDetail && {
+    ...(ownsOrModerates(viewer, post.authorId) && {
       reviewedById: post.reviewedById,
       reviewedAt: post.reviewedAt,
       rejectionReason: post.rejectionReason,
     }),
   };
 }
+
+export const serializePosts = (posts, viewer) => posts.map((p) => serializePost(p, viewer));

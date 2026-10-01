@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { prisma } from "../lib/db/prisma.js";
 import { asyncHandler } from "../lib/http/asyncHandler.js";
-import { serializePost } from "../lib/serializePost.js";
-import { postInclude as include } from "../lib/postInclude.js";
+import { serializePost } from "../modules/posts/serializePost.js";
+import { postInclude as include } from "../modules/posts/posts.repo.js";
 import { getRecommendedPosts } from "../lib/recommendations.js";
 
 export default function meRouter({ auth }) {
@@ -28,7 +28,7 @@ export default function meRouter({ auth }) {
         include: { post: { include } },
         orderBy: { createdAt: "desc" },
       });
-      res.json(pins.map((pin) => serializePost(pin.post, { userId: req.user?.id, userRole: req.user?.role })));
+      res.json(pins.map((pin) => serializePost(pin.post, req.user)));
     })
   );
 
@@ -38,7 +38,7 @@ export default function meRouter({ auth }) {
     requireAuth,
     asyncHandler(async (req, res) => {
       const limit = Math.min(Number(req.query.limit) || 6, 20);
-      const posts = await getRecommendedPosts({ userId: req.user?.id, userRole: req.user?.role, limit });
+      const posts = await getRecommendedPosts({ user: req.user, limit });
       res.json(posts);
     })
   );

@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
-import postsRouter from "./routes/posts.routes.js";
+import { postsRouter } from "./modules/posts/index.js";
 import commentsRouter from "./routes/comments.routes.js";
 import meRouter from "./routes/me.routes.js";
 import sitemapRouter from "./routes/sitemap.routes.js";
@@ -9,7 +9,7 @@ import webhooksRouter from "./routes/webhooks.routes.js";
 import { createAuthMiddleware } from "./middleware/auth.js";
 import { errorHandler, notFound } from "./middleware/errors.js";
 import { env } from "./config/env.js";
-import { createNotifications } from "./lib/mail.js";
+import { createNotifications } from "./modules/moderation/notifications.js";
 import { defaultDeps } from "./deps.js";
 
 // Builds the Express app around its external services (see deps.js). The

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { prisma } from "../lib/db/prisma.js";
 import { asyncHandler } from "../lib/http/asyncHandler.js";
 import { TOPIC_SLUGS } from "../config/topics.js";
-import { postUrl } from "../lib/postUrl.js";
+import { postUrl } from "../modules/posts/postUrl.js";
 import { env } from "../config/env.js";
 
 const router = Router();
