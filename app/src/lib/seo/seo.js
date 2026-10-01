@@ -17,7 +17,7 @@ export function truncate(text, max = DESCRIPTION_MAX) {
 }
 
 // Where a post lives in the app. The slug is computed by the API from the
-// title (backend/src/lib/postUrl.js); PostPage routes on the id alone.
+// title (backend/src/modules/posts/postUrl.js); PostPage routes on the id alone.
 export const postPath = (post) => `/posts/${post.id}/${post.slug}`;
 
 // The absolute, shareable link for a post (share buttons, canonical URL).

@@ -8,7 +8,7 @@ import { useApi } from "@/lib/api/useApi";
 import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
 import { formatMB, uploadToSignedUrl } from "@/lib/post/upload";
 
-// These mirror the limits in backend/src/routes/posts.routes.js so a bad
+// These mirror the limits in backend/src/config/limits.js so a bad
 // input fails fast with a clear message; the backend is the enforcement.
 const TITLE_LIMIT = 100;
 const ABSTRACT_LIMIT = 3800; // ~600 words

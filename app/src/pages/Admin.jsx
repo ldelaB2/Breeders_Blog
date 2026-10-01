@@ -9,9 +9,9 @@ import { useSeo } from "@/lib/seo/useSeo";
 
 // Admin-only moderation queue. Access is enforced by RequireRole at the
 // route level (role: "ADMIN" in config/routes.jsx) and, more importantly,
-// on every endpoint this page calls (requireRole("ADMIN") in
-// posts.routes.js) - so by the time this component mounts, the caller is
-// already a confirmed admin.
+// on every endpoint this page calls (requireAdmin in
+// backend/src/modules/moderation/moderation.routes.js) - so by the time
+// this component mounts, the caller is already a confirmed admin.
 export default function Admin() {
   const api = useApi();
   useSeo({ title: "Admin", noindex: true });

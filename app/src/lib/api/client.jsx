@@ -45,7 +45,7 @@ const query = (key, value) => (value ? `?${key}=${encodeURIComponent(value)}` : 
 // Every API call, with the current Clerk session token attached (null when
 // signed out). The list/search reads work anonymously but send the token
 // anyway: the backend includes a caller's own pending posts only when it
-// knows who's asking (see GET /posts in posts.routes.js). Components get
+// knows who's asking (see GET /posts in backend/src/modules/posts/feed.routes.js). Components get
 // this through useApi().
 export function createApi(getToken) {
   const get = async (path) => request(path, { token: await getToken() });
