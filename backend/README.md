@@ -165,7 +165,7 @@ Emails go through `modules/moderation/notifications.js`. A failed send is logged
   - **`PendingPostUpload`** holds submit tickets.
 - **`Vote`, `Pin`, `PostLink`, `Comment`** (soft delete through `deletedAt`, self-referencing replies) and **`CommentVote`**.
 - Post children cascade on delete.
-- Change the schema with `npm run prisma:migrate`, which creates a migration against `DIRECT_URL`.
+- Change the schema with `npm run prisma:migrate`, which creates a migration against `DIRECT_URL`. Production applies it on the next production deploy (see *Infrastructure*).
 
 ## Tests
 
@@ -206,3 +206,4 @@ If the test database drifts from the migrations, drop and recreate `breeders_tes
   - A webhook for `user.created` and `user.updated` points at `<backend>/api/webhooks/clerk`.
   - Roles are set per user under *Private metadata* as `{ "role": "ADMIN" }` or `MODERATOR`.
 - **Vercel:** project `breeders-blog-backend`, with every variable from `.env.example`. `SITE_URL` and `CORS_ORIGIN` point at the frontend's production URL.
+  - **Migrations deploy themselves.** Vercel runs the `vercel-build` script, which applies pending migrations with `prisma migrate deploy` (non-destructive) on **production** builds only. Preview builds skip it, so an unmerged PR never changes the production schema. The build runs before the new code goes live, so migrations must stay additive (new nullable columns, new tables) for the old code still serving during the build. `DIRECT_URL` must be set for the Production environment.

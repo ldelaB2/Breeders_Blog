@@ -10,6 +10,7 @@
     "dev": "node --watch src/server.js",
     "test": "node --env-file=.env.test tests/setup/migrateDb.js && node --env-file=.env.test --test --test-concurrency=1",
     "postinstall": "prisma generate",
+    "vercel-build": "if [ \"$VERCEL_ENV\" = production ]; then prisma migrate deploy; fi",
     "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
