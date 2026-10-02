@@ -1,9 +1,10 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import Modal from "@/components/ui/Modal";
 import IconButton from "@/components/ui/IconButton";
 import Message from "@/components/ui/Message";
 import PostSearchInput from "@/components/search/PostSearchInput";
 import PostSearchResults from "@/components/search/PostSearchResults";
+import PostSummary from "./PostSummary";
 import { useApi } from "@/lib/api/useApi";
 import { useAsync } from "@/lib/hooks/useAsync";
 import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
@@ -21,40 +22,25 @@ function LinkPostModal({ postId, onClose }) {
   const [query, setQuery] = useState("");
   const search = usePostSearch(query);
   const linked = useAsync(() => api.fetchLinkedPosts(postId), [api, postId], { initialData: [] });
-  const { run, error: actionError } = useAsyncAction();
+  // One add/remove at a time, plus a short cooldown after each: once a
+  // change lands the rows shift, so a double click would otherwise hit
+  // whichever post just slid under the cursor.
+  const { run, pending: busy, error: actionError } = useAsyncAction({ cooldownMs: LINK_COOLDOWN_MS });
   const linkedPosts = linked.data;
 
   const linkedIds = new Set(linkedPosts.map((p) => p.id));
   const addableResults = search.results.filter((p) => p.id !== postId && !linkedIds.has(p.id));
   const error = actionError || linked.error || search.error;
 
-  // One add/remove at a time, plus a short cooldown after each, so a double
-  // click can't send the same change twice. The ref blocks synchronously
-  // (state wouldn't update between two clicks in the same tick); `busy`
-  // drives the disabled look.
-  const lockRef = useRef(false);
-  const [busy, setBusy] = useState(false);
-
-  const runLocked = async (fn) => {
-    if (lockRef.current) return;
-    lockRef.current = true;
-    setBusy(true);
-    await run(fn);
-    setTimeout(() => {
-      lockRef.current = false;
-      setBusy(false);
-    }, LINK_COOLDOWN_MS);
-  };
-
   const addLink = (post) =>
-    runLocked(async () => {
+    run(async () => {
       await api.linkPost(postId, post.id);
       linked.setData((prev) => (prev.some((p) => p.id === post.id) ? prev : [...prev, post]));
       setQuery("");
     });
 
   const removeLink = (targetId) =>
-    runLocked(async () => {
+    run(async () => {
       await api.unlinkPost(postId, targetId);
       linked.setData((prev) => prev.filter((p) => p.id !== targetId));
     });
@@ -94,15 +80,12 @@ function LinkPostModal({ postId, onClose }) {
                 key={post.id}
                 className="flex items-start justify-between gap-2 rounded-md border border-canvas-border p-3"
               >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-gray-900">{post.title}</p>
-                  <p className="line-clamp-2 text-sm text-gray-600">{post.abstract}</p>
-                </div>
+                <PostSummary post={post} />
                 <IconButton
                   icon="delete"
                   label="Remove linked post"
                   tone="danger"
-                  className="shrink-0 disabled:cursor-wait disabled:opacity-50"
+                  className="shrink-0"
                   onClick={() => removeLink(post.id)}
                   disabled={busy}
                 />

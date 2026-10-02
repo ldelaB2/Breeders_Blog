@@ -1,4 +1,5 @@
 import Collapsible from "@/components/ui/Collapsible";
+import { cn } from "@/lib/utils/cn";
 
 const HEADING = "On this page";
 
@@ -38,7 +39,7 @@ export function MobileToc({ items, onSelect }) {
 // etc. under their parent h2) with deeper levels indented.
 function TocList({ items, onSelect, depth = 0 }) {
   return (
-    <ul className={`flex flex-col gap-1 border-l border-canvas-border ${depth > 0 ? "ml-3" : ""}`}>
+    <ul className={cn("flex flex-col gap-1 border-l border-canvas-border", depth > 0 && "ml-3")}>
       {items.map((item) => (
         <li key={item.id}>
           <button

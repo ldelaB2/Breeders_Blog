@@ -1,7 +1,7 @@
 import { ownsOrModerates } from "../users/roles.js";
 import { serializeVotes } from "../engagement/serializeVotes.js";
 import { slugify } from "./postUrl.js";
-import { imageUrlFor } from "./posts.repo.js";
+import { imageUrlFor } from "./postFiles.js";
 
 // Shapes a post row (loaded with postInclude) into the flat object the
 // frontend expects. `viewer` is req.user (undefined when anonymous).

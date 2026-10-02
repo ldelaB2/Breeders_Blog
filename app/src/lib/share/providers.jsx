@@ -1,9 +1,25 @@
-import { postUrl } from "@/lib/seo/seo";
-import { openSharePopup } from "./openSharePopup";
-
 // A share target is plain data: { id, label, icon (an <Icon> name),
-// activate(post, origin, { showToast }) }. ShareProviderButton renders any
-// of them, so adding a platform is one entry in the list below.
+// activate(target, { showToast }) }, where `target` is the post's
+// { url, title } (built once by ShareModal). The share components render
+// any of them, so adding a platform is one entry in the list below.
+
+const POPUP_WIDTH = 600;
+const POPUP_HEIGHT = 480;
+
+// Opens a platform's share-intent URL in a small centered popup, the way
+// every "share to X" button on the web works: the link/title are
+// pre-filled, but the already-logged-in user still clicks that platform's
+// own post/share button themselves. `noopener,noreferrer` keeps the popup
+// from getting a handle back to this page.
+function openSharePopup(url) {
+  const left = window.screenX + (window.outerWidth - POPUP_WIDTH) / 2;
+  const top = window.screenY + (window.outerHeight - POPUP_HEIGHT) / 2;
+  window.open(
+    url,
+    "share-popup",
+    `width=${POPUP_WIDTH},height=${POPUP_HEIGHT},left=${left},top=${top},popup=yes,noopener,noreferrer`,
+  );
+}
 
 // Platforms that share through a pre-filled web intent URL in a popup.
 // `intentUrl` receives the post's (unencoded) link and title.
@@ -12,8 +28,8 @@ function popupProvider({ id, label, icon, intentUrl }) {
     id,
     label,
     icon,
-    activate(post, origin) {
-      openSharePopup(intentUrl(postUrl(post, origin), post.title));
+    activate({ url, title }) {
+      openSharePopup(intentUrl(url, title));
     },
   };
 }
@@ -24,9 +40,9 @@ const copyLink = {
   id: "copy-link",
   label: "Copy link",
   icon: "copy-link",
-  async activate(post, origin, { showToast }) {
+  async activate({ url }, { showToast }) {
     try {
-      await navigator.clipboard.writeText(postUrl(post, origin));
+      await navigator.clipboard.writeText(url);
       showToast("Link copied!");
     } catch {
       showToast("Couldn't copy link");
@@ -38,8 +54,8 @@ const email = {
   id: "email",
   label: "Email",
   icon: "email",
-  activate(post, origin) {
-    window.location.href = `mailto:?subject=${enc(post.title)}&body=${enc(postUrl(post, origin))}`;
+  activate({ url, title }) {
+    window.location.href = `mailto:?subject=${enc(title)}&body=${enc(url)}`;
   },
 };
 
@@ -71,7 +87,11 @@ const linkedin = popupProvider({
   intentUrl: (url) => `https://www.linkedin.com/sharing/share-offsite/?url=${enc(url)}`,
 });
 
-// Order matters: the first VISIBLE_COUNT providers render as icons in the
-// share modal's main row, the rest live under the "More" popover.
-export const shareProviders = [copyLink, facebook, email, reddit, x, linkedin];
-export const VISIBLE_COUNT = 4;
+// Order matters: the first MAIN_COUNT render as tiles in the share modal's
+// main row (MAIN_COUNT + the "More" tile fill its 5 columns); the rest live
+// under the "More" menu.
+const PROVIDERS = [copyLink, facebook, email, reddit, x, linkedin];
+const MAIN_COUNT = 4;
+
+export const mainProviders = PROVIDERS.slice(0, MAIN_COUNT);
+export const moreProviders = PROVIDERS.slice(MAIN_COUNT);

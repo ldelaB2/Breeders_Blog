@@ -13,9 +13,11 @@ export function requireText(value, field, maxLength) {
   return text;
 }
 
-// An optional string field: undefined when absent, a 400 if it isn't a string.
+// An optional string field: undefined when absent (or null), a 400 if it
+// isn't a string.
 export function optionalString(value, field) {
-  if (value !== undefined && typeof value !== "string") throw new HttpError(400, `${field} must be a string`);
+  if (value == null) return undefined;
+  if (typeof value !== "string") throw new HttpError(400, `${field} must be a string`);
   return value;
 }
 

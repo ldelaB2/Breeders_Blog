@@ -37,8 +37,10 @@ src/
   components/
     ui/              shared primitives
     layout/          Header/ (Brand, DesktopNav, MobileMenu, AuthButtons), Footer, ErrorBoundary, RequireRole
-    post/            PostTile, PostCarousel, CreatePostModal, LinkPostModal, LinkedPosts, reader/
-    admin/ comment/ search/ share/ vote/
+    post/            PostTile, PostCarousel, PostSummary, CreatePostModal, ShareImagePicker, LinkPostModal
+      reader/        PostReader, PostArticle, PostBody, Toc, ArticleSection, LinkedPosts
+    share/           ShareModal, ShareTile, MoreShareMenu, SharePreview, SharePostButton
+    admin/ comment/ search/ vote/
   lib/
     api/             client.jsx (all endpoints), useApi.jsx
     auth/            CurrentUserProvider, useCurrentUser, useRequireSignIn
@@ -59,13 +61,14 @@ Conventions:
 - **`config/site.jsx`** holds the site name, author, tagline, logo, headshot and contact links.
 
 ### Data flow
-- **API client.** `lib/api/client.jsx` defines every endpoint in `createApi(getToken)`. Each call attaches the Clerk session token when there is one. `useApi()` returns a memoized client, so it's safe to list in hook dependencies. `fetchPost` and `fetchComments` are also exported standalone for public reads.
+- **API client.** `lib/api/client.jsx` defines every endpoint in `createApi(getToken)`. Each call attaches the Clerk session token when there is one. `useApi()` returns a memoized client, so it's safe to list in hook dependencies. `fetchPost`, `fetchComments` and `recordPostView` are also exported standalone for public calls.
 - **Loading data.** `useAsync(fetcher, deps, { enabled, initialData })` loads data and resets when its deps change. It drops responses from superseded requests, and its `setData` lets callers patch the result in place.
-- **Mutations.** `useAsyncAction()` returns `{ run, pending, error }` for submit/delete flows. `run` resolves to `true` or `false`.
+- **Mutations.** `useAsyncAction({ cooldownMs })` returns `{ run, pending, error }` for submit/delete flows. `run` resolves to `true` or `false`. Only one run goes at a time (a second call while one is in flight is ignored), so a double click never submits twice; `cooldownMs` keeps it locked a little longer after each run (the link-posts modal uses it).
 - **Feature hooks own the state; components render it:**
   - `usePostFeed(fetcher, deps)` returns a post list plus `actions`: vote, pin, lock, archive, delete. The Topic page and every `PostCarousel` use it, and each `PostTile` receives `actions`.
   - `useComments(postId)` returns the comment tree plus `actions`: add, vote, remove, restore.
   - `usePostSearch(query)` is a debounced title/abstract search, used by the header search and the link-posts modal.
+  - `useRecordPostView(post)` and `useCitePost(post)` are PostReader's side effects: count a view once per session, and point the footer citation at the open post.
 - **Optimistic updates.** Votes and pins update the UI immediately through `lib/vote/useOptimisticList.jsx`. Rapid clicks collapse into one request (400 ms debounce, never overlapping), and a failure rolls back to the exact previous state. `lib/vote/voting.jsx` predicts the server's toggle rules exactly.
 
 ### Auth and roles
@@ -94,14 +97,16 @@ Every `.svg` in `src/assets/icons/` becomes a React component via `vite-plugin-s
 | `IconButton` | Single-icon button: required `label`, `tone`, `pressed` toggle, `stopPropagation` |
 | `Modal` | Popup shell with backdrop and Escape-to-close; optional `title`, `subtitle`, `showClose`; `ModalActions` footer |
 | `ConfirmModal` | "Are you sure?" popup used for delete and archive |
-| `Dropdown` | Trigger plus floating panel that closes on outside click |
+| `Dropdown` | Trigger plus floating panel that closes on outside click; `DropdownItem` is one menu row (a button, or `as={Link}`) |
 | `Collapsible` | Show/hide section; the body stays in the DOM so it's crawlable |
 | `FilePicker` | Validated single-file chooser |
-| `TextField` | Labeled input or textarea with a character counter |
+| `TextField` | Labeled input or textarea with a character counter; its `FIELD_CLASS` is the shared border/focus look for every other input, textarea and select |
 | `Badge`, `Tooltip`, `Message`, `Page`, `ExternalLink` | Small shared pieces |
 
 ### Sharing
-`lib/share/providers.jsx` is a plain list of share targets: copy link, Facebook, email, Reddit, X, LinkedIn. The first four appear in the share modal; the rest go under "More". To add a platform, add one entry, using `popupProvider()` for web-intent popups.
+`lib/share/providers.jsx` is a plain list of share targets: copy link, Facebook, email, Reddit, X, LinkedIn. Each is `{ id, label, icon, activate({ url, title }, { showToast }) }`. The list is exported pre-split as `mainProviders` (tiles in the share modal's main row) and `moreProviders` (under "More"). To add a platform, add one entry, using `popupProvider()` for web-intent popups.
+- `ShareModal` is the only share component that knows about the post: it builds the `{ url, title }` target once and passes a single `share(provider)` callback down.
+- `ShareTile` and `MoreShareMenu` are purely presentational. `SharePreview` mocks the link card from the same `postSeo` values `api/post.js` writes into the meta tags.
 
 ## SEO
 
@@ -118,7 +123,7 @@ The site is client-rendered, so a few pieces exist only so search engines and li
   - Unknown or unapproved posts get a real `404` with `noindex`. The app still loads, so an author or moderator can see their pending post.
   - It shares `postSeo`, `postUrl` and `SITE_NAME` with the browser through `lib/seo/seo.js`.
 - **Link previews.** A post's `og:title` is its bare title; LinkedIn, Facebook and X show the site name and domain beside it. `<title>` keeps the " — Breeders Blog" suffix.
-  - A post with a **share image** (uploaded by the author in `CreatePostModal`, or replaced by the admin in `ApprovePostModal`) uses it as `og:image` with `twitter:card=summary_large_image`, which gives the large picture card. The backend serializes it as a public `imageUrl`.
+  - A post with a **share image** (uploaded by the author in `CreatePostModal`, or replaced by the admin in `ApprovePostModal`, both through `ShareImagePicker`) uses it as `og:image` with `twitter:card=summary_large_image`, which gives the large picture card. The backend serializes it as a public `imageUrl`.
   - Without one, the logo and the small `summary` card from `index.html` stay.
   - Platforms cache previews for days. After changing an image, re-scrape with [LinkedIn Post Inspector](https://www.linkedin.com/post-inspector/) or the [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/).
 - **Post URLs** are `/posts/<id>/<slug>`. The backend computes the slug from the title, and routing ignores it, so old `/posts/<id>` links keep working.

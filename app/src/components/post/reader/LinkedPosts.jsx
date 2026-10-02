@@ -1,4 +1,5 @@
-import PostCarousel from "./PostCarousel";
+import ArticleSection from "./ArticleSection";
+import PostCarousel from "../PostCarousel";
 
 // Rendered between a post's body and its comments (see PostArticle.jsx).
 // `count` is the post's own linkedPostCount (from serializePost), so the
@@ -8,10 +9,11 @@ function LinkedPosts({ postId, count }) {
   if (!count) return null;
 
   return (
-    <div className="border-t border-gray-200 px-6 py-6">
-      <h2 className="mb-3 text-lg font-bold text-gray-900">Linked Posts</h2>
-      <PostCarousel fetchPosts={(api) => api.fetchLinkedPosts(postId)} emptyMessage="No linked posts." />
-    </div>
+    <ArticleSection title="Linked Posts">
+      <div className="mt-3">
+        <PostCarousel fetchPosts={(api) => api.fetchLinkedPosts(postId)} emptyMessage="No linked posts." />
+      </div>
+    </ArticleSection>
   );
 }
 

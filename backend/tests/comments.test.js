@@ -39,6 +39,11 @@ test("commenting creates a trimmed comment", async () => {
   assert.equal(res.body.text, "Nice post");
   assert.equal(res.body.authorName, "Ann");
   assert.equal(res.body.parentId, null);
+
+  // The frontend sends an explicit null for a top-level comment.
+  const explicit = await comment("author", "post", { text: "Top level", parentId: null });
+  assert.equal(explicit.status, 201);
+  assert.equal(explicit.body.parentId, null);
 });
 
 test("commenting validates the text and parent", async () => {

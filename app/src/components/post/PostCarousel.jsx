@@ -3,6 +3,7 @@ import PostTile from "./PostTile";
 import Icon from "@/components/ui/Icon";
 import Message from "@/components/ui/Message";
 import { usePostFeed } from "@/lib/post/usePostFeed";
+import { cn } from "@/lib/utils/cn";
 
 const SCROLL_AMOUNT = 400; // tile width (w-96 = 384px) + gap-4 (16px)
 
@@ -69,11 +70,12 @@ function ScrollArrow({ direction, onClick }) {
       type="button"
       onClick={onClick}
       aria-label={direction < 0 ? "Scroll left" : "Scroll right"}
-      className={`absolute top-1/2 z-10 -translate-y-1/2 rounded-full border border-canvas-border bg-white p-3 text-gray-500 shadow-sm transition-colors hover:bg-gray-100 ${
-        direction < 0 ? "left-0" : "right-0"
-      }`}
+      className={cn(
+        "absolute top-1/2 z-10 -translate-y-1/2 rounded-full border border-canvas-border bg-white p-3 text-gray-500 shadow-sm transition-colors hover:bg-gray-100",
+        direction < 0 ? "left-0" : "right-0",
+      )}
     >
-      <Icon name="chevron" className={`h-5 w-5 ${direction < 0 ? "rotate-90" : "-rotate-90"}`} />
+      <Icon name="chevron" className={cn("h-5 w-5", direction < 0 ? "rotate-90" : "-rotate-90")} />
     </button>
   );
 }

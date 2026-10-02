@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import PostBody from "./PostBody";
 import { MobileToc, SidebarToc } from "./Toc";
-import LinkedPosts from "../LinkedPosts";
+import LinkedPosts from "./LinkedPosts";
 import CommentSection from "@/components/comment/CommentSection";
 import { extractPostHtml } from "@/lib/post/postHtml";
 import { usePostFrame } from "@/lib/post/usePostFrame";

@@ -11,6 +11,7 @@ import { topicLabel } from "@/config/topics";
 import { useCurrentUser } from "@/lib/auth/currentUser";
 import { useRequireSignIn } from "@/lib/auth/useRequireSignIn";
 import { postPath } from "@/lib/seo/seo";
+import { cn } from "@/lib/utils/cn";
 import { voteState } from "@/lib/vote/voting";
 
 // One post card in a list. All data changes go through `actions` (from
@@ -40,9 +41,10 @@ function PostTile({ post, actions, showTopic = false }) {
         onClick={() => {
           if (!isPending) navigate(postPath(post));
         }}
-        className={`group rounded-lg border border-canvas-border bg-white p-4 shadow-sm transition-shadow ${
-          isPending ? "cursor-default" : "cursor-pointer hover:shadow-md"
-        }`}
+        className={cn(
+          "group rounded-lg border border-canvas-border bg-white p-4 shadow-sm transition-shadow",
+          isPending ? "cursor-default" : "cursor-pointer hover:shadow-md",
+        )}
       >
         {/* Header row: title, author, actions */}
         <div className="flex items-center justify-between gap-3">

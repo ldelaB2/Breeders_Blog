@@ -28,12 +28,12 @@ export function postEngagementRoutes({ auth }) {
     }),
   );
 
-  // A post page view, counted toward its rank score. Anonymous readers count
-  // too; the client sends this at most once per post per browser session,
-  // and the global /api rate limiter caps abuse.
+  // A post page view, counted toward its rank score. Anonymous - no auth
+  // middleware, since who's reading never matters; the client sends this at
+  // most once per post per browser session, and the global /api rate
+  // limiter caps abuse.
   router.post(
     "/:id/view",
-    auth.optionalAuth,
     requireApproved,
     asyncHandler(async (req, res) => {
       await prisma.postMetadata.update({ where: { id: req.post.id }, data: { viewCount: { increment: 1 } } });

@@ -50,7 +50,7 @@ export function feedRoutes({ auth }) {
     "/search",
     auth.optionalAuth,
     asyncHandler(async (req, res) => {
-      const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+      const q = (optionalString(req.query.q, "q") ?? "").trim();
       if (!q) return res.json([]);
 
       const words = q.split(/\s+/).slice(0, SEARCH_WORDS_MAX);

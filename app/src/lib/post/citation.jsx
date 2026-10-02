@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 // The post currently open in PostReader ({ title, author, date }), or null.
 // The footer's "Cite this page" line lives outside the route tree and has
@@ -7,7 +7,7 @@ import { useSyncExternalStore } from "react";
 let current = null;
 const listeners = new Set();
 
-export function setCitation(citation) {
+function setCitation(citation) {
   current = citation;
   listeners.forEach((fn) => fn());
 }
@@ -17,4 +17,14 @@ export function useCitation() {
     (fn) => (listeners.add(fn), () => listeners.delete(fn)),
     () => current
   );
+}
+
+// The writer side: points the citation at `post` while it's open (null
+// while loading) and reverts it on the way out.
+export function useCitePost(post) {
+  useEffect(() => {
+    if (!post) return;
+    setCitation({ title: post.title, author: post.authorName, date: post.createdAt });
+    return () => setCitation(null);
+  }, [post]);
 }

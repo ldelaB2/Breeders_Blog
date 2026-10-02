@@ -6,9 +6,10 @@ import { validateFile } from "@/lib/post/upload";
 // is checked against `rules` ({ extensions, maxBytes, typeLabel } - see
 // validateFile) before onSelect sees it; a bad file goes to onError
 // instead, and the input is reset so the same file can be re-chosen after
-// fixing it.
-function FilePicker({ label, file, accept, rules, placeholder, hint, onSelect, onError }) {
+// fixing it. The native picker's filter comes from rules.extensions too.
+function FilePicker({ label, file, rules, placeholder, hint, onSelect, onError }) {
   const inputRef = useRef(null);
+  const accept = rules.extensions.map((ext) => `.${ext}`).join(",");
 
   function handleChange(e) {
     const selected = e.target.files?.[0];

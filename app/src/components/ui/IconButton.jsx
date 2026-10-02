@@ -22,6 +22,7 @@ const TONES = {
 // toggle (aria-pressed). `stopPropagation` is for buttons inside a
 // clickable card (post tiles), so the click doesn't also open the card.
 // `iconClassName` replaces the size's icon classes (e.g. a responsive size).
+// `disabled` (e.g. while its action is pending) dims it with a wait cursor.
 function IconButton({
   icon,
   label,
@@ -46,7 +47,7 @@ function IconButton({
         if (stopPropagation) e.stopPropagation();
         onClick?.(e);
       }}
-      className={cn("rounded-md transition-colors", padding, toneClass, className)}
+      className={cn("rounded-md transition-colors disabled:cursor-wait disabled:opacity-50", padding, toneClass, className)}
       {...props}
     >
       <Icon name={icon} className={iconClassName ?? iconSize} />

@@ -4,15 +4,10 @@ import Button from "@/components/ui/Button";
 import FilePicker from "@/components/ui/FilePicker";
 import Message from "@/components/ui/Message";
 import TextField from "@/components/ui/TextField";
+import ShareImagePicker from "./ShareImagePicker";
 import { useApi } from "@/lib/api/useApi";
 import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
-import {
-  formatMB,
-  SHARE_IMAGE_ACCEPT,
-  SHARE_IMAGE_HINT,
-  SHARE_IMAGE_RULES,
-  uploadToSignedUrl,
-} from "@/lib/post/upload";
+import { formatMB, uploadToSignedUrl } from "@/lib/post/upload";
 
 // These mirror the limits in backend/src/config/limits.js so a bad
 // input fails fast with a clear message; the backend is the enforcement.
@@ -28,9 +23,8 @@ const POST_LIMIT = 5; // per 24 hours; only used for the message text
 // Popup for submitting a new post: title, abstract, a single raw file
 // (.md/.qmd/.rmd/.zip) and an optional share image. The files go straight
 // to storage via signed URLs (POST /posts/upload-url), then POST /posts
-// finalizes. The post is created
-// PENDING - invisible to everyone but its author and a moderator/admin
-// until reviewed.
+// finalizes. The post is created PENDING - invisible to everyone but its
+// author and a moderator/admin until reviewed.
 function CreatePostModal({ topicSlug, onClose, onCreated }) {
   const api = useApi();
   const { run, pending, error, setError } = useAsyncAction();
@@ -97,7 +91,6 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
         <FilePicker
           label="Post file"
           file={file}
-          accept=".md,.qmd,.rmd,.zip"
           rules={FILE_RULES}
           placeholder="Upload .md, .qmd, .rmd, or .zip file…"
           hint={`.md, .qmd, .rmd, or .zip, up to ${formatMB(FILE_RULES.maxBytes)}`}
@@ -108,13 +101,9 @@ function CreatePostModal({ topicSlug, onClose, onCreated }) {
           onError={setError}
         />
 
-        <FilePicker
-          label="Share image (optional)"
+        <ShareImagePicker
           file={image}
-          accept={SHARE_IMAGE_ACCEPT}
-          rules={SHARE_IMAGE_RULES}
           placeholder="Upload a figure from your post…"
-          hint={SHARE_IMAGE_HINT}
           onSelect={(selected) => {
             setError(null);
             setImage(selected);

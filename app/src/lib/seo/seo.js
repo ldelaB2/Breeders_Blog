@@ -28,9 +28,10 @@ export const postUrl = (post, origin) => `${origin}${postPath(post)}`;
 // Everything useSeo/api/post.js need to describe a post page.
 export function postSeo(post, origin) {
   const path = postPath(post);
+  const description = truncate(post.abstract);
   return {
     title: post.title,
-    description: truncate(post.abstract),
+    description,
     path,
     type: "article",
     // The post's own share image (backend serializes it as a public URL),
@@ -40,7 +41,7 @@ export function postSeo(post, origin) {
       "@context": "https://schema.org",
       "@type": "BlogPosting",
       headline: post.title,
-      description: truncate(post.abstract),
+      description,
       author: { "@type": "Person", name: post.authorName },
       datePublished: post.createdAt,
       dateModified: post.updatedAt,

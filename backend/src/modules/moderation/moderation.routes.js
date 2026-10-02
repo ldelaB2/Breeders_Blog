@@ -5,10 +5,17 @@ import { asyncHandler } from "../../lib/http/asyncHandler.js";
 import { HttpError } from "../../lib/http/httpError.js";
 import { optionalString, requireText } from "../../lib/http/validate.js";
 import { REJECTION_REASON_MAX } from "../../config/limits.js";
-import { extensionOf, htmlSlugFor, isImageSlugFor, listPosts, loadPostParam, updatePost } from "../posts/posts.repo.js";
+import {
+  assertUploaded,
+  extensionOf,
+  htmlSlugFor,
+  isUploadSlugFor,
+  mintUpload,
+  removePostFiles,
+} from "../posts/postFiles.js";
+import { listPosts, loadPostParam, updatePost } from "../posts/posts.repo.js";
 import { assertStatus } from "../posts/postStatus.js";
 import { serializePost, serializePosts } from "../posts/serializePost.js";
-import { assertImageUploaded, mintImageUpload } from "../posts/shareImage.js";
 
 // The admin review queue (approve/reject/download/delete) and moderator
 // curation (lock/archive). Every route answers with the updated post.
@@ -17,7 +24,9 @@ export function moderationRoutes({ auth, stores, notify }) {
   const router = Router();
   loadPostParam(router);
 
-  const update = async (req, res, data) => res.json(serializePost(await updatePost(req.post.id, data), req.user));
+  const respond = (req, res, post) => res.json(serializePost(post, req.user));
+  // Who reviewed a post and when - set by both approve and reject.
+  const reviewedBy = (req) => ({ reviewedById: req.user.id, reviewedAt: new Date() });
 
   router.get(
     "/pending",
@@ -36,9 +45,9 @@ export function moderationRoutes({ auth, stores, notify }) {
     requireAdmin,
     asyncHandler(async (req, res) => {
       assertStatus(req.post, "PENDING", "approved");
-      const imageFilename = optionalString(req.body?.imageFilename, "imageFilename");
+      const imageFilename = optionalString(req.body.imageFilename, "imageFilename");
       const htmlSlug = htmlSlugFor(req.post.id);
-      const image = imageFilename ? await mintImageUpload(stores.image, req.post.id, imageFilename) : null;
+      const image = imageFilename ? await mintUpload(stores.image, "image", req.post.id, imageFilename) : null;
       res.json({ signedUrl: await stores.html.signedUploadUrl(htmlSlug), htmlSlug, image });
     }),
   );
@@ -50,24 +59,23 @@ export function moderationRoutes({ auth, stores, notify }) {
     requireAdmin,
     asyncHandler(async (req, res) => {
       assertStatus(req.post, "PENDING", "approved");
-      const imageSlug = optionalString(req.body?.imageSlug, "imageSlug") || null;
-      if (imageSlug && !isImageSlugFor(req.post.id, imageSlug)) throw new HttpError(400, "Invalid imageSlug");
+      const imageSlug = optionalString(req.body.imageSlug, "imageSlug") || null;
+      if (imageSlug && !isUploadSlugFor("image", req.post.id, imageSlug)) throw new HttpError(400, "Invalid imageSlug");
       const htmlSlug = htmlSlugFor(req.post.id);
       if (!(await stores.html.exists(htmlSlug))) {
         throw new HttpError(400, "Stitched HTML upload not found - try uploading again");
       }
-      if (imageSlug) await assertImageUploaded(stores.image, imageSlug);
+      if (imageSlug) await assertUploaded(stores.image, "image", imageSlug);
       const oldImageSlug = req.post.body?.imageSlug;
       const updated = await updatePost(req.post.id, {
         status: "APPROVED",
-        reviewedById: req.user.id,
-        reviewedAt: new Date(),
+        ...reviewedBy(req),
         body: { update: { htmlSlug, ...(imageSlug && { imageSlug }) } },
       });
       // A replacement with a different extension leaves the author's original behind.
       if (imageSlug && oldImageSlug !== imageSlug) await stores.image.remove(oldImageSlug);
       await notify.notifyAuthorOfApproval(updated);
-      res.json(serializePost(updated, req.user));
+      respond(req, res, updated);
     }),
   );
 
@@ -77,14 +85,9 @@ export function moderationRoutes({ auth, stores, notify }) {
     asyncHandler(async (req, res) => {
       const rejectionReason = requireText(req.body.rejectionReason, "rejectionReason", REJECTION_REASON_MAX);
       assertStatus(req.post, "PENDING", "rejected");
-      const updated = await updatePost(req.post.id, {
-        status: "REJECTED",
-        reviewedById: req.user.id,
-        reviewedAt: new Date(),
-        rejectionReason,
-      });
+      const updated = await updatePost(req.post.id, { status: "REJECTED", ...reviewedBy(req), rejectionReason });
       await notify.notifyAuthorOfRejection(updated);
-      res.json(serializePost(updated, req.user));
+      respond(req, res, updated);
     }),
   );
 
@@ -124,9 +127,7 @@ export function moderationRoutes({ auth, stores, notify }) {
     "/:id",
     requireAdmin,
     asyncHandler(async (req, res) => {
-      await stores.html.remove(req.post.body?.htmlSlug);
-      await stores.upload.remove(req.post.body?.rawSlug);
-      await stores.image.remove(req.post.body?.imageSlug);
+      await removePostFiles(stores, req.post.body ?? {});
       await prisma.postMetadata.delete({ where: { id: req.post.id } });
       res.status(204).end();
     }),
@@ -137,7 +138,7 @@ export function moderationRoutes({ auth, stores, notify }) {
     requireModerator,
     asyncHandler(async (req, res) => {
       assertStatus(req.post, "APPROVED", "locked");
-      await update(req, res, { locked: !req.post.locked });
+      respond(req, res, await updatePost(req.post.id, { locked: !req.post.locked }));
     }),
   );
 
@@ -148,7 +149,7 @@ export function moderationRoutes({ auth, stores, notify }) {
     requireModerator,
     asyncHandler(async (req, res) => {
       assertStatus(req.post, "APPROVED", "archived");
-      await update(req, res, { topicSlug: "archive", locked: true });
+      respond(req, res, await updatePost(req.post.id, { topicSlug: "archive", locked: true }));
     }),
   );
 

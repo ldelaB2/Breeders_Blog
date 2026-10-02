@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Prisma } from "@prisma/client";
 import { prisma, useTestApp } from "./setup/harness.js";
 import { createComment, createPost, createUser, link, pin, vote } from "./setup/factories.js";
 import { resetForLaunch } from "../scripts/reset-for-launch.js";
+import { MODELS } from "../src/lib/db/models.js";
 
 const ctx = useTestApp();
 
@@ -37,9 +37,8 @@ test("the reset script with confirm wipes the database and every bucket", async 
   await seed();
   await resetForLaunch({ stores: ctx.stores, confirm: true, log: () => {} });
 
-  for (const model of Prisma.dmmf.datamodel.models) {
-    const delegate = model.name[0].toLowerCase() + model.name.slice(1);
-    assert.equal(await prisma[delegate].count(), 0, `${model.name} should be empty`);
+  for (const { delegate, table } of MODELS) {
+    assert.equal(await prisma[delegate].count(), 0, `${table} should be empty`);
   }
   assert.equal(ctx.stores.html.objects.size, 0);
   assert.equal(ctx.stores.upload.objects.size, 0);

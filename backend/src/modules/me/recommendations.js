@@ -55,24 +55,28 @@ async function topicsOf(postIds) {
   return new Set(posts.map((p) => p.topicSlug));
 }
 
+// The highest-ranked approved posts matching `where`, excluding `excluded`.
+const topPosts = async (where, excluded, user) =>
+  rankPosts(await listPosts({ ...where, status: "APPROVED", id: { notIn: [...excluded] } }), user);
+
 export async function getRecommendedPosts({ user, limit }) {
   const { liked, seen } = await engagedPostIds(user.id);
-  const picked = [];
-  const excluded = () => new Set([...seen, ...picked.map((p) => p.id)]);
-
-  if (liked.size) picked.push(...(await linkedPosts(liked, excluded(), user)).slice(0, limit));
-  if (picked.length >= limit) return picked;
-
   const topics = liked.size ? await topicsOf(liked) : new Set();
-  if (topics.size) {
-    const fromTopics = rankPosts(
-      await listPosts({ status: "APPROVED", topicSlug: { in: [...topics] }, id: { notIn: [...excluded()] } }),
-      user,
-    );
-    picked.push(...fromTopics.slice(0, limit - picked.length));
-    if (picked.length >= limit) return picked;
-  }
 
-  const backfill = rankPosts(await listPosts({ status: "APPROVED", id: { notIn: [...excluded()] } }), user);
-  return [...picked, ...backfill].slice(0, limit);
+  // Each tier returns ranked candidates, given every id to leave out (the
+  // user's own interactions plus everything picked so far). Tiers without
+  // any signal to work from are skipped.
+  const tiers = [
+    liked.size && ((excluded) => linkedPosts(liked, excluded, user)),
+    topics.size && ((excluded) => topPosts({ topicSlug: { in: [...topics] } }, excluded, user)),
+    (excluded) => topPosts({}, excluded, user),
+  ].filter(Boolean);
+
+  const picked = [];
+  for (const tier of tiers) {
+    if (picked.length >= limit) break;
+    const excluded = new Set([...seen, ...picked.map((p) => p.id)]);
+    picked.push(...(await tier(excluded)).slice(0, limit - picked.length));
+  }
+  return picked;
 }

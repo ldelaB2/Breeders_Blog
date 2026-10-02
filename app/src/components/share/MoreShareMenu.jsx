@@ -1,10 +1,11 @@
-import Dropdown from "@/components/ui/Dropdown";
-import ShareProviderButton, { ShareTile } from "./ShareProviderButton";
+import Dropdown, { DropdownItem } from "@/components/ui/Dropdown";
+import Icon from "@/components/ui/Icon";
+import ShareTile from "./ShareTile";
 
-// The share modal's 5th slot: a "more" trigger that reveals whichever
+// The share modal's 5th slot: a "more" tile that reveals whichever
 // providers don't fit in the main row. Pure UI chrome, not a provider, so
 // it's never listed in lib/share/providers.jsx.
-function MoreShareMenu({ providers, post, origin, showToast }) {
+function MoreShareMenu({ providers, onSelect }) {
   return (
     <Dropdown
       align="right"
@@ -23,15 +24,17 @@ function MoreShareMenu({ providers, post, origin, showToast }) {
     >
       {(close) =>
         providers.map((provider) => (
-          <ShareProviderButton
+          <DropdownItem
             key={provider.id}
-            provider={provider}
-            post={post}
-            origin={origin}
-            showToast={showToast}
-            variant="row"
-            onAfterActivate={close}
-          />
+            role="menuitem"
+            onClick={() => {
+              onSelect(provider);
+              close();
+            }}
+          >
+            <Icon name={provider.icon} className="h-5 w-5" />
+            {provider.label}
+          </DropdownItem>
         ))
       }
     </Dropdown>

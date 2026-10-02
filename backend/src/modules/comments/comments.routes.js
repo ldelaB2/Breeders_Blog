@@ -2,7 +2,7 @@ import { Router } from "express";
 import { prisma } from "../../lib/db/prisma.js";
 import { asyncHandler } from "../../lib/http/asyncHandler.js";
 import { HttpError } from "../../lib/http/httpError.js";
-import { requireText } from "../../lib/http/validate.js";
+import { optionalString, requireText } from "../../lib/http/validate.js";
 import { COMMENT_MAX } from "../../config/limits.js";
 import { loadResource } from "../../middleware/loadResource.js";
 import { ownsOrModerates } from "../users/roles.js";
@@ -38,9 +38,8 @@ export function commentsRoutes({ auth }) {
     requireAuth,
     asyncHandler(async (req, res) => {
       const { postId } = req.params;
-      const { parentId } = req.body;
       const text = requireText(req.body.text, "text", COMMENT_MAX);
-      if (parentId != null && typeof parentId !== "string") throw new HttpError(400, "parentId must be a string");
+      const parentId = optionalString(req.body.parentId, "parentId") || null;
 
       const post = await prisma.postMetadata.findUnique({ where: { id: postId } });
       if (!post || post.status !== "APPROVED") throw new HttpError(404, "Post not found");
@@ -54,7 +53,7 @@ export function commentsRoutes({ auth }) {
       }
 
       const comment = await prisma.comment.create({
-        data: { postId, parentId: parentId || null, authorId: req.user.id, authorName: req.user.name, text },
+        data: { postId, parentId, authorId: req.user.id, authorName: req.user.name, text },
         include,
       });
       res.status(201).json(serializeComment(comment));

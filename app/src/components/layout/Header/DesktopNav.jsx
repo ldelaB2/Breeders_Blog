@@ -1,5 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
-import Dropdown from "@/components/ui/Dropdown";
+import Dropdown, { DropdownItem } from "@/components/ui/Dropdown";
 import Icon from "@/components/ui/Icon";
 import { TOPICS } from "@/config/topics";
 import { cn } from "@/lib/utils/cn";
@@ -52,13 +52,9 @@ function TopicsDropdown({ label }) {
         <ul>
           {TOPICS.map((topic) => (
             <li key={topic.path}>
-              <Link
-                to={topic.path}
-                onClick={close}
-                className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900"
-              >
+              <DropdownItem as={Link} to={topic.path} onClick={close}>
                 {topic.label}
-              </Link>
+              </DropdownItem>
             </li>
           ))}
         </ul>

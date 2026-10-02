@@ -20,17 +20,10 @@
 //   node scripts/reset-for-launch.js --confirm   # actually deletes everything
 import "dotenv/config";
 import { pathToFileURL } from "node:url";
-import { Prisma } from "@prisma/client";
 import { prisma } from "../src/lib/db/prisma.js";
+import { MODELS } from "../src/lib/db/models.js";
 import { defaultDeps } from "../src/deps.js";
 import { env } from "../src/config/env.js";
-
-// Every model in schema.prisma, as its Prisma client delegate name and its
-// table name.
-const MODELS = Prisma.dmmf.datamodel.models.map((m) => ({
-  delegate: m.name[0].toLowerCase() + m.name.slice(1),
-  table: m.dbName ?? m.name,
-}));
 
 const BUCKETS = ["html", "upload", "image"];
 

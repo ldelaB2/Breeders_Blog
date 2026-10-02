@@ -7,16 +7,17 @@ import { HttpError } from "../../lib/http/httpError.js";
 import { optionalString, requireText } from "../../lib/http/validate.js";
 import {
   ABSTRACT_MAX,
-  MAX_UPLOAD_BYTES,
+  FILENAME_MAX,
+  ID_MAX,
   POST_LIMIT,
   POST_LIMIT_WINDOW_MS,
+  SLUG_MAX,
   TITLE_MAX,
-  UPLOAD_TYPES,
 } from "../../config/limits.js";
 import { TOPIC_SLUGS } from "../../config/topics.js";
-import { extensionOf, postInclude, rawSlugFor } from "./posts.repo.js";
+import { assertUploaded, extensionOf, mintUpload, removePostFiles, uploadSlug } from "./postFiles.js";
+import { postInclude } from "./posts.repo.js";
 import { serializePost } from "./serializePost.js";
-import { assertImageUploaded, mintImageUpload } from "./shareImage.js";
 
 // Caps submission volume per user across all statuses.
 async function assertUnderPostLimit(userId) {
@@ -39,8 +40,7 @@ export function submitRoutes({ auth, stores, notify }) {
   // Drops an upload ticket and the object it points at - used whenever a
   // submission is abandoned or rejected before it becomes a post.
   async function discardUpload(ticket) {
-    await stores.upload.remove(ticket.rawSlug);
-    await stores.image.remove(ticket.imageSlug);
+    await removePostFiles(stores, ticket);
     await prisma.pendingPostUpload.delete({ where: { id: ticket.id } }).catch(() => {});
   }
 
@@ -50,8 +50,8 @@ export function submitRoutes({ auth, stores, notify }) {
     "/upload-url",
     auth.requireAuth,
     asyncHandler(async (req, res) => {
-      const ext = extensionOf(req.body.filename);
-      if (!ext || !UPLOAD_TYPES[ext]) throw new HttpError(400, "File must be a .md, .qmd, .rmd, or .zip");
+      const postId = crypto.randomUUID();
+      const upload = uploadSlug("upload", postId, req.body.filename);
       const imageFilename = optionalString(req.body.imageFilename, "imageFilename");
       // Early check so a user at their limit isn't asked to upload for
       // nothing - POST / re-checks this for real.
@@ -62,14 +62,12 @@ export function submitRoutes({ auth, stores, notify }) {
       const stale = await prisma.pendingPostUpload.findMany({ where: { authorId: req.user.id } });
       await Promise.all(stale.map(discardUpload));
 
-      const postId = crypto.randomUUID();
-      const rawSlug = rawSlugFor(postId, ext);
-      const image = imageFilename ? await mintImageUpload(stores.image, postId, imageFilename) : null;
+      const image = imageFilename ? await mintUpload(stores.image, "image", postId, imageFilename) : null;
       await prisma.pendingPostUpload.create({
-        data: { id: postId, authorId: req.user.id, rawSlug, imageSlug: image?.slug ?? null },
+        data: { id: postId, authorId: req.user.id, rawSlug: upload.slug, imageSlug: image?.slug ?? null },
       });
-      const signedUrl = await stores.upload.signedUploadUrl(rawSlug);
-      res.json({ postId, rawSlug, signedUrl, contentType: UPLOAD_TYPES[ext], image });
+      const signedUrl = await stores.upload.signedUploadUrl(upload.slug);
+      res.json({ postId, rawSlug: upload.slug, signedUrl, contentType: upload.contentType, image });
     }),
   );
 
@@ -77,15 +75,15 @@ export function submitRoutes({ auth, stores, notify }) {
     "/",
     auth.requireAuth,
     asyncHandler(async (req, res) => {
-      const id = requireText(req.body.id, "id", 64);
-      const topicSlug = requireText(req.body.topicSlug, "topicSlug", 32);
+      const id = requireText(req.body.id, "id", ID_MAX);
+      const topicSlug = requireText(req.body.topicSlug, "topicSlug", SLUG_MAX);
       const title = requireText(req.body.title, "title", TITLE_MAX);
       const abstract = requireText(req.body.abstract, "abstract", ABSTRACT_MAX);
-      const rawSlug = requireText(req.body.rawSlug, "rawSlug", 128);
+      const rawSlug = requireText(req.body.rawSlug, "rawSlug", SLUG_MAX);
       const imageSlug = optionalString(req.body.imageSlug, "imageSlug") || null;
       // Display-only, but it becomes a zip entry name in GET /:id/download -
       // basename() keeps a crafted "../x" from ever escaping an unzip.
-      const originalFilename = path.basename(requireText(req.body.originalFilename, "originalFilename", 255));
+      const originalFilename = path.basename(requireText(req.body.originalFilename, "originalFilename", FILENAME_MAX));
       if (!TOPIC_SLUGS.includes(topicSlug)) throw new HttpError(400, "Unknown topic");
 
       // The ticket binds the rawSlug to the user who minted it, so a post can
@@ -105,13 +103,11 @@ export function submitRoutes({ auth, stores, notify }) {
         throw err;
       }
 
-      const size = await stores.upload.size(rawSlug);
-      if (size === null) throw new HttpError(400, "Upload not found - try uploading again");
-      if (size > MAX_UPLOAD_BYTES) {
-        await discardUpload(ticket);
-        throw new HttpError(400, "File is too large - uploads must be under 50 MB");
-      }
-      if (imageSlug) await assertImageUploaded(stores.image, imageSlug);
+      // A missing upload keeps the ticket for a retry; an oversized one can
+      // never be used, so it's discarded.
+      const onTooLarge = () => discardUpload(ticket);
+      await assertUploaded(stores.upload, "upload", rawSlug, { onTooLarge });
+      if (imageSlug) await assertUploaded(stores.image, "image", imageSlug, { onTooLarge });
 
       const [post] = await prisma.$transaction([
         prisma.postMetadata.create({

@@ -3,9 +3,10 @@ import Modal, { ModalActions } from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import FilePicker from "@/components/ui/FilePicker";
 import Message from "@/components/ui/Message";
+import ShareImagePicker from "@/components/post/ShareImagePicker";
 import { useApi } from "@/lib/api/useApi";
 import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
-import { SHARE_IMAGE_ACCEPT, SHARE_IMAGE_HINT, SHARE_IMAGE_RULES, uploadToSignedUrl } from "@/lib/post/upload";
+import { uploadToSignedUrl } from "@/lib/post/upload";
 
 // The extension check mirrors the post-html bucket's text/html restriction
 // so a wrong file fails fast; the bucket is the enforcement.
@@ -53,7 +54,6 @@ function ApprovePostModal({ post, onClose, onApproved }) {
         <FilePicker
           label="Stitched HTML file"
           file={file}
-          accept=".html,text/html"
           rules={FILE_RULES}
           placeholder="Upload stitched HTML file…"
           onSelect={(selected) => {
@@ -71,13 +71,10 @@ function ApprovePostModal({ post, onClose, onApproved }) {
           />
         )}
 
-        <FilePicker
-          label={post.imageUrl ? "Replace share image (optional)" : "Share image (optional)"}
+        <ShareImagePicker
+          label={post.imageUrl ? "Replace share image (optional)" : undefined}
           file={image}
-          accept={SHARE_IMAGE_ACCEPT}
-          rules={SHARE_IMAGE_RULES}
           placeholder={post.imageUrl ? "Keep the author's image, or upload a new one…" : "Upload a figure from the post…"}
-          hint={SHARE_IMAGE_HINT}
           onSelect={(selected) => {
             setError(null);
             setImage(selected);

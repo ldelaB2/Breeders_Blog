@@ -1,5 +1,7 @@
 import { useState } from "react";
 import Button from "@/components/ui/Button";
+import { FIELD_CLASS } from "@/components/ui/TextField";
+import { cn } from "@/lib/utils/cn";
 
 // Wide inline textarea for composing a new comment or reply.
 function AddCommentForm({ onSubmit, onCancel }) {
@@ -25,7 +27,7 @@ function AddCommentForm({ onSubmit, onCancel }) {
         rows={3}
         autoFocus
         placeholder="Write a comment..."
-        className="w-full rounded-md border border-gray-200 p-2 text-sm text-gray-700 focus:border-transparent focus:outline-none"
+        className={cn(FIELD_CLASS, "w-full p-2 text-sm text-gray-700")}
       />
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={submitting}>

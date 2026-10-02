@@ -1,11 +1,17 @@
 // Input limits the API enforces. The frontend mirrors the user-facing ones
-// (app/src/components/post/CreatePostModal.jsx) for fast feedback; these are
-// the real enforcement.
+// (app/src/components/post/CreatePostModal.jsx and ShareImagePicker.jsx) for
+// fast feedback; these are the real enforcement.
 export const TITLE_MAX = 100;
 export const ABSTRACT_MAX = 3800;
 export const REJECTION_REASON_MAX = 1000;
 export const COMMENT_MAX = 5000;
 export const SEARCH_WORDS_MAX = 10;
+
+// Caps on identifier-like body fields (post ids, slugs, filenames) - bounds
+// for requireText, not validation; the routes check the values themselves.
+export const ID_MAX = 64;
+export const SLUG_MAX = 128;
+export const FILENAME_MAX = 255;
 
 // Per-user submission cap across all statuses, so the moderation queue can't
 // be spammed with pending/rejected posts either.

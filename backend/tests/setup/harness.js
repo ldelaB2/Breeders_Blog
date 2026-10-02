@@ -1,6 +1,7 @@
 import { after, beforeEach } from "node:test";
 import { assertLocalDatabase } from "./guard.js";
 import { createFakes } from "./fakes.js";
+import { MODELS } from "../../src/lib/db/models.js";
 
 assertLocalDatabase();
 
@@ -14,7 +15,8 @@ const { prisma } = await import("../../src/lib/db/prisma.js");
 
 export { prisma };
 
-const TABLES = ["CommentVote", "Comment", "Vote", "Pin", "PostLink", "PostBody", "PostMetadata", "PendingPostUpload", "User"];
+// Every table in the schema (see lib/db/models.js), emptied before each test.
+const TABLES = MODELS.map((m) => `"${m.table}"`).join(", ");
 
 // Call once at the top of a test file. Before each test the database is
 // emptied and `ctx` gets a fresh app wired to fresh fakes:
@@ -24,7 +26,7 @@ export function useTestApp() {
   const ctx = {};
 
   beforeEach(async () => {
-    await prisma.$executeRawUnsafe(`TRUNCATE ${TABLES.map((t) => `"${t}"`).join(", ")} CASCADE`);
+    await prisma.$executeRawUnsafe(`TRUNCATE ${TABLES} CASCADE`);
     const fakes = createFakes();
     Object.assign(ctx, fakes, { app: createApp(fakes.deps) });
   });

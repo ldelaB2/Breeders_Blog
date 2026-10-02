@@ -3,11 +3,12 @@ import { env } from "../../config/env.js";
 
 // Storage-only Supabase client (not the full @supabase/supabase-js, which
 // drags in a Realtime websocket dependency the backend has no use for),
-// authenticated with the service role key so it can read/write the private
-// buckets directly, bypassing RLS. Neither bucket grants anon/authenticated
-// access - only this client, or the short-lived signed URLs it mints, can
-// touch them. The exception is post-image, which is public-read (see
-// imageUrlFor in modules/posts/posts.repo.js). Created on first use so importing this never needs env vars.
+// authenticated with the service role key so it can read/write the buckets
+// directly, bypassing RLS. post-html and post-upload grant no
+// anon/authenticated access - only this client, or the short-lived signed
+// URLs it mints, can touch them. post-image is the exception: public-read
+// (see imageUrlFor in modules/posts/postFiles.js). Created on first use so
+// importing this never needs env vars.
 let client;
 function storageClient() {
   client ??= new StorageClient(`${env.supabaseUrl}/storage/v1`, {

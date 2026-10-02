@@ -31,4 +31,20 @@ function Dropdown({ renderTrigger, children, align = "left", as: Tag = "div", pa
   );
 }
 
+// One full-width row in a Dropdown panel: a button by default, or any
+// element/component via `as` (e.g. as={Link} with `to`). Children may
+// lead with an <Icon>; the row spaces them out.
+export function DropdownItem({ as: Tag = "button", className, ...props }) {
+  return (
+    <Tag
+      {...(Tag === "button" && { type: "button" })}
+      className={cn(
+        "flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
 export default Dropdown;

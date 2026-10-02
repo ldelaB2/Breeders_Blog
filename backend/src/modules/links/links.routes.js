@@ -4,6 +4,7 @@ import { ignoreConflicts } from "../../lib/db/prismaErrors.js";
 import { asyncHandler } from "../../lib/http/asyncHandler.js";
 import { HttpError } from "../../lib/http/httpError.js";
 import { requireText } from "../../lib/http/validate.js";
+import { ID_MAX } from "../../config/limits.js";
 import { ownsOrModerates } from "../users/roles.js";
 import { loadPostParam, postInclude } from "../posts/posts.repo.js";
 import { serializePosts } from "../posts/serializePost.js";
@@ -37,7 +38,7 @@ export function linksRoutes({ auth }) {
     auth.requireAuth,
     asyncHandler(async (req, res) => {
       assertCanManage(req);
-      const targetPostId = requireText(req.body.targetPostId, "targetPostId", 64);
+      const targetPostId = requireText(req.body.targetPostId, "targetPostId", ID_MAX);
       if (targetPostId === req.post.id) throw new HttpError(400, "A post can't be linked to itself");
 
       const target = await prisma.postMetadata.findUnique({

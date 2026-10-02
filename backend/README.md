@@ -51,12 +51,12 @@ src/
   config/              env.js, limits.js (input limits, upload types), topics.js
   middleware/          auth.js, loadResource.js, errors.js
   lib/                 shared infrastructure
-    db/                prisma.js, prismaErrors.js (ignoreConflicts)
+    db/                prisma.js, models.js (every model/table), prismaErrors.js (ignoreConflicts)
     http/              HttpError, asyncHandler, validate (requireText, optionalString, parseLimit)
     storage/           createBucketStore.js
     mail/              createMailer.js
   modules/             one folder per feature
-    posts/             feed, read, submit routes; posts.repo, serializePost, ranking, postUrl, postStatus
+    posts/             feed, read, submit routes; posts.repo, postFiles, serializePost, ranking, postUrl, postStatus
     moderation/        approve/reject/download/delete/lock/archive + notification emails
     engagement/        votes and pins (voteRoutes, toggles, serializeVotes)
     links/ comments/ me/ users/ sitemap/ webhooks/
@@ -94,13 +94,19 @@ src/
 ### Shared patterns
 - **Record loading.** `loadResource(router, "id", { find, as, notFound })` loads `:id` records onto `req.post` or `req.comment`, or returns a 404. For posts, use `loadPostParam(router)`.
 - **Post queries.** `posts.repo.js` provides `postInclude`, `findPost`, `listPosts` and `updatePost`. Every post response goes through `serializePost(post, req.user)`. That hides review fields from non-owners and never exposes the raw upload.
+- **Stored files.** `posts/postFiles.js` owns everything about a post's three storage objects (raw upload, stitched HTML, share image): their names, `extensionOf`, the public `imageUrlFor`, and `removePostFiles`. Every direct upload follows the same steps:
+  1. `mintUpload(store, kind, postId, filename)` (or `uploadSlug` for just the name) checks the type and returns `{ slug, contentType, signedUrl }`.
+  2. The browser PUTs the file to the signed URL.
+  3. `assertUploaded(store, kind, slug, { onTooLarge })` checks the storage-reported size.
+  - A new upload kind is one entry in its `UPLOADS` table.
 - **Status rules.**
   - `assertStatus(post, "PENDING", "approved")` returns `400 "Only pending posts can be approved"`.
   - `requireApproved` treats an unapproved post as a 404 for votes and pins.
 - **Votes and pins.** `voteRoutes(router, { path, guards, model, keyFor, respond })` registers upvote and downvote for any record; posts and comments both use it.
   - Toggle rules: the same vote again removes it, the opposite vote switches it.
   - `ignoreConflicts` makes racing double-clicks harmless.
-- **Input validation.** `requireText`, `optionalString` and `parseLimit` stop non-string JSON or query values (such as `?topicSlug[not]=x`) from reaching Prisma.
+- **Input validation.** Every body and query value goes through `requireText`, `optionalString` (absent or `null` → `undefined`) or `parseLimit`, which stop non-string JSON or query values (such as `?topicSlug[not]=x`) from reaching Prisma. Length caps live in `config/limits.js`.
+- **Every table.** `lib/db/models.js` lists every Prisma model and its table, straight from the generated client. The reset script and the test harness both empty tables from it, so a new model is never missed.
 
 ### Route mounting order
 `modules/posts/index.js` mounts the routers that have static paths (`/`, `/top`, `/search`, `/upload-url`, `/pending`) **before** the read router's `GET /:id`. Otherwise `/pending` would be treated as a post id.
@@ -170,7 +176,7 @@ Emails go through `modules/moderation/notifications.js`. A failed send is logged
 
 ## Tests
 
-`npm test` runs the `node:test` + `supertest` suite (78 tests) against the real app and Prisma. Clerk, Storage and Resend are in-memory fakes (`tests/setup/fakes.js`).
+`npm test` runs the `node:test` + `supertest` suite (81 tests) against the real app and Prisma. Clerk, Storage and Resend are in-memory fakes (`tests/setup/fakes.js`).
 
 It uses a **local** Postgres database, never the one in `.env`:
 - `tests/setup/guard.js` refuses any non-localhost `DATABASE_URL` or `DIRECT_URL`.

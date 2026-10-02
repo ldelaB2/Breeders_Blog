@@ -1,7 +1,11 @@
 import { useId } from "react";
+import { cn } from "@/lib/utils/cn";
 
-const INPUT_CLASS =
-  "w-full rounded-md border border-gray-200 p-2 text-sm text-gray-900 focus:border-transparent focus:outline-none";
+// The border/radius/focus look every text input, textarea and select
+// shares; callers add their own width, padding, text size and color.
+export const FIELD_CLASS = "rounded-md border border-gray-200 focus:border-transparent focus:outline-none";
+
+const INPUT_CLASS = cn(FIELD_CLASS, "w-full p-2 text-sm text-gray-900");
 
 // Labeled text input (or textarea with `multiline`). With `limit`, input is
 // capped at that many characters and a live "12/100" counter is shown.

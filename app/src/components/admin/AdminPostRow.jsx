@@ -2,10 +2,9 @@ import { useState } from "react";
 import Button from "@/components/ui/Button";
 import IconButton from "@/components/ui/IconButton";
 import Message from "@/components/ui/Message";
+import { FIELD_CLASS } from "@/components/ui/TextField";
 import { useAsyncAction } from "@/lib/hooks/useAsyncAction";
-
-const FIELD_CLASS =
-  "rounded-md border border-gray-200 p-1.5 text-sm focus:border-transparent focus:outline-none";
+import { cn } from "@/lib/utils/cn";
 
 // One row in the Admin Control queue: a static (non-interactive) post
 // preview on the left, moderation controls on the right. Approving opens
@@ -14,22 +13,28 @@ const FIELD_CLASS =
 function AdminPostRow({ post, onDownload, onReject, onApprove }) {
   const [decision, setDecision] = useState("APPROVE");
   const [reason, setReason] = useState("");
-  const { run, pending, error, setError } = useAsyncAction();
-  // Separate from the submit action, so a download doesn't show as "Submitting…".
+  // Separate actions, so a download doesn't show as "Submitting…". They
+  // share one error line: starting either clears both.
+  const submit = useAsyncAction();
   const download = useAsyncAction();
+  const error = submit.error || download.error;
+
+  function clearErrors() {
+    submit.setError(null);
+    download.setError(null);
+  }
 
   function handleSubmit() {
-    setError(null);
-    download.setError(null);
+    clearErrors();
     if (decision === "APPROVE") {
       onApprove(post);
       return;
     }
     if (!reason.trim()) {
-      setError("A rejection reason is required");
+      submit.setError("A rejection reason is required");
       return;
     }
-    run(() => onReject(post.id, reason.trim()));
+    submit.run(() => onReject(post.id, reason.trim()));
   }
 
   return (
@@ -40,19 +45,16 @@ function AdminPostRow({ post, onDownload, onReject, onApprove }) {
           <span className="shrink-0 text-sm text-gray-500">{post.authorName}</span>
         </div>
         <p className="mt-2 line-clamp-3 text-sm text-gray-600">{post.abstract}</p>
-        {(error || download.error) && (
-          <Message tone="error" className="mt-2">{error || download.error}</Message>
-        )}
+        {error && <Message tone="error" className="mt-2">{error}</Message>}
       </div>
 
       <div className="flex shrink-0 flex-col items-end gap-2">
         <IconButton
           icon="download"
           label="Download post files"
-          className="disabled:cursor-wait disabled:opacity-50"
           disabled={download.pending}
           onClick={() => {
-            setError(null);
+            clearErrors();
             download.run(() => onDownload(post.id));
           }}
         />
@@ -61,13 +63,13 @@ function AdminPostRow({ post, onDownload, onReject, onApprove }) {
           <select
             value={decision}
             onChange={(e) => setDecision(e.target.value)}
-            className={`${FIELD_CLASS} text-gray-700`}
+            className={cn(FIELD_CLASS, "p-1.5 text-sm text-gray-700")}
           >
             <option value="APPROVE">Approve</option>
             <option value="REJECT">Reject</option>
           </select>
-          <Button onClick={handleSubmit} disabled={pending}>
-            {pending ? "Submitting…" : "Submit"}
+          <Button onClick={handleSubmit} disabled={submit.pending}>
+            {submit.pending ? "Submitting…" : "Submit"}
           </Button>
         </div>
 
@@ -77,7 +79,7 @@ function AdminPostRow({ post, onDownload, onReject, onApprove }) {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Rejection reason"
-            className={`${FIELD_CLASS} w-48 text-gray-900`}
+            className={cn(FIELD_CLASS, "w-48 p-1.5 text-sm text-gray-900")}
           />
         )}
       </div>

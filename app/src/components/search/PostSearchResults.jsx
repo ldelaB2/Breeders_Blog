@@ -1,5 +1,6 @@
 import Badge from "@/components/ui/Badge";
 import Message from "@/components/ui/Message";
+import PostSummary from "@/components/post/PostSummary";
 import { topicLabel } from "@/config/topics";
 
 // The results list under a post search box (header search, link-posts
@@ -19,13 +20,9 @@ function PostSearchResults({ query, results, loading, onSelect, disabled = false
             type="button"
             onClick={() => onSelect(post)}
             disabled={disabled}
-            className="flex w-full flex-col gap-1 px-3 py-2.5 text-left transition-colors hover:bg-gray-50 disabled:cursor-wait disabled:opacity-50"
+            className="flex w-full px-3 py-2.5 text-left transition-colors hover:bg-gray-50 disabled:cursor-wait disabled:opacity-50"
           >
-            <div className="flex items-center justify-between gap-2">
-              <span className="truncate font-semibold text-gray-900">{post.title}</span>
-              <Badge>{topicLabel(post.topicSlug)}</Badge>
-            </div>
-            <p className="line-clamp-2 text-sm text-gray-600">{post.abstract}</p>
+            <PostSummary post={post} meta={<Badge>{topicLabel(post.topicSlug)}</Badge>} />
           </button>
         </li>
       ))}

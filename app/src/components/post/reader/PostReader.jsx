@@ -1,12 +1,12 @@
-import { useEffect } from "react";
 import IconButton from "@/components/ui/IconButton";
 import Message from "@/components/ui/Message";
 import Page from "@/components/ui/Page";
 import SharePostButton from "@/components/share/SharePostButton";
 import PostArticle from "./PostArticle";
-import { fetchPost, recordPostView } from "@/lib/api/client";
+import { fetchPost } from "@/lib/api/client";
 import { useAsync } from "@/lib/hooks/useAsync";
-import { setCitation } from "@/lib/post/citation";
+import { useCitePost } from "@/lib/post/citation";
+import { useRecordPostView } from "@/lib/post/useRecordPostView";
 import { postSeo } from "@/lib/seo/seo";
 import { useSeo } from "@/lib/seo/useSeo";
 
@@ -15,30 +15,11 @@ import { useSeo } from "@/lib/seo/useSeo";
 function PostReader({ postId, onBack }) {
   const { data: post, error } = useAsync(() => fetchPost(postId), [postId]);
 
-  // Page metadata and the footer's citation follow the open post (the
-  // citation reverts on the way out; the next page sets its own metadata).
+  // Page metadata and the footer's citation follow the open post; the
+  // view counts toward its rank.
   useSeo(post ? postSeo(post, window.location.origin) : error ? { title: "Post not found", noindex: true } : null);
-  useEffect(() => {
-    if (!post) return;
-    setCitation({ title: post.title, author: post.authorName, date: post.createdAt });
-    return () => setCitation(null);
-  }, [post]);
-
-  // Counts a view toward the post's rank, once per post per browser session
-  // (the flag is set before sending, so StrictMode's double effect and
-  // reloads don't recount). Best-effort: storage or network failures are ignored.
-  const viewableId = post?.status === "APPROVED" ? post.id : null;
-  useEffect(() => {
-    if (!viewableId) return;
-    const key = `viewed:${viewableId}`;
-    try {
-      if (sessionStorage.getItem(key)) return;
-      sessionStorage.setItem(key, "1");
-    } catch {
-      // Storage blocked: count it anyway.
-    }
-    recordPostView(viewableId).catch(() => {});
-  }, [viewableId]);
+  useCitePost(post);
+  useRecordPostView(post);
 
   return (
     <Page>

@@ -241,6 +241,9 @@ test("submitting checks the share image landed and is under 5 MB", async () => {
   assert.equal(big.res.status, 400);
   assert.deepEqual(big.res.body, { error: "Share image is too large - images must be under 5 MB" });
   assert.equal(await prisma.postMetadata.count(), 0);
+  // An oversized image can never be used, so its ticket and files go too.
+  assert.equal(await prisma.pendingPostUpload.count(), 0);
+  assert.equal(ctx.stores.image.objects.has(big.ticket.image.slug), false);
 });
 
 test("a new upload-url discards the previous ticket's share image too", async () => {
