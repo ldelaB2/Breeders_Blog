@@ -137,6 +137,18 @@ test("download bundles the title, abstract and original upload into a zip", asyn
   for (const name of ["title.txt", "abstract.txt", "post.md"]) assert.ok(zip.includes(name), name);
 });
 
+test("download never names a zip entry with a path, even for an old unsanitized row", async () => {
+  const author = await createUser({ id: "author" });
+  await createUser({ id: "admin", role: "ADMIN" });
+  await createPost({ author, id: "pending", status: "PENDING", rawOriginalName: "a\\..\\..\\evil.md" });
+  ctx.stores.upload.put("pending/upload.md", "#");
+  const res = await request(ctx.app).get("/api/posts/pending/download").set(as("admin")).buffer(true).parse(binary);
+  assert.equal(res.status, 200);
+  const zip = res.body.toString("latin1");
+  assert.ok(zip.includes("evil.md"));
+  assert.ok(!zip.includes("../") && !zip.includes("..\\"));
+});
+
 test("download includes the share image when there is one", async () => {
   const author = await createUser({ id: "author" });
   await createUser({ id: "admin", role: "ADMIN" });

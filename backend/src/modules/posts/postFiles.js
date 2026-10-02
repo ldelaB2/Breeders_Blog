@@ -1,3 +1,4 @@
+import path from "node:path";
 import { HttpError } from "../../lib/http/httpError.js";
 import { env } from "../../config/env.js";
 import { IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_UPLOAD_BYTES, UPLOAD_TYPES } from "../../config/limits.js";
@@ -17,6 +18,12 @@ export function extensionOf(filename) {
   const match = /\.([a-zA-Z0-9]+)$/.exec(typeof filename === "string" ? filename : "");
   return match ? match[1].toLowerCase() : null;
 }
+
+// The last segment of a client-supplied filename, splitting on "\" as well
+// as "/" (node's posix basename only knows "/"). Display-only, but it's the
+// raw upload's entry name in the review zip (GET /:id/download), so a
+// crafted "a\..\..\x.md" must never keep its "..".
+export const safeFilename = (name) => path.basename(String(name).replaceAll("\\", "/"));
 
 export const htmlSlugFor = (postId) => `${postId}.html`;
 

@@ -30,3 +30,16 @@ test("unexpected errors become a generic 500 without leaking the message", async
   assert.equal(res.status, 500);
   assert.deepEqual(res.body, { error: "Internal server error" });
 });
+
+test("a malformed or oversized JSON body is a 4xx, not a logged 500", async (t) => {
+  const error = t.mock.method(console, "error", () => {});
+  const send = (body) => request(ctx.app).post("/api/posts").set("Content-Type", "application/json").send(body);
+
+  const malformed = await send("{ nope");
+  assert.equal(malformed.status, 400);
+  assert.ok(malformed.body.error);
+
+  const oversized = await send(JSON.stringify({ text: "x".repeat(200 * 1024) }));
+  assert.equal(oversized.status, 413);
+  assert.equal(error.mock.callCount(), 0);
+});

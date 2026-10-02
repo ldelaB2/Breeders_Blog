@@ -30,15 +30,16 @@ export function createApp(deps = defaultDeps()) {
   // with express.raw() ahead of the JSON parser and the rate limiter.
   app.use("/api/webhooks/clerk", express.raw({ type: "application/json" }), clerkWebhookRoutes());
 
-  // Bumped from Express's 100kb default for metadata payloads only - post
-  // uploads and stitched HTML go straight to Supabase Storage via signed URLs
-  // and never pass through here. Kept under Vercel's ~4.5mb request limit.
-  app.use(express.json({ limit: "4mb" }));
-
   // Caps abuse per client IP and bounds the Clerk API calls requireAuth can
   // make. The counter is in-memory, so on Vercel it's per function instance -
-  // a coarse backstop; Vercel's firewall is the real DDoS layer.
+  // a coarse backstop; Vercel's firewall is the real DDoS layer. Ahead of the
+  // JSON parser, so a limited client's body is never even parsed.
   app.use("/api", rateLimit({ windowMs: 15 * 60 * 1000, max: 300 }));
+
+  // Express's default 100kb limit: bodies are only ever small metadata (the
+  // largest is a comment) - post uploads, share images and stitched HTML go
+  // straight to Supabase Storage via signed URLs and never pass through here.
+  app.use(express.json());
 
   app.get("/api/health", (req, res) => res.json({ status: "ok" }));
   app.use("/api/posts", postsRouter(ctx));

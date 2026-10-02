@@ -21,7 +21,6 @@ async function request(path, { token, method = "GET", body } = {}) {
 
 // Public reads - usable without a session token.
 export const fetchPost = (id) => request(`/posts/${id}`);
-export const fetchComments = (postId) => request(`/posts/${postId}/comments`);
 export const recordPostView = (id) => request(`/posts/${id}/view`, { method: "POST" });
 
 // Streams the zip directly rather than going through the JSON `request()`
@@ -80,8 +79,8 @@ export function createApi(getToken) {
     approvePost: (id, imageSlug) => post(`/posts/${id}/approve`, { imageSlug }),
     rejectPost: (id, rejectionReason) => post(`/posts/${id}/reject`, { rejectionReason }),
 
-    // Comments
-    fetchComments,
+    // Comments (with the token, so each comment carries the caller's own vote)
+    fetchComments: (postId) => get(`/posts/${postId}/comments`),
     createComment: (postId, data) => post(`/posts/${postId}/comments`, data),
     deleteComment: (id) => del(`/comments/${id}`),
     restoreComment: (id) => post(`/comments/${id}/restore`),

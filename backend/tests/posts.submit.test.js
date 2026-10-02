@@ -97,6 +97,14 @@ test("submitting creates a pending post, consumes the ticket and emails admins",
   assert.equal(ctx.mailer.sent[0].subject, "New post pending review: My post");
 });
 
+test("a backslash-separated filename is cut to its last segment too", async () => {
+  await createUser({ id: "u" });
+  const { ticket, res } = await submit("u", { originalFilename: "a\\..\\..\\my post.qmd" });
+  assert.equal(res.status, 201);
+  const body = await prisma.postBody.findUnique({ where: { postId: ticket.postId } });
+  assert.equal(body.rawOriginalName, "my post.qmd");
+});
+
 test("submitting validates the text fields and topic", async () => {
   await createUser({ id: "u" });
   const cases = [

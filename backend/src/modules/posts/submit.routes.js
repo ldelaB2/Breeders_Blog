@@ -1,5 +1,4 @@
 import { Router } from "express";
-import path from "node:path";
 import crypto from "node:crypto";
 import { prisma } from "../../lib/db/prisma.js";
 import { asyncHandler } from "../../lib/http/asyncHandler.js";
@@ -15,7 +14,7 @@ import {
   TITLE_MAX,
 } from "../../config/limits.js";
 import { TOPIC_SLUGS } from "../../config/topics.js";
-import { assertUploaded, extensionOf, mintUpload, removePostFiles, uploadSlug } from "./postFiles.js";
+import { assertUploaded, extensionOf, mintUpload, removePostFiles, safeFilename, uploadSlug } from "./postFiles.js";
 import { postInclude } from "./posts.repo.js";
 import { serializePost } from "./serializePost.js";
 
@@ -82,8 +81,8 @@ export function submitRoutes({ auth, stores, notify }) {
       const rawSlug = requireText(req.body.rawSlug, "rawSlug", SLUG_MAX);
       const imageSlug = optionalString(req.body.imageSlug, "imageSlug") || null;
       // Display-only, but it becomes a zip entry name in GET /:id/download -
-      // basename() keeps a crafted "../x" from ever escaping an unzip.
-      const originalFilename = path.basename(requireText(req.body.originalFilename, "originalFilename", FILENAME_MAX));
+      // see safeFilename.
+      const originalFilename = safeFilename(requireText(req.body.originalFilename, "originalFilename", FILENAME_MAX));
       if (!TOPIC_SLUGS.includes(topicSlug)) throw new HttpError(400, "Unknown topic");
 
       // The ticket binds the rawSlug to the user who minted it, so a post can

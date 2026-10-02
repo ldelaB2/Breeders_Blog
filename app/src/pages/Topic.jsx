@@ -26,7 +26,7 @@ export default function Topic() {
 
   if (!topic) return <NotFound />;
 
-  const sortedPosts = sortPosts(posts, user?.id);
+  const sortedPosts = sortPosts(posts);
 
   return (
     <Page>

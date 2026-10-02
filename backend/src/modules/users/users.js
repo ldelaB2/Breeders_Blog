@@ -15,6 +15,17 @@ export function upsertUser({ id, name, role, avatarUrl, email }) {
   return prisma.user.upsert({ where: { id }, update: data, create: { id, ...data } });
 }
 
+// A user deleted in Clerk (user.deleted webhook). The row stays - their
+// posts, comments and votes reference it - but their email and any staff
+// role go, so nothing is ever sent to (or allowed for) a dead account.
+// updateMany: a user who never made a request has no row, which is fine.
+// The id check matters: Prisma drops an undefined filter, which would turn
+// this into an update of every user.
+export async function forgetUser(id) {
+  if (typeof id !== "string" || !id) return;
+  await prisma.user.updateMany({ where: { id }, data: { email: null, role: "USER" } });
+}
+
 // The same Clerk user arrives in two shapes: camelCase from the Clerk API
 // (auth middleware, for a user whose webhook hasn't landed yet) and
 // snake_case in webhook payloads. Both map to upsertUser()'s input.

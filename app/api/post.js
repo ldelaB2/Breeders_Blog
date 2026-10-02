@@ -11,10 +11,17 @@ const API = process.env.VITE_API_BASE_URL;
 const escapeHtml = (value) =>
   String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+// Every replace() below that inserts post text passes a function, never a
+// string: in a replacement string "$1", "$&", "$'" etc. are expanded, so a
+// title containing "$2" would turn back into a raw `"` after escaping.
+
 // Rewrites the value of the one index.html tag matching `attr`, e.g.
 // setTag(html, 'property="og:title"', "content", ...).
 const setTag = (html, attr, valueAttr, value) =>
-  html.replace(new RegExp(`(<[^>]*${attr}[^>]*${valueAttr}=")[^"]*(")`), `$1${escapeHtml(value)}$2`);
+  html.replace(
+    new RegExp(`(<[^>]*${attr}[^>]*${valueAttr}=")[^"]*(")`),
+    (_, open, close) => `${open}${escapeHtml(value)}${close}`,
+  );
 
 export default async function handler(req, res) {
   const origin = `${req.headers["x-forwarded-proto"] ?? "https"}://${req.headers.host}`;
@@ -38,7 +45,7 @@ export default async function handler(req, res) {
   const { title, description, type, image, jsonLd } = postSeo(post, origin);
   const fullTitle = `${title} — ${SITE_NAME}`;
   const url = postUrl(post, origin);
-  let html = shell.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(fullTitle)}</title>`);
+  let html = shell.replace(/<title>[^<]*<\/title>/, () => `<title>${escapeHtml(fullTitle)}</title>`);
   html = setTag(html, 'name="description"', "content", description);
   html = setTag(html, 'rel="canonical"', "href", url);
   // The bare title: previews already show the site name (og:site_name) and domain.
@@ -53,7 +60,7 @@ export default async function handler(req, res) {
   }
   // "<" is escaped so a title containing "</script>" can't end the block early.
   const json = JSON.stringify(jsonLd).replace(/</g, "\\u003c");
-  html = html.replace("</head>", `<script type="application/ld+json">${json}</script></head>`);
+  html = html.replace("</head>", () => `<script type="application/ld+json">${json}</script></head>`);
 
   res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
   res.send(html);

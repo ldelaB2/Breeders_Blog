@@ -16,20 +16,22 @@ const updateComment = (id, data) => prisma.comment.update({ where: { id }, data,
 // A post's comment thread (mounted at /api): listing and adding comments
 // under /posts/:postId/comments, and per-comment actions under /comments/:id.
 export function commentsRoutes({ auth }) {
-  const { requireAuth, requireModerator } = auth;
+  const { optionalAuth, requireAuth, requireModerator } = auth;
   const router = Router();
   loadResource(router, "id", { find: findComment, as: "comment", notFound: "Comment not found" });
 
   // Flat list; the frontend threads replies client-side via parentId.
+  // optionalAuth only so a signed-in reader gets their own votes back.
   router.get(
     "/posts/:postId/comments",
+    optionalAuth,
     asyncHandler(async (req, res) => {
       const comments = await prisma.comment.findMany({
         where: { postId: req.params.postId },
         include,
         orderBy: { createdAt: "asc" },
       });
-      res.json(comments.map(serializeComment));
+      res.json(comments.map((c) => serializeComment(c, req.user)));
     }),
   );
 
@@ -56,7 +58,7 @@ export function commentsRoutes({ auth }) {
         data: { postId, parentId, authorId: req.user.id, authorName: req.user.name, text },
         include,
       });
-      res.status(201).json(serializeComment(comment));
+      res.status(201).json(serializeComment(comment, req.user));
     }),
   );
 
@@ -67,7 +69,7 @@ export function commentsRoutes({ auth }) {
     requireAuth,
     asyncHandler(async (req, res) => {
       if (!ownsOrModerates(req.user, req.comment.authorId)) throw new HttpError(403, "Forbidden");
-      res.json(serializeComment(await updateComment(req.comment.id, { deletedAt: new Date() })));
+      res.json(serializeComment(await updateComment(req.comment.id, { deletedAt: new Date() }), req.user));
     }),
   );
 
@@ -77,7 +79,7 @@ export function commentsRoutes({ auth }) {
     requireModerator,
     asyncHandler(async (req, res) => {
       if (!req.comment.deletedAt) throw new HttpError(400, "Comment is not deleted");
-      res.json(serializeComment(await updateComment(req.comment.id, { deletedAt: null })));
+      res.json(serializeComment(await updateComment(req.comment.id, { deletedAt: null }), req.user));
     }),
   );
 
@@ -86,7 +88,7 @@ export function commentsRoutes({ auth }) {
     guards: [requireAuth],
     model: prisma.commentVote,
     keyFor: (req) => ({ commentId_userId: { commentId: req.comment.id, userId: req.user.id } }),
-    respond: async (req) => serializeComment(await findComment(req.comment.id)),
+    respond: async (req) => serializeComment(await findComment(req.comment.id), req.user),
   });
 
   return router;

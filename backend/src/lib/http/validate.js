@@ -21,7 +21,8 @@ export function optionalString(value, field) {
   return value;
 }
 
-// A `?limit=` query value: `fallback` when missing or invalid, capped at `max`.
+// A `?limit=` query value: `fallback` unless it's a positive integer, capped at `max`.
 export function parseLimit(value, { fallback, max }) {
-  return Math.min(Number(value) || fallback, max);
+  const limit = Number(value);
+  return Number.isInteger(limit) && limit > 0 ? Math.min(limit, max) : fallback;
 }

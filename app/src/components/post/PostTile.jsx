@@ -28,8 +28,7 @@ function PostTile({ post, actions, showTopic = false }) {
   const [openModal, setOpenModal] = useState(null); // "delete" | "archive" | "link" | null
   const [avatarFailed, setAvatarFailed] = useState(false);
 
-  const isPinned = user ? post.pinnedBy.includes(user.id) : false;
-  const { score, myVote } = voteState(post.upvotes, post.downvotes, user?.id);
+  const { score, myVote } = voteState(post);
   const isPending = post.status === "PENDING";
   const canModerate = isModerator && post.status === "APPROVED";
   const canLinkPosts = (user?.id === post.authorId || isModerator) && post.status === "APPROVED";
@@ -114,9 +113,9 @@ function PostTile({ post, actions, showTopic = false }) {
 
             <IconButton
               icon="pin"
-              label={isPinned ? "Unpin post" : "Pin post"}
+              label={post.pinned ? "Unpin post" : "Pin post"}
               tone="toggle"
-              pressed={isPinned}
+              pressed={post.pinned}
               stopPropagation
               onClick={() => requireSignIn("pin posts") && actions.onTogglePin(post.id)}
             />

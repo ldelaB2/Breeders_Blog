@@ -76,25 +76,26 @@ src/
 ### Request pipeline (`app.js`)
 1. **CORS** for `CORS_ORIGIN`.
 2. **`/api/webhooks/clerk`**, mounted with `express.raw()` before the JSON parser, because svix verifies the exact bytes.
-3. **`express.json`** with a 4 MB limit. Files never pass through the API; they upload straight to storage via signed URLs.
-4. **Rate limit** on `/api`: 300 requests per 15 minutes per IP. The counter is in memory, so it's per function instance.
+3. **Rate limit** on `/api`: 300 requests per 15 minutes per IP. The counter is in memory, so it's per function instance. It runs before the JSON parser, so a limited client's body is never parsed.
+4. **`express.json`** with Express's default 100 KB limit. Bodies are only small metadata; files never pass through the API, they upload straight to storage via signed URLs.
 5. **Routes**, then `notFound` and `errorHandler`.
-   - An `HttpError(status, message)` becomes `{ error: message }`.
+   - An `HttpError(status, message)` becomes `{ error: message }`, as does any 4xx marked `expose` (e.g. malformed JSON → 400, an oversized body → 413).
    - Anything else is logged and returned as a generic 500.
 
 ### Auth (`middleware/auth.js`)
-- `requireAuth` verifies the Clerk Bearer token and attaches `req.user = { id, name, role, avatarUrl }`.
+- `requireAuth` verifies the Clerk Bearer token (including that its `azp` is one of `CORS_ORIGIN`, so a token minted for another site is refused) and attaches `req.user = { id, name, role, avatarUrl }`.
   - A missing token returns `401 "Missing auth token"`; a bad one returns `401 "Invalid auth token"`.
   - If the user isn't in the database yet (their webhook hasn't arrived), they're fetched from Clerk once and upserted.
 - `optionalAuth` does the same but proceeds anonymously on a missing or invalid token. It's used for reads that differ for signed-in users.
 - `requireModerator` and `requireAdmin` are hierarchical (`USER < MODERATOR < ADMIN`, see `modules/users/roles.js`) and return `403 "Forbidden"`.
 - `ownsOrModerates(user, ownerId)` is the shared "author or staff" rule. It governs review detail, pending-post visibility, link management and comment deletion.
 - Roles come only from Clerk **private** metadata, which users can't edit, and are whitelisted in `upsertUser`.
+- A `user.deleted` webhook runs `forgetUser`: the row stays (posts, comments and votes reference it) but its email is cleared and its role reset to `USER`.
 
 ### Shared patterns
 - **Record loading.** `loadResource(router, "id", { find, as, notFound })` loads `:id` records onto `req.post` or `req.comment`, or returns a 404. For posts, use `loadPostParam(router)`.
 - **Post queries.** `posts.repo.js` provides `postInclude`, `findPost`, `listPosts` and `updatePost`. Every post response goes through `serializePost(post, req.user)`. That hides review fields from non-owners and never exposes the raw upload.
-- **Stored files.** `posts/postFiles.js` owns everything about a post's three storage objects (raw upload, stitched HTML, share image): their names, `extensionOf`, the public `imageUrlFor`, and `removePostFiles`. Every direct upload follows the same steps:
+- **Stored files.** `posts/postFiles.js` owns everything about a post's three storage objects (raw upload, stitched HTML, share image): their names, `extensionOf`, `safeFilename` (the client's filename cut to its last segment, splitting on `\` too, since it's a zip entry name in the review download), the public `imageUrlFor`, and `removePostFiles`. Every direct upload follows the same steps:
   1. `mintUpload(store, kind, postId, filename)` (or `uploadSlug` for just the name) checks the type and returns `{ slug, contentType, signedUrl }`.
   2. The browser PUTs the file to the signed URL.
   3. `assertUploaded(store, kind, slug, { onTooLarge })` checks the storage-reported size.
@@ -104,6 +105,7 @@ src/
   - `requireApproved` treats an unapproved post as a 404 for votes and pins.
 - **Votes and pins.** `voteRoutes(router, { path, guards, model, keyFor, respond })` registers upvote and downvote for any record; posts and comments both use it.
   - Toggle rules: the same vote again removes it, the opposite vote switches it.
+  - Responses carry `upvoteCount`, `downvoteCount`, the viewer's own `myVote` (1, -1 or 0) and, on posts, `pinned` (from `serializeVotes(votes, viewer)`). Who voted or pinned is never sent.
   - `ignoreConflicts` makes racing double-clicks harmless.
 - **Input validation.** Every body and query value goes through `requireText`, `optionalString` (absent or `null` → `undefined`) or `parseLimit`, which stop non-string JSON or query values (such as `?topicSlug[not]=x`) from reaching Prisma. Length caps live in `config/limits.js`.
 - **Every table.** `lib/db/models.js` lists every Prisma model and its table, straight from the generated client. The reset script and the test harness both empty tables from it, so a new model is never missed.
@@ -136,7 +138,7 @@ Mounted under `/api` unless noted. Auth column: **opt** = `optionalAuth`, **auth
 | `POST /posts/:id/view` | opt | Count a page view (approved posts only; client sends once per session) |
 | `GET /posts/:id/links` | opt | Approved linked posts, in link order |
 | `POST /posts/:id/links`, `DELETE /posts/:id/links/:targetId` | auth | Author or mod manages links |
-| `GET /posts/:postId/comments` | | Flat list, oldest first; the frontend threads by `parentId` |
+| `GET /posts/:postId/comments` | opt | Flat list, oldest first; the frontend threads by `parentId` |
 | `POST /posts/:postId/comments` | auth | Comment or reply (approved, unlocked posts) |
 | `DELETE /comments/:id` | auth | Soft-delete (author or mod) |
 | `POST /comments/:id/restore` | mod | Undo a soft delete |
@@ -144,7 +146,7 @@ Mounted under `/api` unless noted. Auth column: **opt** = `optionalAuth`, **auth
 | `GET /me` | auth | `{ id, name, role }`, the only place a role is exposed |
 | `GET /me/pins` | auth | Your pinned posts, most recent first |
 | `GET /me/recommendations?limit=` | auth | Posts linked from ones you pinned, upvoted or commented on; then top posts in those topics; then global backfill |
-| `POST /webhooks/clerk` | svix | `user.created` / `user.updated` → upsert the user |
+| `POST /webhooks/clerk` | svix | `user.created` / `user.updated` → upsert the user; `user.deleted` → clear their email and role |
 | `GET /sitemap.xml` (no `/api`) | | Static pages plus every approved post |
 
 ## Post lifecycle
@@ -155,7 +157,9 @@ Mounted under `/api` unless noted. Auth column: **opt** = `optionalAuth`, **auth
    - With an optional `imageFilename` (`.png`, `.jpg`, `.webp`), the ticket also covers a share image at `<postId>/share.<ext>`.
    - The browser PUTs the file straight to the `post-upload` bucket, and any share image to `post-image`.
    - `POST /posts` checks that the ticket belongs to the caller, that the extension matches, that the object exists and is at most 50 MB, that any share image exists and is at most 5 MB, and the limit again. It then creates the post as `PENDING` and emails the admins.
-2. **Review.** The admin downloads the zip and renders it with Quarto. They upload the stitched HTML to `post-html` as `<postId>.html` via a signed URL, then approve. They can also upload a share image that replaces the author's. Approval checks that the objects exist and emails the author.
+2. **Review.** The admin downloads the zip and renders it with Quarto.
+   - **Render only in an isolated environment with no secrets** (no `.env`, no cloud credentials, ideally no network). Rendering runs the author's R/Python/Julia chunks, and a `.zip` can also carry `_quarto.yml` pre-render scripts or an `.Rprofile`. On a machine that can read `backend/.env`, a malicious post could steal the service-role and Clerk secret keys. Treat zips as possible zip bombs, and unzip inside that environment too.
+   - The admin then uploads the stitched HTML to `post-html` as `<postId>.html` via a signed URL, then approve. They can also upload a share image that replaces the author's. Approval checks that the objects exist and emails the author.
 3. **Reject.** Needs a reason, which is emailed to the author.
 4. **After approval:**
    - Readers vote, pin and comment.
@@ -176,7 +180,7 @@ Emails go through `modules/moderation/notifications.js`. A failed send is logged
 
 ## Tests
 
-`npm test` runs the `node:test` + `supertest` suite (81 tests) against the real app and Prisma. Clerk, Storage and Resend are in-memory fakes (`tests/setup/fakes.js`).
+`npm test` runs the `node:test` + `supertest` suite (86 tests) against the real app and Prisma. Clerk, Storage and Resend are in-memory fakes (`tests/setup/fakes.js`).
 
 It uses a **local** Postgres database, never the one in `.env`:
 - `tests/setup/guard.js` refuses any non-localhost `DATABASE_URL` or `DIRECT_URL`.
@@ -211,7 +215,7 @@ If the test database drifts from the migrations, drop and recreate `breeders_tes
   - Every `public` table has RLS enabled with no policies (migration `enable_rls`) as a second layer. Authorization lives in Express.
   - This is safe because Prisma connects as `postgres`, which has `BYPASSRLS`. Never add `FORCE ROW LEVEL SECURITY`, or Prisma gets locked out.
 - **Clerk:**
-  - A webhook for `user.created` and `user.updated` points at `<backend>/api/webhooks/clerk`.
+  - A webhook for `user.created`, `user.updated` and `user.deleted` points at `<backend>/api/webhooks/clerk`.
   - Roles are set per user under *Private metadata* as `{ "role": "ADMIN" }` or `MODERATOR`.
 - **Vercel:** project `breeders-blog-backend`, with every variable from `.env.example`. `SITE_URL` and `CORS_ORIGIN` point at the frontend's production URL.
   - **Migrations deploy themselves.** Vercel runs the `vercel-build` script, which applies pending migrations with `prisma migrate deploy` (non-destructive) on **production** builds only. Preview builds skip it, so an unmerged PR never changes the production schema. The build runs before the new code goes live, so migrations must stay additive (new nullable columns, new tables) for the old code still serving during the build. `DIRECT_URL` must be set for the Production environment.

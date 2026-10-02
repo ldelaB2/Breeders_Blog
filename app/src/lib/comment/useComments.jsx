@@ -4,15 +4,17 @@ import { useAsync } from "@/lib/hooks/useAsync";
 import { useVoteActions } from "@/lib/vote/useVoteActions";
 import { buildChildrenMap } from "./commentTree";
 
-// A post's comment thread: loads it, groups it into a reply tree, and
-// returns the actions every <Comment> in the tree shares.
+// A post's comment thread: loads it once Clerk knows who the viewer is (and
+// again when they sign in or out, since each comment carries the viewer's
+// own vote), groups it into a reply tree, and returns the actions every
+// <Comment> in the tree shares.
 export function useComments(postId) {
   const api = useApi();
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const { data: comments, setData: setComments, error, setError } = useAsync(
     () => api.fetchComments(postId),
-    [api, postId],
-    { initialData: [] },
+    [api, postId, user?.id],
+    { enabled: isLoaded, initialData: [] },
   );
   const { patch, onUpvote, onDownvote } = useVoteActions(
     setComments,
@@ -34,8 +36,9 @@ export function useComments(postId) {
       authorName: user?.fullName || user?.username || "Anonymous",
       text,
       deleted: false,
-      upvotes: [],
-      downvotes: [],
+      upvoteCount: 0,
+      downvoteCount: 0,
+      myVote: 0,
     };
     setComments((prev) => [...prev, optimisticComment]);
     try {

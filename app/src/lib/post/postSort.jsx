@@ -18,8 +18,8 @@ const WEIGHTS = {
 // A post's rank: net votes plus bonuses for comment activity and page views.
 function rankScore(post) {
   return (
-    post.upvotes.length * WEIGHTS.upvote -
-    post.downvotes.length * WEIGHTS.downvote +
+    post.upvoteCount * WEIGHTS.upvote -
+    post.downvoteCount * WEIGHTS.downvote +
     (post.commentCount ?? 0) * WEIGHTS.comment +
     Math.log2(1 + (post.viewCount ?? 0)) * WEIGHTS.view
   );
@@ -27,11 +27,9 @@ function rankScore(post) {
 
 // Orders a topic's posts for display: posts the viewer has pinned first
 // (highest rank among themselves), then the rest by rank score.
-export function sortPosts(posts, viewerId) {
-  const isPinned = (post) => Boolean(viewerId && post.pinnedBy.includes(viewerId));
-
+export function sortPosts(posts) {
   return [...posts].sort((a, b) => {
-    const pinnedDiff = Number(isPinned(b)) - Number(isPinned(a));
+    const pinnedDiff = Number(b.pinned) - Number(a.pinned);
     if (pinnedDiff !== 0) return pinnedDiff;
     return rankScore(b) - rankScore(a);
   });

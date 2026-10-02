@@ -53,12 +53,12 @@ test("a post serializes to the shape the frontend expects", async () => {
 
   const [anon] = (await request(ctx.app).get("/api/posts")).body;
   assert.deepEqual(Object.keys(anon).sort(), [
-    "abstract", "authorAvatarUrl", "authorId", "authorName", "commentCount", "createdAt", "downvotes", "htmlSlug",
-    "id", "imageUrl", "linkedPostCount", "locked", "pinnedBy", "slug", "status", "title", "topicSlug", "updatedAt", "upvotes",
-    "viewCount",
+    "abstract", "authorAvatarUrl", "authorId", "authorName", "commentCount", "createdAt", "downvoteCount", "htmlSlug",
+    "id", "imageUrl", "linkedPostCount", "locked", "myVote", "pinned", "slug", "status", "title", "topicSlug",
+    "updatedAt", "upvoteCount", "viewCount",
   ]);
   assert.equal(anon.slug, "resume-of-genomic-selection");
-  assert.deepEqual(anon.upvotes, ["voter"]);
+  assert.deepEqual([anon.upvoteCount, anon.downvoteCount, anon.myVote, anon.pinned], [1, 0, 0, false]);
   assert.equal(anon.commentCount, 1);
   assert.equal(anon.linkedPostCount, 0);
 
@@ -84,6 +84,10 @@ test("top posts rank by votes and comments, capped by limit", async () => {
 
   assert.deepEqual(ids(await request(ctx.app).get("/api/posts/top")), ["discussed", "voted", "quiet", "disliked"]);
   assert.deepEqual(ids(await request(ctx.app).get("/api/posts/top?limit=2")), ["discussed", "voted"]);
+  // Anything but a positive integer falls back to the default (5), rather
+  // than e.g. slice(0, -1) returning all but one post.
+  assert.equal(ids(await request(ctx.app).get("/api/posts/top?limit=-1")).length, 4);
+  assert.equal(ids(await request(ctx.app).get("/api/posts/top?limit=abc")).length, 4);
 });
 
 test("top posts count page views on a log scale", async () => {

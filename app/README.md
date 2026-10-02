@@ -61,15 +61,16 @@ Conventions:
 - **`config/site.jsx`** holds the site name, author, tagline, logo, headshot and contact links.
 
 ### Data flow
-- **API client.** `lib/api/client.jsx` defines every endpoint in `createApi(getToken)`. Each call attaches the Clerk session token when there is one. `useApi()` returns a memoized client, so it's safe to list in hook dependencies. `fetchPost`, `fetchComments` and `recordPostView` are also exported standalone for public calls.
+- **API client.** `lib/api/client.jsx` defines every endpoint in `createApi(getToken)`. Each call attaches the Clerk session token when there is one. `useApi()` returns a memoized client, so it's safe to list in hook dependencies. `fetchPost` and `recordPostView` are also exported standalone for public calls.
 - **Loading data.** `useAsync(fetcher, deps, { enabled, initialData })` loads data and resets when its deps change. It drops responses from superseded requests, and its `setData` lets callers patch the result in place.
 - **Mutations.** `useAsyncAction({ cooldownMs })` returns `{ run, pending, error }` for submit/delete flows. `run` resolves to `true` or `false`. Only one run goes at a time (a second call while one is in flight is ignored), so a double click never submits twice; `cooldownMs` keeps it locked a little longer after each run (the link-posts modal uses it).
 - **Feature hooks own the state; components render it:**
   - `usePostFeed(fetcher, deps)` returns a post list plus `actions`: vote, pin, lock, archive, delete. The Topic page and every `PostCarousel` use it, and each `PostTile` receives `actions`.
   - `useComments(postId)` returns the comment tree plus `actions`: add, vote, remove, restore.
+  - Both refetch when the viewer signs in or out: each post and comment carries the viewer's own vote and pin.
   - `usePostSearch(query)` is a debounced title/abstract search, used by the header search and the link-posts modal.
   - `useRecordPostView(post)` and `useCitePost(post)` are PostReader's side effects: count a view once per session, and point the footer citation at the open post.
-- **Optimistic updates.** Votes and pins update the UI immediately through `lib/vote/useOptimisticList.jsx`. Rapid clicks collapse into one request (400 ms debounce, never overlapping), and a failure rolls back to the exact previous state. `lib/vote/voting.jsx` predicts the server's toggle rules exactly.
+- **Optimistic updates.** Votes and pins update the UI immediately through `lib/vote/useOptimisticList.jsx`. Rapid clicks collapse into one request (400 ms debounce, never overlapping), and a failure rolls back to the exact previous state. `lib/vote/voting.jsx` predicts the server's toggle rules exactly. The API sends `upvoteCount`, `downvoteCount`, the viewer's own `myVote` (1, -1 or 0) and `pinned`, never who voted or pinned, so these helpers work on counts rather than user ids.
 
 ### Auth and roles
 - Clerk handles sign-in and sign-up through modals.
@@ -122,6 +123,7 @@ The site is client-rendered, so a few pieces exist only so search engines and li
   - It fetches `index.html` plus the post's metadata (`GET /api/posts/:id?html=0`), fills in the tags and JSON-LD with `escapeHtml`, and caches for 5 minutes (`s-maxage=300, stale-while-revalidate=3600`).
   - Unknown or unapproved posts get a real `404` with `noindex`. The app still loads, so an author or moderator can see their pending post.
   - It shares `postSeo`, `postUrl` and `SITE_NAME` with the browser through `lib/seo/seo.js`.
+  - Every `replace()` that inserts post text passes a function, not a string. In a replacement string `$1`, `$&`, `$'` and friends are expanded, so a title containing `$2` would come back as a raw `"` and could inject attributes.
 - **Link previews.** A post's `og:title` is its bare title; LinkedIn, Facebook and X show the site name and domain beside it. `<title>` keeps the " — Breeders Blog" suffix.
   - A post with a **share image** (uploaded by the author in `CreatePostModal`, or replaced by the admin in `ApprovePostModal`, both through `ShareImagePicker`) uses it as `og:image` with `twitter:card=summary_large_image`, which gives the large picture card. The backend serializes it as a public `imageUrl`.
   - Without one, the logo and the small `summary` card from `index.html` stay.

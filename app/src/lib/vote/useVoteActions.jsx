@@ -12,7 +12,7 @@ export function useVoteActions(setItems, { upvote, downvote }, setError) {
 
   function vote(apiFn, id, value) {
     if (!user) return;
-    runOptimistic(id, (item) => applyVoteToggle(item.upvotes, item.downvotes, user.id, value), () => apiFn(id), setError);
+    runOptimistic(id, (item) => applyVoteToggle(item, value), () => apiFn(id), setError);
   }
 
   return {

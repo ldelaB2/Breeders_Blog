@@ -12,6 +12,7 @@ import {
   isUploadSlugFor,
   mintUpload,
   removePostFiles,
+  safeFilename,
 } from "../posts/postFiles.js";
 import { listPosts, loadPostParam, updatePost } from "../posts/posts.repo.js";
 import { assertStatus } from "../posts/postStatus.js";
@@ -115,7 +116,8 @@ export function moderationRoutes({ auth, stores, notify }) {
       archive.pipe(res);
       archive.append(post.title, { name: "title.txt" });
       archive.append(post.abstract, { name: "abstract.txt" });
-      archive.append(raw, { name: post.body.rawOriginalName });
+      // Re-sanitized here too, for rows stored before safeFilename existed.
+      archive.append(raw, { name: safeFilename(post.body.rawOriginalName) });
       if (image) archive.append(image, { name: `share-image.${extensionOf(post.body.imageSlug)}` });
       await archive.finalize();
     }),

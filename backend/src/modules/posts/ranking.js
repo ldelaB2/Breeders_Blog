@@ -15,8 +15,8 @@ const WEIGHTS = {
 
 export function rankScore(post) {
   return (
-    post.upvotes.length * WEIGHTS.upvote -
-    post.downvotes.length * WEIGHTS.downvote +
+    post.upvoteCount * WEIGHTS.upvote -
+    post.downvoteCount * WEIGHTS.downvote +
     (post.commentCount ?? 0) * WEIGHTS.comment +
     Math.log2(1 + (post.viewCount ?? 0)) * WEIGHTS.view
   );

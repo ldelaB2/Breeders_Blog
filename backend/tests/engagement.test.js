@@ -21,13 +21,13 @@ test("voting on a post toggles and switches like the frontend predicts", async (
   await seed();
   let res = await call("/api/posts/post/upvote");
   assert.equal(res.status, 200);
-  assert.deepEqual([res.body.upvotes, res.body.downvotes], [["voter"], []]);
+  assert.deepEqual([res.body.upvoteCount, res.body.downvoteCount, res.body.myVote], [1, 0, 1]);
 
   res = await call("/api/posts/post/downvote"); // switch
-  assert.deepEqual([res.body.upvotes, res.body.downvotes], [[], ["voter"]]);
+  assert.deepEqual([res.body.upvoteCount, res.body.downvoteCount, res.body.myVote], [0, 1, -1]);
 
   res = await call("/api/posts/post/downvote"); // same again removes it
-  assert.deepEqual([res.body.upvotes, res.body.downvotes], [[], []]);
+  assert.deepEqual([res.body.upvoteCount, res.body.downvoteCount, res.body.myVote], [0, 0, 0]);
 });
 
 test("votes and pins need sign-in and an approved post", async () => {
@@ -42,8 +42,34 @@ test("votes and pins need sign-in and an approved post", async () => {
 
 test("pinning a post toggles", async () => {
   await seed();
-  assert.deepEqual((await call("/api/posts/post/pin")).body.pinnedBy, ["voter"]);
-  assert.deepEqual((await call("/api/posts/post/pin")).body.pinnedBy, []);
+  assert.equal((await call("/api/posts/post/pin")).body.pinned, true);
+  assert.equal((await call("/api/posts/post/pin")).body.pinned, false);
+});
+
+test("votes and pins are counts plus the viewer's own state - never voter ids", async () => {
+  const { comment } = await seed();
+  await createUser({ id: "someone" });
+  await call("/api/posts/post/upvote");
+  await call("/api/posts/post/pin");
+  await call(`/api/comments/${comment.id}/downvote`);
+
+  const feed = (as_) => request(ctx.app).get("/api/posts").set(as_ ?? {});
+  const comments = (as_) => request(ctx.app).get("/api/posts/post/comments").set(as_ ?? {});
+  const views = {
+    anon: [(await feed()).body, (await comments()).body],
+    voter: [(await feed(as("voter"))).body, (await comments(as("voter"))).body],
+    someone: [(await feed(as("someone"))).body, (await comments(as("someone"))).body],
+  };
+  for (const [posts, list] of Object.values(views)) {
+    assert.ok(!JSON.stringify([posts, list]).includes('"voter"'), "no voter id in any response");
+  }
+  const state = ([posts, list]) => {
+    const post = posts.find((p) => p.id === "post");
+    return [post.upvoteCount, post.myVote, post.pinned, list[0].downvoteCount, list[0].myVote];
+  };
+  assert.deepEqual(state(views.anon), [1, 0, false, 1, 0]);
+  assert.deepEqual(state(views.voter), [1, 1, true, 1, -1]);
+  assert.deepEqual(state(views.someone), [1, 0, false, 1, 0]);
 });
 
 test("a post view counts anonymously, only on approved posts", async () => {
@@ -62,13 +88,13 @@ test("voting on a comment toggles and switches", async () => {
   const { comment } = await seed();
   let res = await call(`/api/comments/${comment.id}/upvote`);
   assert.equal(res.status, 200);
-  assert.deepEqual([res.body.upvotes, res.body.downvotes], [["voter"], []]);
+  assert.deepEqual([res.body.upvoteCount, res.body.downvoteCount, res.body.myVote], [1, 0, 1]);
 
   res = await call(`/api/comments/${comment.id}/downvote`);
-  assert.deepEqual([res.body.upvotes, res.body.downvotes], [[], ["voter"]]);
+  assert.deepEqual([res.body.upvoteCount, res.body.downvoteCount, res.body.myVote], [0, 1, -1]);
 
   res = await call(`/api/comments/${comment.id}/downvote`);
-  assert.deepEqual([res.body.upvotes, res.body.downvotes], [[], []]);
+  assert.deepEqual([res.body.upvoteCount, res.body.downvoteCount, res.body.myVote], [0, 0, 0]);
 });
 
 test("voting on an unknown comment is a 404", async () => {

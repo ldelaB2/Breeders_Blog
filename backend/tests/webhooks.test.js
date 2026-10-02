@@ -70,6 +70,22 @@ test("user.updated overwrites the stored user, whitelisting the role", async () 
   assert.equal(user.role, "USER");
 });
 
+test("user.deleted forgets the user's email and role but keeps the row", async () => {
+  await createUser({ id: "user_1", role: "ADMIN", email: "ada@example.com" });
+  await createUser({ id: "user_2", role: "ADMIN", email: "bob@example.com" });
+  const res = await deliver({ type: "user.deleted", data: { id: "user_1", object: "user", deleted: true } });
+  assert.equal(res.status, 200);
+
+  const user = await prisma.user.findUnique({ where: { id: "user_1" } });
+  assert.deepEqual([user.email, user.role], [null, "USER"]);
+  const other = await prisma.user.findUnique({ where: { id: "user_2" } });
+  assert.deepEqual([other.email, other.role], ["bob@example.com", "ADMIN"]);
+
+  // No id never becomes "every user".
+  await deliver({ type: "user.deleted", data: { object: "user", deleted: true } });
+  assert.equal((await prisma.user.findUnique({ where: { id: "user_2" } })).role, "ADMIN");
+});
+
 test("other event types are acknowledged and ignored", async () => {
   const res = await deliver({ type: "session.created", data: { id: "sess_1" } });
   assert.equal(res.status, 200);

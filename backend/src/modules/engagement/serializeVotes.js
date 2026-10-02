@@ -1,8 +1,10 @@
-// Splits a post's or comment's vote rows into the two user-id lists the
-// frontend works with.
-export function serializeVotes(votes) {
+// A post's or comment's vote rows as the frontend sees them: totals plus
+// the viewer's own vote (1, -1, or 0 for none/anonymous). Never the voters'
+// ids - who voted which way isn't public.
+export function serializeVotes(votes, viewer) {
   return {
-    upvotes: votes.filter((v) => v.value === 1).map((v) => v.userId),
-    downvotes: votes.filter((v) => v.value === -1).map((v) => v.userId),
+    upvoteCount: votes.filter((v) => v.value === 1).length,
+    downvoteCount: votes.filter((v) => v.value === -1).length,
+    myVote: votes.find((v) => v.userId === viewer?.id)?.value ?? 0,
   };
 }

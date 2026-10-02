@@ -19,7 +19,9 @@ export function defaultDeps() {
 
   return {
     clerk: {
-      verifySession: async (token) => (await verifyToken(token, { secretKey })).sub,
+      // authorizedParties: the token's `azp` (the origin it was minted for)
+      // must be one of the frontends allowed to call the API.
+      verifySession: async (token) => (await verifyToken(token, { secretKey, authorizedParties: env.corsOrigins })).sub,
       fetchUser: (userId) => clerkClient.users.getUser(userId),
     },
     stores: {

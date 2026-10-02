@@ -27,7 +27,8 @@ test("a post's comments list oldest first, with deleted text hidden", async () =
   const res = await request(ctx.app).get("/api/posts/post/comments");
   assert.equal(res.status, 200);
   assert.deepEqual(Object.keys(res.body[0]).sort(), [
-    "authorId", "authorName", "createdAt", "deleted", "downvotes", "id", "parentId", "postId", "text", "upvotes",
+    "authorId", "authorName", "createdAt", "deleted", "downvoteCount", "id", "myVote", "parentId", "postId", "text",
+    "upvoteCount",
   ]);
   assert.deepEqual(res.body.map((c) => [c.text, c.deleted]), [[null, true], ["second", false]]);
 });

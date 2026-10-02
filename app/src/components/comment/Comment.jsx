@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useUser } from "@clerk/react";
 import Icon from "@/components/ui/Icon";
 import VoteControls from "@/components/vote/VoteControls";
 import AddCommentButton from "./AddCommentButton";
@@ -14,14 +13,13 @@ import { cn } from "@/lib/utils/cn";
 // tree: { childrenByParent, locked, actions } from CommentSection.
 function Comment({ comment, thread }) {
   const { childrenByParent, locked, actions } = thread;
-  const { user } = useUser();
   const { isModerator } = useCurrentUser();
   const requireSignIn = useRequireSignIn();
   const [expanded, setExpanded] = useState(true);
   const [replying, setReplying] = useState(false);
   const replies = childrenByParent.get(comment.id) || [];
   const hasReplies = replies.length > 0;
-  const { score, myVote } = voteState(comment.upvotes, comment.downvotes, user?.id);
+  const { score, myVote } = voteState(comment);
 
   return (
     <div>

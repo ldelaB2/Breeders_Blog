@@ -27,8 +27,9 @@ export function serializePost(post, viewer, opts = {}) {
     commentCount: post._count?.comments ?? undefined,
     linkedPostCount: post._count?.linksFrom ?? undefined,
     viewCount: post.viewCount,
-    ...serializeVotes(post.votes),
-    pinnedBy: post.pins.map((p) => p.userId),
+    ...serializeVotes(post.votes, viewer),
+    // Pins are personal bookmarks: only whether the viewer pinned it.
+    pinned: post.pins.some((p) => p.userId === viewer?.id),
     ...(opts.html !== undefined && { html: opts.html }),
     ...(ownsOrModerates(viewer, post.authorId) && {
       reviewedById: post.reviewedById,
