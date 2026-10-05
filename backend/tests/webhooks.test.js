@@ -1,11 +1,17 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { randomBytes } from "node:crypto";
 import request from "supertest";
 import { Webhook } from "svix";
 import { prisma, useTestApp } from "./setup/harness.js";
 import { createUser } from "./setup/factories.js";
 
 const ctx = useTestApp();
+
+// A fresh svix-format secret ("whsec_" + base64 key). Generated per run so no
+// literal secret is committed - scanners flag any "whsec_..." string.
+const newSecret = () => `whsec_${randomBytes(24).toString("base64")}`;
+process.env.CLERK_WEBHOOK_SIGNING_SECRET = newSecret();
 
 // Posts `event` to the Clerk webhook, signed the way Clerk (via svix) signs it.
 function deliver(event, { secret = process.env.CLERK_WEBHOOK_SIGNING_SECRET } = {}) {
@@ -40,7 +46,7 @@ const clerkUser = (overrides = {}) => ({
 });
 
 test("a badly signed webhook is rejected", async () => {
-  const res = await deliver({ type: "user.created", data: clerkUser() }, { secret: "whsec_d3Jvbmctc2VjcmV0LXdyb25nLXNlY3JldA==" });
+  const res = await deliver({ type: "user.created", data: clerkUser() }, { secret: newSecret() });
   assert.equal(res.status, 400);
   assert.deepEqual(res.body, { error: "Invalid webhook signature" });
   assert.equal(await prisma.user.count(), 0);
