@@ -25,22 +25,36 @@ const setTag = (html, attr, valueAttr, value) =>
 
 export default async function handler(req, res) {
   const origin = `${req.headers["x-forwarded-proto"] ?? "https"}://${req.headers.host}`;
-  const [shell, post] = await Promise.all([
-    fetch(`${origin}/index.html`).then((r) => r.text()),
-    fetch(`${API}/posts/${encodeURIComponent(req.query.id)}?html=0`)
-      .then((r) => (r.ok ? r.json() : null))
+  const [shell, postRes] = await Promise.all([
+    fetch(`${origin}/index.html`)
+      .then((r) => (r.ok ? r.text() : null))
       .catch(() => null),
+    fetch(`${API}/posts/${encodeURIComponent(req.query.id)}?html=0`).catch(() => null),
   ]);
+
+  res.setHeader("Cache-Control", "no-store");
+
+  // Without the shell there's no page to serve. A 503 tells crawlers to
+  // come back later rather than treating the post as broken.
+  if (shell == null) {
+    res.setHeader("Retry-After", "60");
+    return res.status(503).send("Service temporarily unavailable");
+  }
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
 
-  // Unknown (or not yet approved) post: a real 404 for crawlers. The app
-  // still loads and, for the author or a moderator, fetches it with their
-  // own session.
-  if (!post) {
-    res.setHeader("Cache-Control", "no-store");
+  // Unknown (or not yet approved) post - the API answers 404 for both: a
+  // real 404 for crawlers. The app still loads and, for the author or a
+  // moderator, fetches it with their own session.
+  if (postRes?.status === 404) {
     return res.status(404).send(setTag(shell, 'name="robots"', "content", "noindex"));
   }
+
+  // The API errored or couldn't be reached: serve the plain shell rather
+  // than tell crawlers a live post is gone. The app still loads the post
+  // itself.
+  const post = postRes?.ok ? await postRes.json().catch(() => null) : null;
+  if (!post) return res.send(shell);
 
   const { title, description, type, image, jsonLd } = postSeo(post, origin);
   const fullTitle = `${title} — ${SITE_NAME}`;
