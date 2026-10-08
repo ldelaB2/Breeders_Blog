@@ -51,6 +51,12 @@ export function useOptimisticList(setItems) {
     if (sending.current[id]) return; // already sending - it'll pick up `latest` when done
     const call = latest.current[id];
     if (!call) return;
+    // This call is being synced now, so it's no longer waiting. Its debounce
+    // timer may still be pending (when it's sent early as the follow-up to
+    // an in-flight request) - drop both so that timer can't send the same
+    // call again later. Votes are toggles, so a repeat would undo the vote.
+    delete latest.current[id];
+    clearTimeout(timers.current[id]);
 
     sending.current[id] = true;
     try {
