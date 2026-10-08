@@ -3,7 +3,7 @@ import IconButton from "@/components/ui/IconButton";
 // "+" toggle for revealing an AddCommentForm. Kept separate from the form so
 // the button can stay in a comment's header row while the form renders
 // further down, below the comment text.
-function AddCommentButton({ open, onClick }) {
+function AddCommentButton({ open, onClick, disabled }) {
   return (
     <IconButton
       icon="add-comment"
@@ -11,6 +11,7 @@ function AddCommentButton({ open, onClick }) {
       size="sm"
       tone={null}
       aria-expanded={open}
+      disabled={disabled}
       className="text-gray-600 hover:bg-gray-100 hover:text-gray-900"
       onClick={onClick}
     />

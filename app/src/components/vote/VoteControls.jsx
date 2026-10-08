@@ -4,7 +4,9 @@ import { cn } from "@/lib/utils/cn";
 // Shared upvote/downvote widget used by both posts and comments. Controlled:
 // the caller owns the real score/myVote (from the API response) and supplies
 // the toggle handlers, so this component has no vote state of its own.
-function VoteControls({ score, myVote = 0, onUpvote, onDownvote }) {
+// `disabled` is for items that can't be voted on yet (a comment still
+// being posted).
+function VoteControls({ score, myVote = 0, onUpvote, onDownvote, disabled }) {
   return (
     <div className="flex items-center gap-1">
       <IconButton
@@ -13,6 +15,7 @@ function VoteControls({ score, myVote = 0, onUpvote, onDownvote }) {
         size="sm"
         tone={null}
         pressed={myVote === 1}
+        disabled={disabled}
         stopPropagation
         onClick={() => onUpvote?.()}
         className={cn("text-accent hover:bg-accent-soft", myVote === 1 && "bg-accent-soft-active")}
@@ -26,6 +29,7 @@ function VoteControls({ score, myVote = 0, onUpvote, onDownvote }) {
         size="sm"
         tone={null}
         pressed={myVote === -1}
+        disabled={disabled}
         stopPropagation
         onClick={() => onDownvote?.()}
         className={cn("text-red-600 hover:bg-red-50", myVote === -1 && "bg-red-100")}

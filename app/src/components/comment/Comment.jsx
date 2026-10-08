@@ -20,6 +20,9 @@ function Comment({ comment, thread }) {
   const replies = childrenByParent.get(comment.id) || [];
   const hasReplies = replies.length > 0;
   const { score, myVote } = voteState(comment);
+  // Still being posted: its id is a temporary client one the server doesn't
+  // know yet, so nothing that sends it can be allowed until it's replaced.
+  const pending = Boolean(comment.pending);
 
   return (
     <div>
@@ -46,15 +49,21 @@ function Comment({ comment, thread }) {
               myVote={myVote}
               onUpvote={() => requireSignIn("vote") && actions.upvote(comment.id)}
               onDownvote={() => requireSignIn("vote") && actions.downvote(comment.id)}
+              disabled={pending}
             />
             {!locked && (
-              <AddCommentButton open={replying} onClick={() => requireSignIn("comment") && setReplying((r) => !r)} />
+              <AddCommentButton
+                open={replying}
+                onClick={() => requireSignIn("comment") && setReplying((r) => !r)}
+                disabled={pending}
+              />
             )}
             {isModerator && (
               <button
                 type="button"
                 onClick={() => (comment.deleted ? actions.restore : actions.remove)(comment.id)}
-                className="text-sm text-red-500 transition-colors hover:text-red-700"
+                disabled={pending}
+                className="text-sm text-red-500 transition-colors hover:text-red-700 disabled:cursor-wait disabled:opacity-50"
               >
                 {comment.deleted ? "Restore" : "Delete"}
               </button>

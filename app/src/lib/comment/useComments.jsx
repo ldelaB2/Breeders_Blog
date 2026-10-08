@@ -25,7 +25,9 @@ export function useComments(postId) {
   // Inserts a temporary comment immediately so the author sees it right
   // away, then swaps it for the server's real one (real id, real
   // timestamp-derived ordering) - or drops it and surfaces the error if the
-  // request fails.
+  // request fails. `pending` marks the temporary one: its id only exists
+  // here, so <Comment> disables replying, voting and moderating until the
+  // real comment replaces it.
   async function add(parentId, text) {
     const tempId = `optimistic-${crypto.randomUUID()}`;
     const optimisticComment = {
@@ -39,6 +41,7 @@ export function useComments(postId) {
       upvoteCount: 0,
       downvoteCount: 0,
       myVote: 0,
+      pending: true,
     };
     setComments((prev) => [...prev, optimisticComment]);
     try {
